@@ -1,0 +1,226 @@
+# 2 Types of Data Models
+
+### 1. Vector
+
+-   used for mapping boundaries, networks, and precise locations
+
+-   Points: Discrete location (a city, tree etc)
+
+    -   1 coordinate
+
+-   Lines: Linear features (roads, rivers etc)
+
+    -   \>= 2 coordinate pairs
+
+    -   know length
+
+-   Polygons: Area features (lakes, land parcels etc)
+
+    -   \>=3 line segment
+
+    -   know location, length, and area
+
+### 2. Raster
+
+-   used for continuous data (eg. elevation, temperature, satellite, imagery, land cover)
+
+-   Represents geographic features as a grid of cells or pixels.
+
+-   Each cell has a value representing information such as color, elevation, or land cover type.
+
+    ![](images/clipboard-2877243477.png){width="330"}![](images/clipboard-1338983222.png){width="185"}
+
++----------------------+--------------------------------------------------------------+------------------------------------------------------------------------------------+
+|                      | Vector                                                       | Raster                                                                             |
++======================+==============================================================+====================================================================================+
+| Data Representation  | Points, lines, and polygons representing discrete features.  | Grid of cells or pixels representing continuous data.                              |
++----------------------+--------------------------------------------------------------+------------------------------------------------------------------------------------+
+| Data Storage         | Stores data as coordinates with associated attributes.       | Stores data in a grid format, each cell holding a value.                           |
++----------------------+--------------------------------------------------------------+------------------------------------------------------------------------------------+
+| Precision and Detail | Highly precise, ideal for exact measurements and boundaries. | Resolution-dependent, better for continuous data representation.                   |
++----------------------+--------------------------------------------------------------+------------------------------------------------------------------------------------+
+| Data Processing      | Suited for network analysis and topology-based operations.   | Efficient for spatial analysis involving overlays and map algebra.                 |
++----------------------+--------------------------------------------------------------+------------------------------------------------------------------------------------+
+| Applications         | Used in mapping boundaries, networks, and urban planning.    | Used in remote sensing, environmental modeling, and continuous surface analysis.   |
++----------------------+--------------------------------------------------------------+------------------------------------------------------------------------------------+
+| Visualization        | Sharp visuals, clear boundaries, smooth scaling.             | Can become pixelated when zoomed in; best for surface data like satellite imagery. |
++----------------------+--------------------------------------------------------------+------------------------------------------------------------------------------------+
+
+# Coordinate System
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson01/img/image2-4a.jpg){width="198"}
+
+-   Provides a location reference to the geospatial data
+
+-   Types
+
+    -   GCS -Geographic Coordinate System
+
+    -   PCS -Projected Coordinate System
+
++------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------+
+| Geographic Coordinate System (GCS)                                                       | Projected Coordinate System (PCS)                                           |
++:========================================================================================:+=============================================================================+
+| ![](https://is415-ay2024-25t1.netlify.app/lesson/lesson01/img/image2-4.jpg){width="157"} | ![](https://is415-ay2024-25t1.netlify.app/lesson/lesson01/img/image2-5.jpg) |
++------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------+
+| use a 3D surface (eg. WGS84)                                                             |                                                                             |
++------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------+
+| provides accurate position info                                                          |                                                                             |
++------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------+
+| not appropriate for distance & area measurements                                         | provides consistent length & area measurement across space                  |
++------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------+
+
+Need to transform GCS -\> PCS before performing geospatial analysis
+
+# Simple Features
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson01/img/image2-11.jpg)
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson01/img/image2-12.jpg)
+
+# Shapefile
+
++------------------------------------------------------------------------------------------+---------------------------------------------------+
+| ![](https://is415-ay2024-25t1.netlify.app/lesson/lesson01/img/image2-7.jpg){width="180"} | if read, no need specify extension                |
+|                                                                                          |                                                   |
+|                                                                                          | ![](images/clipboard-4211762150.png){width="266"} |
++------------------------------------------------------------------------------------------+---------------------------------------------------+
+
+![](images/clipboard-3145689516.png){width="451"}
+
+*For other vector format, read need to specify extension*
+
+-   consist of a few files
+
+-   a simple, non-topological format for storing geometric location & attribute info of geographic features
+
+-   Geographic features in a shapefile can be represented by **Points**, **Lines**, **Polygons(areas)**
+
+# SF functions
+
+### Geospatial data handling
+
+*`st_read & read_sf`*
+
+| Shapefile format                                  | Other format                        |
+|---------------------------------------------------|-------------------------------------|
+| ![](images/clipboard-1987135759.png){width="339"} | ![](images/clipboard-124463169.png) |
+
+*`read_csv`*
+
+![](images/clipboard-2487434773.png){width="338"}
+
+*`glimpse -> similar to print()`*
+
+![](images/clipboard-4051478013.png){width="395"}
+
+*`st_write & write_sf`*
+
+*`st_as_sf -> convert data frames/spatial objects into "sf" simple features, allowing for spatial data manipulation & analysis`*
+
+*`st_as_text -> convert to Well Known Text`*
+
+*`st_as_binary`*
+
+*`st_as_sfc -> convert coordinate data into "sfc" simple feature collections objects`*
+
+*`st_transform -> convert coordinates to a different coordinate reference system`*
+
+### Geospatial confirmation
+
+*`st_intersects`*
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson01/img/image2-15.jpg){width="199"}
+
+|                                    |            |                 |
+|------------------------------------|------------|-----------------|
+| st_disjoint -\> !intersect         | st_equals  | st_equal_exacts |
+| st_crosses -\> cross (don't touch) | st_touches | st_within       |
+| st_contains                        | st_covers  | st_covered_by   |
+| st_overlaps                        |            |                 |
+
+### Geospatial operations
+
+|               |                   |
+|---------------|-------------------|
+| st_union      | st_intersection   |
+| st_difference | st_sym_difference |
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson01/img/image2-18.jpg){fig-align="center" width="315"}
+
+### Geospatial creation
+
++-------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------+
+| st_interpolate_aw -\>                                                                           | st_join                                                                                   |
+|                                                                                                 |                                                                                           |
+| -   area-weighted interpolation                                                                 | eg. join a point data and polygon data together                                           |
+|                                                                                                 |                                                                                           |
+| -   uses st_intersection to interpolate/redistribute attribute values, based on area of overlap | ![](https://is415-ay2024-25t1.netlify.app/lesson/lesson01/img/image2-21.jpg){width="156"} |
++-------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------+
+
+### Geospatial operations
+
++-------------------------------------+-------------------------------------+------------------------------------------------------------------------------------------------------+
+| st_line_merge -\> merge lines       | st_segmentize -\>                   | st_centroid(poly)                                                                                    |
+|                                     |                                     |                                                                                                      |
+|                                     | adds points to straight lines       | ![](https://is415-ay2024-25t1.netlify.app/lesson/lesson01/img/image2-16.jpg){width="89" height="86"} |
++-------------------------------------+-------------------------------------+------------------------------------------------------------------------------------------------------+
+| st_voronoi                          | st_convex_hull                      | st_triangulate                                                                                       |
++-------------------------------------+-------------------------------------+------------------------------------------------------------------------------------------------------+
+| st_polygonize                       | st_simplify -\>                     | st_buffer(poly, 5)                                                                                   |
+|                                     |                                     |                                                                                                      |
+|                                     | simplify lines by removing articles | ![](https://is415-ay2024-25t1.netlify.app/lesson/lesson01/img/image2-17.jpg){width="105"}            |
++-------------------------------------+-------------------------------------+------------------------------------------------------------------------------------------------------+
+| st_split -\>                        | st_make_valid -\>                   | is_boundary -\>                                                                                      |
+|                                     |                                     |                                                                                                      |
+| split a ploygon given line geometry | make an invalid geometry valid      | return the boundary of a geometry                                                                    |
++-------------------------------------+-------------------------------------+------------------------------------------------------------------------------------------------------+
+
+### Geospatial measurement
+
++-------------------------------------------------------------------------------------------+--------------------------------------------+
+| st_zm -\>                                                                                 | st_coordinates -\>                         |
+|                                                                                           |                                            |
+| set/remove z and/or m geometry                                                            | returns coordinates in a matrix/data.frame |
++-------------------------------------------------------------------------------------------+--------------------------------------------+
+| st_geometry                                                                               | st_is -\>                                  |
+|                                                                                           |                                            |
+| ![](https://is415-ay2024-25t1.netlify.app/lesson/lesson01/img/image2-19.jpg){width="221"} | check if geometry is of a particular type  |
++-------------------------------------------------------------------------------------------+--------------------------------------------+
+
+head -\> reveal complete info of a feature object, can select the number of records to display
+
+![](images/clipboard-3554044219.png){width="358"}
+
+|                                                   |                                     |
+|---------------------------------------------------|-------------------------------------|
+| ![](images/clipboard-2292622555.png){width="359"} | ![](images/clipboard-641750459.png) |
+| ![](images/clipboard-565611019.png)               |                                     |
+
+### To Check coordinate system of mpsz
+
+![](images/clipboard-1758024046.png){width="378"}
+
+### Assign EPSG code to mpsz
+
+![](images/clipboard-1880810381.png)
+
+### Summary
+
+![](images/clipboard-1393087920.png){width="316"}
+
+### Top n
+
+![](images/clipboard-2808688766.png){width="400"}
+
+### Sum
+
+![](images/clipboard-1027675022.png){width="141"}
+
+### Compute density
+
+![](images/clipboard-1195663165.png)
+
+### Histogram
+
+![](images/clipboard-991874638.png){width="301"}

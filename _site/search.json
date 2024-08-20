@@ -96,5 +96,12 @@
     "title": "VAA",
     "section": "",
     "text": "&lt;!DOCTYPE qgis PUBLIC ‘http://mrcc.com/qgis.dtd’ ‘SYSTEM’&gt;     dataset\n\n\n        0 0     false"
+  },
+  {
+    "objectID": "Notes/Lesson_1.html",
+    "href": "Notes/Lesson_1.html",
+    "title": "2 Types of Data Models",
+    "section": "",
+    "text": "2 Types of Data Models\n\n1. Vector\n\nused for mapping boundaries, networks, and precise locations\nPoints: Discrete location (a city, tree etc)\n\n1 coordinate\n\nLines: Linear features (roads, rivers etc)\n\n&gt;= 2 coordinate pairs\nknow length\n\nPolygons: Area features (lakes, land parcels etc)\n\n&gt;=3 line segment\nknow location, length, and area\n\n\n\n\n2. Raster\n\nused for continuous data (eg. elevation, temperature, satellite, imagery, land cover)\nRepresents geographic features as a grid of cells or pixels.\nEach cell has a value representing information such as color, elevation, or land cover type.\n\n\n\n\n\n\n\n\n\n\n\nVector\nRaster\n\n\n\n\nData Representation\nPoints, lines, and polygons representing discrete features.\nGrid of cells or pixels representing continuous data.\n\n\nData Storage\nStores data as coordinates with associated attributes.\nStores data in a grid format, each cell holding a value.\n\n\nPrecision and Detail\nHighly precise, ideal for exact measurements and boundaries.\nResolution-dependent, better for continuous data representation.\n\n\nData Processing\nSuited for network analysis and topology-based operations.\nEfficient for spatial analysis involving overlays and map algebra.\n\n\nApplications\nUsed in mapping boundaries, networks, and urban planning.\nUsed in remote sensing, environmental modeling, and continuous surface analysis.\n\n\nVisualization\nSharp visuals, clear boundaries, smooth scaling.\nCan become pixelated when zoomed in; best for surface data like satellite imagery.\n\n\n\n\n\n\nCoordinate System\n\n\nProvides a location reference to the geospatial data\nTypes\n\nGCS -Geographic Coordinate System\nPCS -Projected Coordinate System\n\n\n\n\n\n\n\n\n\nGeographic Coordinate System (GCS)\nProjected Coordinate System (PCS)\n\n\n\n\n\n\n\n\nuse a 3D surface (eg. WGS84)\n\n\n\nprovides accurate position info\n\n\n\nnot appropriate for distance & area measurements\nprovides consistent length & area measurement across space\n\n\n\nNeed to transform GCS -&gt; PCS before performing geospatial analysis"
   }
 ]

@@ -5,6 +5,10 @@ website:
   title: "VAA"
   navbar:
     left:
+    - text: "Notes"
+      menu:
+        - text: "Notes 1"
+          href: "Notes/Lesson_1.html"
     - text: "Hands-on Exercise"
       menu:
         - text: "Hands-on Exercise 1"
