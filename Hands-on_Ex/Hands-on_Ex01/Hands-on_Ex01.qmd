@@ -1,5 +1,6 @@
 ---
 title: "Hands-on Exercise 1"
+subtitle: "Geospatial Data Wrangling with R!"
 author: "Kai Feng"
 date: "August 17, 2024"
 date-modified: "last-modified"
