@@ -2,7 +2,7 @@ project:
   type: website
 
 website:
-  title: "VAA"
+  title: "IS415"
   navbar:
     left:
     - text: "Notes"
@@ -19,6 +19,8 @@ website:
       menu:
         - text: "In-class Exercise 1"
           href: "In-class_Ex/In-class_Ex01/In-class_EX01.html"
+        - text: "In-class Exercise 2"
+          href: "In-class_Ex/In-class_Ex02/In-class_EX02.html"
     right:
       - href: index.qmd
         text: Home
