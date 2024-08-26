@@ -84,7 +84,7 @@ mutate(`DEPENDENCY` = (`YOUNG` + `AGED`)
 /`ECONOMY ACTIVE`)
 ```
 
-
+To standardize data of mpsz2019_shp and popdata2023, is case sensitive:
 ```{r}
 popdata2023 <- popdata2023 %>%
   mutate_at(.vars = vars(PA, SZ), 
@@ -93,6 +93,6 @@ popdata2023 <- popdata2023 %>%
 ```
 
 ```{r}
-mpsz_pop2023 <- left_join(mpsz, popdata2023,
+mpsz_pop2023 <- left_join(mpsz2019_shp, popdata2023,
                           by = c("SUBZONE_N" = "SZ"))
 ```
