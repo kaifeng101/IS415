@@ -6,8 +6,10 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
+<meta name="author" content="Kai Feng">
+<meta name="dcterms.date" content="2024-08-27">
 
-<title>IS415</title>
+<title>IS415 - Notes 2</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -159,29 +161,33 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#types-of-data-models" id="toc-types-of-data-models" class="nav-link active" data-scroll-target="#types-of-data-models">2 Types of Data Models</a>
+  <li><a href="#choropleth-map-a.k.a-area-shaded-map" id="toc-choropleth-map-a.k.a-area-shaded-map" class="nav-link active" data-scroll-target="#choropleth-map-a.k.a-area-shaded-map">Choropleth Map (a.k.a area shaded map)</a>
   <ul class="collapse">
-  <li><a href="#vector" id="toc-vector" class="nav-link" data-scroll-target="#vector">1. Vector</a></li>
-  <li><a href="#raster" id="toc-raster" class="nav-link" data-scroll-target="#raster">2. Raster</a></li>
+  <li><a href="#types-of-choropleth-map" id="toc-types-of-choropleth-map" class="nav-link" data-scroll-target="#types-of-choropleth-map">2 types of Choropleth Map</a>
+  <ul class="collapse">
+  <li><a href="#classified--classed" id="toc-classified--classed" class="nav-link" data-scroll-target="#classified--classed">1) Classified -Classed</a></li>
+  <li><a href="#unclassified--unclassed" id="toc-unclassified--unclassed" class="nav-link" data-scroll-target="#unclassified--unclassed">2) Unclassified -Unclassed</a></li>
   </ul></li>
-  <li><a href="#coordinate-system" id="toc-coordinate-system" class="nav-link" data-scroll-target="#coordinate-system">Coordinate System</a></li>
-  <li><a href="#simple-features" id="toc-simple-features" class="nav-link" data-scroll-target="#simple-features">Simple Features</a></li>
-  <li><a href="#shapefile" id="toc-shapefile" class="nav-link" data-scroll-target="#shapefile">Shapefile</a></li>
-  <li><a href="#sf-functions" id="toc-sf-functions" class="nav-link" data-scroll-target="#sf-functions">SF functions</a>
+  <li><a href="#colour-scheme--colorbrewer" id="toc-colour-scheme--colorbrewer" class="nav-link" data-scroll-target="#colour-scheme--colorbrewer">Colour Scheme -ColorBrewer</a></li>
+  </ul></li>
+  <li><a href="#tmap-package" id="toc-tmap-package" class="nav-link" data-scroll-target="#tmap-package">tmap package</a>
   <ul class="collapse">
-  <li><a href="#geospatial-data-handling" id="toc-geospatial-data-handling" class="nav-link" data-scroll-target="#geospatial-data-handling">Geospatial data handling</a></li>
-  <li><a href="#geospatial-confirmation" id="toc-geospatial-confirmation" class="nav-link" data-scroll-target="#geospatial-confirmation">Geospatial confirmation</a></li>
-  <li><a href="#geospatial-operations" id="toc-geospatial-operations" class="nav-link" data-scroll-target="#geospatial-operations">Geospatial operations</a></li>
-  <li><a href="#geospatial-creation" id="toc-geospatial-creation" class="nav-link" data-scroll-target="#geospatial-creation">Geospatial creation</a></li>
-  <li><a href="#geospatial-operations-1" id="toc-geospatial-operations-1" class="nav-link" data-scroll-target="#geospatial-operations-1">Geospatial operations</a></li>
-  <li><a href="#geospatial-measurement" id="toc-geospatial-measurement" class="nav-link" data-scroll-target="#geospatial-measurement">Geospatial measurement</a></li>
-  <li><a href="#to-check-coordinate-system-of-mpsz" id="toc-to-check-coordinate-system-of-mpsz" class="nav-link" data-scroll-target="#to-check-coordinate-system-of-mpsz">To Check coordinate system of mpsz</a></li>
-  <li><a href="#assign-epsg-code-to-mpsz" id="toc-assign-epsg-code-to-mpsz" class="nav-link" data-scroll-target="#assign-epsg-code-to-mpsz">Assign EPSG code to mpsz</a></li>
-  <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary">Summary</a></li>
-  <li><a href="#top-n" id="toc-top-n" class="nav-link" data-scroll-target="#top-n">Top n</a></li>
-  <li><a href="#sum" id="toc-sum" class="nav-link" data-scroll-target="#sum">Sum</a></li>
-  <li><a href="#compute-density" id="toc-compute-density" class="nav-link" data-scroll-target="#compute-density">Compute density</a></li>
-  <li><a href="#histogram" id="toc-histogram" class="nav-link" data-scroll-target="#histogram">Histogram</a></li>
+  <li><a href="#shape-objects" id="toc-shape-objects" class="nav-link" data-scroll-target="#shape-objects">Shape objects</a>
+  <ul class="collapse">
+  <li><a href="#tmap-element" id="toc-tmap-element" class="nav-link" data-scroll-target="#tmap-element">tmap element</a></li>
+  <li><a href="#tm_polygons" id="toc-tm_polygons" class="nav-link" data-scroll-target="#tm_polygons">tm_polygons()</a></li>
+  <li><a href="#tm_border" id="toc-tm_border" class="nav-link" data-scroll-target="#tm_border">tm_border()</a></li>
+  </ul></li>
+  <li><a href="#map-geographical-data" id="toc-map-geographical-data" class="nav-link" data-scroll-target="#map-geographical-data">Map &amp; Geographical Data</a></li>
+  <li><a href="#geo-vs-aspatial-data" id="toc-geo-vs-aspatial-data" class="nav-link" data-scroll-target="#geo-vs-aspatial-data">Geo VS Aspatial Data</a></li>
+  <li><a href="#qualitative-thematic-map" id="toc-qualitative-thematic-map" class="nav-link" data-scroll-target="#qualitative-thematic-map">Qualitative Thematic Map</a></li>
+  <li><a href="#proportional-symbol-map" id="toc-proportional-symbol-map" class="nav-link" data-scroll-target="#proportional-symbol-map">Proportional Symbol Map</a></li>
+  <li><a href="#proportional-symbol-map--bar-chart-map" id="toc-proportional-symbol-map--bar-chart-map" class="nav-link" data-scroll-target="#proportional-symbol-map--bar-chart-map">Proportional Symbol Map -Bar Chart Map</a></li>
+  <li><a href="#proportional-symbol-map--pie-chart-map" id="toc-proportional-symbol-map--pie-chart-map" class="nav-link" data-scroll-target="#proportional-symbol-map--pie-chart-map">Proportional Symbol Map -Pie Chart Map</a></li>
+  <li><a href="#proportional-symbol-map--junk-map" id="toc-proportional-symbol-map--junk-map" class="nav-link" data-scroll-target="#proportional-symbol-map--junk-map">Proportional Symbol Map -Junk Map</a></li>
+  <li><a href="#brick-map" id="toc-brick-map" class="nav-link" data-scroll-target="#brick-map">Brick Map</a></li>
+  <li><a href="#bricks-vs-proportional-symbol-map" id="toc-bricks-vs-proportional-symbol-map" class="nav-link" data-scroll-target="#bricks-vs-proportional-symbol-map">Bricks VS Proportional Symbol Map</a></li>
+  <li><a href="#dot-density-map" id="toc-dot-density-map" class="nav-link" data-scroll-target="#dot-density-map">Dot Density Map</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -189,369 +195,246 @@ ul.task-list li input[type="checkbox"] {
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-
-
-
-<section id="types-of-data-models" class="level1">
-<h1>2 Types of Data Models</h1>
-<section id="vector" class="level3">
-<h3 class="anchored" data-anchor-id="vector">1. Vector</h3>
-<ul>
-<li><p>used for mapping boundaries, networks, and precise locations</p></li>
-<li><p>Points: Discrete location (a city, tree etc)</p>
-<ul>
-<li>1 coordinate</li>
-</ul></li>
-<li><p>Lines: Linear features (roads, rivers etc)</p>
-<ul>
-<li><p>&gt;= 2 coordinate pairs</p></li>
-<li><p>know length</p></li>
-</ul></li>
-<li><p>Polygons: Area features (lakes, land parcels etc)</p>
-<ul>
-<li><p>&gt;=3 line segment</p></li>
-<li><p>know location, length, and area</p></li>
-</ul></li>
-</ul>
-</section>
-<section id="raster" class="level3">
-<h3 class="anchored" data-anchor-id="raster">2. Raster</h3>
-<ul>
-<li><p>used for continuous data (eg. elevation, temperature, satellite, imagery, land cover)</p></li>
-<li><p>Represents geographic features as a grid of cells or pixels.</p></li>
-<li><p>Each cell has a value representing information such as color, elevation, or land cover type.</p>
-<p><img src="images/clipboard-2877243477.png" class="img-fluid" width="330"><img src="images/clipboard-1338983222.png" class="img-fluid" width="185"></p></li>
-</ul>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 13%">
-<col style="width: 36%">
-<col style="width: 49%">
-</colgroup>
-<thead>
-<tr class="header">
-<th></th>
-<th>Vector</th>
-<th>Raster</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Data Representation</td>
-<td>Points, lines, and polygons representing discrete features.</td>
-<td>Grid of cells or pixels representing continuous data.</td>
-</tr>
-<tr class="even">
-<td>Data Storage</td>
-<td>Stores data as coordinates with associated attributes.</td>
-<td>Stores data in a grid format, each cell holding a value.</td>
-</tr>
-<tr class="odd">
-<td>Precision and Detail</td>
-<td>Highly precise, ideal for exact measurements and boundaries.</td>
-<td>Resolution-dependent, better for continuous data representation.</td>
-</tr>
-<tr class="even">
-<td>Data Processing</td>
-<td>Suited for network analysis and topology-based operations.</td>
-<td>Efficient for spatial analysis involving overlays and map algebra.</td>
-</tr>
-<tr class="odd">
-<td>Applications</td>
-<td>Used in mapping boundaries, networks, and urban planning.</td>
-<td>Used in remote sensing, environmental modeling, and continuous surface analysis.</td>
-</tr>
-<tr class="even">
-<td>Visualization</td>
-<td>Sharp visuals, clear boundaries, smooth scaling.</td>
-<td>Can become pixelated when zoomed in; best for surface data like satellite imagery.</td>
-</tr>
-</tbody>
-</table>
-</section>
-</section>
-<section id="coordinate-system" class="level1">
-<h1>Coordinate System</h1>
-<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson01/img/image2-4a.jpg" class="img-fluid" width="198"></p>
-<ul>
-<li><p>Provides a location reference to the geospatial data</p></li>
-<li><p>Types</p>
-<ul>
-<li><p>GCS -Geographic Coordinate System</p></li>
-<li><p>PCS -Projected Coordinate System</p></li>
-</ul></li>
-</ul>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 53%">
-<col style="width: 46%">
-</colgroup>
-<thead>
-<tr class="header">
-<th style="text-align: center;">Geographic Coordinate System (GCS)</th>
-<th>Projected Coordinate System (PCS)</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: center;"><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson01/img/image2-4.jpg" class="img-fluid" width="157"></td>
-<td><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson01/img/image2-5.jpg" class="img-fluid"></td>
-</tr>
-<tr class="even">
-<td style="text-align: center;">use a 3D surface (eg. WGS84)</td>
-<td></td>
-</tr>
-<tr class="odd">
-<td style="text-align: center;">provides accurate position info</td>
-<td></td>
-</tr>
-<tr class="even">
-<td style="text-align: center;">not appropriate for distance &amp; area measurements</td>
-<td>provides consistent length &amp; area measurement across space</td>
-</tr>
-</tbody>
-</table>
-<p>Need to transform GCS -&gt; PCS before performing geospatial analysis</p>
-</section>
-<section id="simple-features" class="level1">
-<h1>Simple Features</h1>
-<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson01/img/image2-11.jpg" class="img-fluid"></p>
-<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson01/img/image2-12.jpg" class="img-fluid"></p>
-</section>
-<section id="shapefile" class="level1">
-<h1>Shapefile</h1>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 63%">
-<col style="width: 36%">
-</colgroup>
-<tbody>
-<tr class="odd">
-<td><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson01/img/image2-7.jpg" class="img-fluid" width="180"></td>
-<td><p>if read, no need specify extension</p>
-<p><img src="images/clipboard-4211762150.png" class="img-fluid" width="266"></p></td>
-</tr>
-</tbody>
-</table>
-<p><img src="images/clipboard-3145689516.png" class="img-fluid" width="451"></p>
-<p><em>For other vector format, read need to specify extension</em></p>
-<ul>
-<li><p>consist of a few files</p></li>
-<li><p>a simple, non-topological format for storing geometric location &amp; attribute info of geographic features</p></li>
-<li><p>Geographic features in a shapefile can be represented by <strong>Points</strong>, <strong>Lines</strong>, <strong>Polygons(areas)</strong></p></li>
-</ul>
-</section>
-<section id="sf-functions" class="level1">
-<h1>SF functions</h1>
-<section id="geospatial-data-handling" class="level3">
-<h3 class="anchored" data-anchor-id="geospatial-data-handling">Geospatial data handling</h3>
-<p><em><code>st_read &amp; read_sf</code></em></p>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 57%">
-<col style="width: 42%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Shapefile format</th>
-<th>Other format</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><img src="images/clipboard-1987135759.png" class="img-fluid" width="339"></td>
-<td><img src="images/clipboard-124463169.png" class="img-fluid"></td>
-</tr>
-</tbody>
-</table>
-<p><em><code>read_csv</code></em></p>
-<p><img src="images/clipboard-2487434773.png" class="img-fluid" width="338"></p>
-<p><em><code>glimpse -&gt; similar to print()</code></em></p>
-<p><img src="images/clipboard-4051478013.png" class="img-fluid" width="395"></p>
-<p><em><code>st_write &amp; write_sf</code></em></p>
-<p><em><code>st_as_sf -&gt; convert data frames/spatial objects into "sf" simple features, allowing for spatial data manipulation &amp; analysis</code></em></p>
-<p><em><code>st_as_text -&gt; convert to Well Known Text</code></em></p>
-<p><em><code>st_as_binary</code></em></p>
-<p><em><code>st_as_sfc -&gt; convert coordinate data into "sfc" simple feature collections objects</code></em></p>
-<p><em><code>st_transform -&gt; convert coordinates to a different coordinate reference system</code></em></p>
-</section>
-<section id="geospatial-confirmation" class="level3">
-<h3 class="anchored" data-anchor-id="geospatial-confirmation">Geospatial confirmation</h3>
-<p><em><code>st_intersects</code></em></p>
-<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson01/img/image2-15.jpg" class="img-fluid" width="199"></p>
-<table class="caption-top table">
-<tbody>
-<tr class="odd">
-<td>st_disjoint -&gt; !intersect</td>
-<td>st_equals</td>
-<td>st_equal_exacts</td>
-</tr>
-<tr class="even">
-<td>st_crosses -&gt; cross (don’t touch)</td>
-<td>st_touches</td>
-<td>st_within</td>
-</tr>
-<tr class="odd">
-<td>st_contains</td>
-<td>st_covers</td>
-<td>st_covered_by</td>
-</tr>
-<tr class="even">
-<td>st_overlaps</td>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="geospatial-operations" class="level3">
-<h3 class="anchored" data-anchor-id="geospatial-operations">Geospatial operations</h3>
-<table class="caption-top table">
-<tbody>
-<tr class="odd">
-<td>st_union</td>
-<td>st_intersection</td>
-</tr>
-<tr class="even">
-<td>st_difference</td>
-<td>st_sym_difference</td>
-</tr>
-</tbody>
-</table>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson01/img/image2-18.jpg" class="img-fluid quarto-figure quarto-figure-center figure-img" width="315"></p>
-</figure>
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Notes 2</h1>
+<p class="subtitle lead">Thematic Mapping and GeoVisualisation with R</p>
 </div>
-</section>
-<section id="geospatial-creation" class="level3">
-<h3 class="anchored" data-anchor-id="geospatial-creation">Geospatial creation</h3>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 51%">
-<col style="width: 48%">
-</colgroup>
-<tbody>
-<tr class="odd">
-<td><p>st_interpolate_aw -&gt;</p>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Kai Feng </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">August 27, 2024</p>
+    </div>
+  </div>
+  
+    <div>
+    <div class="quarto-title-meta-heading">Modified</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date-modified">August 27, 2024</p>
+    </div>
+  </div>
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="choropleth-map-a.k.a-area-shaded-map" class="level1">
+<h1>Choropleth Map (a.k.a area shaded map)</h1>
+<p>A type of thematic map, areas shaded, values aggregated into geographical layer (eg. subzone)</p>
+<p>The shading is the things we want to map (eg. Dependency ratio)</p>
+<p><img src="images/clipboard-2808213866.png" class="img-fluid" width="249"></p>
+<section id="types-of-choropleth-map" class="level2">
+<h2 class="anchored" data-anchor-id="types-of-choropleth-map">2 types of Choropleth Map</h2>
+<section id="classified--classed" class="level3">
+<h3 class="anchored" data-anchor-id="classified--classed">1) Classified -Classed</h3>
 <ul>
-<li><p>area-weighted interpolation</p></li>
-<li><p>uses st_intersection to interpolate/redistribute attribute values, based on area of overlap</p></li>
-</ul></td>
-<td><p>st_join</p>
-<p>eg. join a point data and polygon data together</p>
-<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson01/img/image2-21.jpg" class="img-fluid" width="156"></p></td>
+<li>combines areal units into small no. of groups (10 methods eg. ‘equal’, ‘quantile’)</li>
+</ul>
+<p>No.&nbsp;of Classes</p>
+<ul>
+<li><p>if &lt;4, overly generalized map [Can use depending on context, eg. USA election, red camp VS blue camp]</p></li>
+<li><p>keep &lt;= 12, 7/8 shades of the same color</p></li>
+<li><p>if too many, our eyes cannot differentiate them wel</p></li>
+</ul>
+<p><img src="images/clipboard-1935585594.png" class="img-fluid" width="248"></p>
+<p>equal = divide into same range (not suitable for highly skewed data set)</p>
+<p>quantile -&gt; into different percentage</p>
+<p>natural breaks (a.k.a. jenks) -&gt; fuse between equal &amp; quantile method</p>
+<p>standard deviation -&gt; if data is normal distribution only</p>
+</section>
+<section id="unclassified--unclassed" class="level3">
+<h3 class="anchored" data-anchor-id="unclassified--unclassed">2) Unclassified -Unclassed</h3>
+<ul>
+<li>map it to the color, spectrum (the value) (eg. 0 -&gt; 223)</li>
+</ul>
+</section>
+</section>
+<section id="colour-scheme--colorbrewer" class="level2">
+<h2 class="anchored" data-anchor-id="colour-scheme--colorbrewer">Colour Scheme -ColorBrewer</h2>
+<p><img src="images/clipboard-2269324777.png" class="img-fluid" width="206"></p>
+<p>* Nominal Color Scheme -&gt; Only for categorical data</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 54%">
+<col style="width: 38%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Color Scheme</th>
+<th>Remarks</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><img src="images/clipboard-2148829889.png" class="img-fluid"></td>
+<td>Only for categorical data</td>
+</tr>
+<tr class="even">
+<td><img src="images/clipboard-4154642551.png" class="img-fluid"></td>
+<td><p>For continuous</p>
+<p>+</p>
+<p>All value +/-</p></td>
+</tr>
+<tr class="odd">
+<td><img src="images/clipboard-2983750397.png" class="img-fluid"></td>
+<td><p>For continuous</p>
+<p>+</p>
+<p>Value have both +/- only</p></td>
 </tr>
 </tbody>
 </table>
 </section>
-<section id="geospatial-operations-1" class="level3">
-<h3 class="anchored" data-anchor-id="geospatial-operations-1">Geospatial operations</h3>
+</section>
+<section id="tmap-package" class="level1">
+<h1>tmap package</h1>
+<p><img src="images/clipboard-837005071.png" class="img-fluid" width="285"></p>
+<ul>
+<li>supports 2 modes: <strong>plot</strong> (static map), <strong>view</strong> (interactive map)</li>
+</ul>
+<section id="shape-objects" class="level2">
+<h2 class="anchored" data-anchor-id="shape-objects">Shape objects</h2>
+<p><img src="images/clipboard-1160544185.png" class="img-fluid" width="200"></p>
+<section id="tmap-element" class="level3">
+<h3 class="anchored" data-anchor-id="tmap-element">tmap element</h3>
+<p>-&gt; always start with <strong>tm_shape()</strong></p>
+<p>* Put plus<strong>(+)</strong> sign to indicate it is a continuous code (Put it at the back)</p>
+<p><img src="images/clipboard-4170268982.png" class="img-fluid" width="392"></p>
+<p>-&gt; can later add</p>
+<p><img src="images/clipboard-2920258230.png" class="img-fluid" width="262"></p>
+<p>-&gt;can choose from this list</p>
+<p><img src="images/clipboard-2478902316.png" class="img-fluid" width="367"></p>
+<p><img src="images/clipboard-3277114312.png" class="img-fluid" width="274"></p>
+</section>
+<section id="tm_polygons" class="level3">
+<h3 class="anchored" data-anchor-id="tm_polygons">tm_polygons()</h3>
+<ul>
+<li><p>default classes = 5bins</p></li>
+<li><p>default classification method = “pretty”</p></li>
+<li><p>default color scheme = “YIOrRd” (yellow-orange)</p></li>
+<li><p>missing value = gray</p></li>
+</ul>
+<p><img src="images/clipboard-3434512484.png" class="img-fluid" width="263"></p>
+</section>
+<section id="tm_border" class="level3">
+<h3 class="anchored" data-anchor-id="tm_border">tm_border()</h3>
+<ul>
+<li><p>default lwd (border line width) = 1</p></li>
+<li><p>alpha = between 0 (totally transparent) and 1 (not transparent)</p>
+<ul>
+<li>Default alpha = 1</li>
+</ul></li>
+<li><p>col (border color)</p></li>
+<li><p>default lty (border line type) = “solid”</p></li>
+</ul>
+<p><img src="images/clipboard-1592500716.png" class="img-fluid" width="259"></p>
+<hr>
+</section>
+</section>
+<section id="map-geographical-data" class="level2">
+<h2 class="anchored" data-anchor-id="map-geographical-data">Map &amp; Geographical Data</h2>
+<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-1c.jpg" class="img-fluid"></p>
+</section>
+<section id="geo-vs-aspatial-data" class="level2">
+<h2 class="anchored" data-anchor-id="geo-vs-aspatial-data">Geo VS Aspatial Data</h2>
+<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-1d.jpg" class="img-fluid" width="522"></p>
+<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-6.jpg" class="img-fluid" width="305"></p>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 21%">
-<col style="width: 21%">
-<col style="width: 57%">
+<col style="width: 39%">
+<col style="width: 60%">
 </colgroup>
 <tbody>
 <tr class="odd">
-<td>st_line_merge -&gt; merge lines</td>
-<td><p>st_segmentize -&gt;</p>
-<p>adds points to straight lines</p></td>
-<td><p>st_centroid(poly)</p>
-<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson01/img/image2-16.jpg" width="89" height="86"></p></td>
+<td><strong>Reference Maps</strong><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-7.jpg" class="img-fluid"></td>
+<td><p>show buildings, roads, vegetation, rivers</p>
+<p>eg. topo map like Google Map</p></td>
 </tr>
 <tr class="even">
-<td>st_voronoi</td>
-<td>st_convex_hull</td>
-<td>st_triangulate</td>
-</tr>
-<tr class="odd">
-<td>st_polygonize</td>
-<td><p>st_simplify -&gt;</p>
-<p>simplify lines by removing articles</p></td>
-<td><p>st_buffer(poly, 5)</p>
-<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson01/img/image2-17.jpg" class="img-fluid" width="105"></p></td>
-</tr>
-<tr class="even">
-<td><p>st_split -&gt;</p>
-<p>split a ploygon given line geometry</p></td>
-<td><p>st_make_valid -&gt;</p>
-<p>make an invalid geometry valid</p></td>
-<td><p>is_boundary -&gt;</p>
-<p>return the boundary of a geometry</p></td>
+<td><p><strong>Thematic Map</strong></p>
+<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-8.jpg" class="img-fluid"></p></td>
+<td>emphasize the spatial pattern of geographic attributes or statistics about places and relationships between places such as Life in Los Angeles.</td>
 </tr>
 </tbody>
 </table>
 </section>
-<section id="geospatial-measurement" class="level3">
-<h3 class="anchored" data-anchor-id="geospatial-measurement">Geospatial measurement</h3>
+<section id="qualitative-thematic-map" class="level2">
+<h2 class="anchored" data-anchor-id="qualitative-thematic-map">Qualitative Thematic Map</h2>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 67%">
-<col style="width: 32%">
+<col style="width: 48%">
+<col style="width: 51%">
 </colgroup>
 <tbody>
 <tr class="odd">
-<td><p>st_zm -&gt;</p>
-<p>set/remove z and/or m geometry</p></td>
-<td><p>st_coordinates -&gt;</p>
-<p>returns coordinates in a matrix/data.frame</p></td>
+<td><p><strong>Point symbol map</strong></p>
+<p>Use point to represent school types</p></td>
+<td><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-10.jpg" class="img-fluid" width="337"></td>
 </tr>
 <tr class="even">
-<td><p>st_geometry</p>
-<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson01/img/image2-19.jpg" class="img-fluid" width="221"></p></td>
-<td><p>st_is -&gt;</p>
-<p>check if geometry is of a particular type</p></td>
+<td><p><strong>Line symbol map</strong></p>
+<p>Show road network</p>
+<p>Different color intensity and thickness are used to differentiate hierarchy of roads</p></td>
+<td><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-11.jpg" class="img-fluid" width="116"></td>
 </tr>
-</tbody>
-</table>
-<p>head -&gt; reveal complete info of a feature object, can select the number of records to display</p>
-<p><img src="images/clipboard-3554044219.png" class="img-fluid" width="358"></p>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 57%">
-<col style="width: 42%">
-</colgroup>
-<tbody>
 <tr class="odd">
-<td><img src="images/clipboard-2292622555.png" class="img-fluid" width="359"></td>
-<td><img src="images/clipboard-641750459.png" class="img-fluid"></td>
-</tr>
-<tr class="even">
-<td><img src="images/clipboard-565611019.png" class="img-fluid"></td>
-<td></td>
+<td><p><strong>Area Map</strong></p>
+<p>different colors to represent different land use types</p></td>
+<td><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-12.jpg" class="img-fluid"></td>
 </tr>
 </tbody>
 </table>
 </section>
-<section id="to-check-coordinate-system-of-mpsz" class="level3">
-<h3 class="anchored" data-anchor-id="to-check-coordinate-system-of-mpsz">To Check coordinate system of mpsz</h3>
-<p><img src="images/clipboard-1758024046.png" class="img-fluid" width="378"></p>
+<section id="proportional-symbol-map" class="level2">
+<h2 class="anchored" data-anchor-id="proportional-symbol-map">Proportional Symbol Map</h2>
+<p>Use symbols of different sizes to represent data associated with different areas</p>
+<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-14.jpg" class="img-fluid" width="405"></p>
+<p>Go for this kind:<br>
+<img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-16b.jpg" class="img-fluid"></p>
 </section>
-<section id="assign-epsg-code-to-mpsz" class="level3">
-<h3 class="anchored" data-anchor-id="assign-epsg-code-to-mpsz">Assign EPSG code to mpsz</h3>
-<p><img src="images/clipboard-1880810381.png" class="img-fluid"></p>
+<section id="proportional-symbol-map--bar-chart-map" class="level2">
+<h2 class="anchored" data-anchor-id="proportional-symbol-map--bar-chart-map">Proportional Symbol Map -Bar Chart Map</h2>
+<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-16.jpg" class="img-fluid" width="320"></p>
 </section>
-<section id="summary" class="level3">
-<h3 class="anchored" data-anchor-id="summary">Summary</h3>
-<p><img src="images/clipboard-1393087920.png" class="img-fluid" width="316"></p>
+<section id="proportional-symbol-map--pie-chart-map" class="level2">
+<h2 class="anchored" data-anchor-id="proportional-symbol-map--pie-chart-map">Proportional Symbol Map -Pie Chart Map</h2>
+<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-15.jpg" class="img-fluid" width="351"></p>
 </section>
-<section id="top-n" class="level3">
-<h3 class="anchored" data-anchor-id="top-n">Top n</h3>
-<p><img src="images/clipboard-2808688766.png" class="img-fluid" width="400"></p>
+<section id="proportional-symbol-map--junk-map" class="level2">
+<h2 class="anchored" data-anchor-id="proportional-symbol-map--junk-map">Proportional Symbol Map -Junk Map</h2>
+<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-16c.jpg" class="img-fluid"></p>
+<p>* ensure geographical lvl used is same</p>
 </section>
-<section id="sum" class="level3">
-<h3 class="anchored" data-anchor-id="sum">Sum</h3>
-<p><img src="images/clipboard-1027675022.png" class="img-fluid" width="141"></p>
+<section id="brick-map" class="level2">
+<h2 class="anchored" data-anchor-id="brick-map">Brick Map</h2>
+<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-17.jpg" class="img-fluid" width="322"></p>
+<p>better to encode quantitative info graphically</p>
 </section>
-<section id="compute-density" class="level3">
-<h3 class="anchored" data-anchor-id="compute-density">Compute density</h3>
-<p><img src="images/clipboard-1195663165.png" class="img-fluid"></p>
+<section id="bricks-vs-proportional-symbol-map" class="level2">
+<h2 class="anchored" data-anchor-id="bricks-vs-proportional-symbol-map">Bricks VS Proportional Symbol Map</h2>
+<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-17a.jpg" class="img-fluid" width="273"></p>
+<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-17.jpg" class="img-fluid" width="320"></p>
+<p>Proportional Symbol map can be more difficult to distinguish than brick</p>
 </section>
-<section id="histogram" class="level3">
-<h3 class="anchored" data-anchor-id="histogram">Histogram</h3>
-<p><img src="images/clipboard-991874638.png" class="img-fluid" width="301"></p>
+<section id="dot-density-map" class="level2">
+<h2 class="anchored" data-anchor-id="dot-density-map">Dot Density Map</h2>
+<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-18.jpg" class="img-fluid" width="287"></p>
+<p>a type of thematic map -&gt; use dot/symbols to show the values of &gt;= 1 numeric value</p>
+<p>each dot represent some amt of data</p>
 
 
 </section>
