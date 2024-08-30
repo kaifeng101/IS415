@@ -4,6 +4,10 @@ subtitle: "Geospatial Data Wrangling with R!"
 author: "Kai Feng"
 date: "August 17, 2024"
 date-modified: "last-modified"
+execute:
+  eval: true
+  echo: true
+  freeze: true
 ---
 
 # **1.0 Overview**
