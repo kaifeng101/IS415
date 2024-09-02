@@ -1,0 +1,47 @@
+---
+title: "In-class Exercise 3"
+author: "kai feng"
+date: "Sep 2, 2024"
+date-modified: "last-modified"
+execute:
+  eval: true
+  echo: true
+  freeze: true
+---
+
+```{r}
+pacman::p_load(tidyverse, sf, ggstatsplot, tmap)
+```
+
+```{r}
+#| eval: false
+install.packages("maptools",
+                 repos="https://packagemanager.posit.co/cran/2023-10-13")
+```
+
+Read file
+
+```{r}
+mpsz_sf <- st_read(dsn = "data/MasterPlan2014SubzoneBoundaryWebSHP",                 
+               layer = "MP14_SUBZONE_WEB_PL")
+```
+
+Issue 2: Creating coastal outline
+
+**st_union() to derive the coastal outline sf tibble data.frame**
+
+```{r}
+sg_sf <- mpsz_sf %>% 
+  st_union()
+
+plot(sg_sf)
+```
+
+```{r}
+acled_sf <- read_csv("data/ACLED_Myanmar.csv") %>% 
+  st_as_sf(coords = c(
+    "longitude", "latitude"),
+    crs=4326) %>% 
+  st_transform(crs = 32647) %>% 
+  mutate(event_date = dmy(event_date))
+```
