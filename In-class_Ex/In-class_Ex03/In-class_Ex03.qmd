@@ -9,9 +9,13 @@ execute:
   freeze: true
 ---
 
+### Installing R-Packages
+
 ```{r}
 pacman::p_load(tidyverse, sf, ggstatsplot, tmap)
 ```
+
+### Installing Maptools
 
 ```{r}
 #| eval: false
@@ -19,14 +23,14 @@ install.packages("maptools",
                  repos="https://packagemanager.posit.co/cran/2023-10-13")
 ```
 
-Read file
+### Importing Geospatial Data
 
 ```{r}
 mpsz_sf <- st_read(dsn = "data/MasterPlan2014SubzoneBoundaryWebSHP",                 
                layer = "MP14_SUBZONE_WEB_PL")
 ```
 
-Issue 2: Creating coastal outline
+### Creating coastal outline
 
 **st_union() to derive the coastal outline sf tibble data.frame**
 
@@ -35,13 +39,4 @@ sg_sf <- mpsz_sf %>%
   st_union()
 
 plot(sg_sf)
-```
-
-```{r}
-acled_sf <- read_csv("data/ACLED_Myanmar.csv") %>% 
-  st_as_sf(coords = c(
-    "longitude", "latitude"),
-    crs=4326) %>% 
-  st_transform(crs = 32647) %>% 
-  mutate(event_date = dmy(event_date))
 ```

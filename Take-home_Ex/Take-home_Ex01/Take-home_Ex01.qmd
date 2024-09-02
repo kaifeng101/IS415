@@ -1,0 +1,41 @@
+---
+title: "Take-home Exercise 1"
+author: "kai feng"
+date: "Sep 2, 2024"
+date-modified: "last-modified"
+execute:
+  eval: true
+  echo: true
+  freeze: true
+---
+
+### Installing R-Packages
+
+```{r}
+pacman::p_load(tidyverse, sf, ggstatsplot, tmap)
+```
+
+### Installing Maptools
+
+```{r}
+#| eval: false
+install.packages("maptools",
+                 repos="https://packagemanager.posit.co/cran/2023-10-13")
+```
+
+### Importing Geospatial Data
+
+```{r}
+acled_sf <- read_csv("data/ACLED_Myanmar.csv")
+```
+
+### Standardizing Date format
+
+```{r}
+acled_sf %>% 
+  st_as_sf(coords = c(
+    "longitude", "latitude"),
+    crs=4326) %>% 
+  st_transform(crs = 32647) %>% 
+  mutate(event_date = dmy(event_date))
+```
