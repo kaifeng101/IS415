@@ -9,13 +9,15 @@ execute:
   freeze: true
 ---
 
-### Installing R-Packages
+# Installing R-Packages
 
 ```{r}
-pacman::p_load(tidyverse, sf, ggstatsplot, tmap)
+pacman::p_load(tidyverse, sf, ggstatsplot, tmap, spatstat, raster)
 ```
 
-### Installing Maptools
+# Installing Maptools
+
+eval: false = avoid maptools being download and install repetitively every time the Quarto document been rendered.
 
 ```{r}
 #| eval: false
@@ -23,14 +25,19 @@ install.packages("maptools",
                  repos="https://packagemanager.posit.co/cran/2023-10-13")
 ```
 
-### Importing Geospatial Data
+# Importing Geospatial Data
 
 ```{r}
 mpsz_sf <- st_read(dsn = "data/MasterPlan2014SubzoneBoundaryWebSHP",                 
                layer = "MP14_SUBZONE_WEB_PL")
 ```
 
-### Creating coastal outline
+```{r}
+childcare_sf <- st_read("data/child-care-services-geojson.geojson") %>% 
+  st_transform(crs=3414)
+```
+
+# Creating coastal outline
 
 **st_union() to derive the coastal outline sf tibble data.frame**
 
@@ -39,4 +46,81 @@ sg_sf <- mpsz_sf %>%
   st_union()
 
 plot(sg_sf)
+```
+
+# Creating ppp objects from sf data.frame
+
+```{r}
+childcare_ppp <- as.ppp(childcare_sf)
+plot(childcare_ppp)
+```
+
+```{r}
+summary(childcare_ppp)
+```
+
+# Creating ***owin*** object from sf data.frame
+
+```{r}
+sg_owin <- as.owin(sg_sf)
+plot(sg_owin)
+```
+
+```{r}
+summary(sg_owin)
+```
+
+# Combining point events object and owin object
+
+```{r}
+childcareSG_ppp = childcare_ppp[sg_owin]
+plot(childcareSG_ppp)
+```
+
+# Kernel Density Estimation of Spatial Point Event
+
+re-scale the unit of measurement to km before performing KDE
+
+```{r}
+childcareSG_ppp.km <- rescale.ppp(childcareSG_ppp, 
+                                  1000, 
+                                  "km")
+
+kde_childcareSG_adaptive <- adaptive.density(
+  childcareSG_ppp.km, 
+  method="kernel")
+plot(kde_childcareSG_adaptive)
+```
+
+### convert KDE output into grid object
+
+maptools method
+
+```{r}
+par(bg = '#E4D5C9')
+
+gridded_kde_childcareSG_ad <- maptools::as.SpatialGridDataFrame.im(
+  kde_childcareSG_adaptive)
+spplot(gridded_kde_childcareSG_ad)
+```
+
+spatstat.geom method
+
+```{r}
+gridded_kde_childcareSG_ad <- as(
+  kde_childcareSG_adaptive,
+  "SpatialGridDataFrame")
+spplot(gridded_kde_childcareSG_ad)
+```
+
+# Extracting study area using sf objects
+
+```{r}
+pg_owin <- mpsz_sf %>%
+  filter(PLN_AREA_N == "PUNGGOL") %>%
+  as.owin()
+
+childcare_pg = childcare_ppp[pg_owin]
+
+plot(childcare_pg)  
 ```
