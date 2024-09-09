@@ -1,5 +1,5 @@
 ---
-title: "Take-home Exercise 1"
+title: "Take-home Exercise 1: Geospatial Analytics for Social Good: Application of Spatial and Spatio-temporal Point Patterns Analysis to discover the geographical distribution of Armed Conflict in Myanmar"
 author: "kai feng"
 date: "Sep 2, 2024"
 date-modified: "last-modified"
@@ -9,33 +9,760 @@ execute:
   freeze: true
 ---
 
-### Installing R-Packages
+# Introduction
+
+**The Rise of Armed Conflict and the Potential of Geospatial Analytics**
+
+-   **Impact:** Millions of lives are shattered by armed conflict each year.
+
+-   **Trend:** Armed conflict has been on the rise since around 2012, reversing the decline from the 1990s and early 2000s.
+
+**Recent Major Conflicts:**
+
+1.  **Libya, Syria, and Yemen (post-2011):** Instabilities following the Arab uprisings.
+
+2.  **Sahel Region:** Crisis exacerbated by Libya's instability.
+
+3.  **Azerbaijan-Armenian War (2020):** Conflict over the Nagorno-Karabakh enclave.
+
+4.  **Ethiopia’s Tigray Conflict (2020):** Severe fighting in the northern region.
+
+5.  **Myanmar (2021):** Conflict following the military’s power grab.
+
+6.  **Russia-Ukraine War (2022):** Major assault by Russia on Ukraine.
+
+7.  **Sudan and Gaza (2023):** New devastating conflicts.
+
+-   **Current Situation:** The number of people affected—through death, displacement, or need for humanitarian aid—is higher than in decades.
+
+**This Geospatial Analytics will Focus on:**
+
+-   **Objective:** This study will use spatial point patterns analysis to explore the spatial and spatio-temporal distribution of armed conflict in Myanmar.
+
+-   **Potential:** Geospatial analytics offer tremendous potential to address complex societal problems, providing insights into the patterns and dynamics of conflict.
+
+Source: [10 Conflicts to Watch in 2024](https://www.crisisgroup.org/global/10-conflicts-watch-2024)
+
+<br/><br/>
+
+# 1.0 Setup
+
+### 1.1 **Installing R-Packages**
+
+::: panel-tabset
+## *Importing and Transforming Data*
+
+-   `sf`:
+
+    -   For handling spatial vector data and transforming it into simple features (`sf`) objects.
+
+    -   Functions like `st_read()` for importing spatial data and `st_transform()` for coordinate reference system transformations.
+
+-   `tidyverse`: For data manipulation and transformation, including functions for working with `tibble` data frames.
+
+-   `readr`: For reading in CSV or other text-based data files if needed.
+
+-   `dplyr`: provide data manipulation capabilities (eg. to group and summarize the relationships between these columns)
+
+## *Deriving Quarterly KDE Layers*
+
+-   `spatstat`: For kernel density estimation (KDE) and spatial point pattern analysis.
+
+-   `stars`: For working with raster data and creating raster-based KDE layers.
+
+-   `raster`: Additional functions for raster operations, if necessary.
+
+## *Performing 2nd-Order Spatial Point Patterns Analysis*
+
+-   `spatstat`: For analyzing second-order spatial point patterns, such as pair correlation functions.
+
+-   `ggplot2`: For visualizing the results of spatial analysis.
+
+## *Deriving Quarterly Spatio-Temporal KDE Layers*
+
+-   `spatstat`: For spatio-temporal point pattern analysis and creating spatio-temporal KDE layers.
+
+-   `stars`: For handling spatio-temporal raster data.
+
+## *Performing 2nd-Order Spatio-Temporal Point Patterns Analysis*
+
+-   `spatstat`: For advanced spatio-temporal analysis, including the study of second-order effects over time.
+
+## *Displaying Maps with KDE and Spatio-temporal KDE Layers*
+
+-   `tmap`: For creating thematic maps and displaying KDE layers.
+
+-   `ggplot2`: For additional custom visualizations if needed.
+
+-   `leaflet`: For interactive maps, if required.
+
+-   `osmdata`: To fetch and integrate OpenStreetMap data for background maps.
+:::
 
 ```{r}
-pacman::p_load(tidyverse, sf, ggstatsplot, tmap)
+pacman::p_load(tidyverse, sf, readr, spatstat, raster, ggstatsplot, ggplot2, tmap, osmdata, dplyr)
 ```
 
-### Installing Maptools
+<br/><br/>
 
-```{r}
-#| eval: false
-install.packages("maptools",
-                 repos="https://packagemanager.posit.co/cran/2023-10-13")
-```
+### 1.2 **Data Acquisition**
 
-### Importing Geospatial Data
+We will be using 2 sets of data:
+
+::: panel-tabset
+## Armed Conflict Data
+
+-   **Source:** [Armed Conflict Location & Event Data](https://acleddata.com/) (ACLED). ACLED is an independent, impartial international non-profit organization that collects data on violent conflict and protests worldwide.
+
+-   **Coverage:** Myanmar, from January 2021 to June 2024.
+
+-   **Event Types:** Focus on at least four main event types:
+
+    -   Battles
+
+    -   Explosion/Remote Violence
+
+    -   Strategic Developments
+
+    -   Violence Against Civilians
+
+-   **Study Period:** Quarterly armed conflict events from January 2021 to June 2024.
+
+## Administrative Boundary Data
+
+-   **Source:** [Myanmar Information Management Unit](https://geonode.themimu.info/layers/?limit=100&offset=0) (MIMU).
+-   For Broad Analysis:
+    -   **National Boundaries**: To get an overview of conflict patterns across the entire country.
+
+    -   **State and Region with Sub-region Boundaries**: For understanding conflict distribution across larger administrative divisions.
+-   For Detailed Local Analysis:
+    -   **District Boundaries**: Useful for a more detailed view of conflict distribution within specific districts.
+
+    -   **Township and Ward Boundaries**: For very granular analysis, especially useful if you're interested in the impact at the community level.
+-   **Self-Administered Region Boundaries:** For Analyzing Conflict Dynamics in Self-Administered Regions (SARs) Relative to Administrative Autonomy
+:::
+
+<br/><br/>
+
+### 1.3 **Importing Geospatial Data into R**
+
+::: panel-tabset
+## Armed Conflict Data
 
 ```{r}
 acled_sf <- read_csv("data/ACLED_Myanmar.csv")
 ```
 
-### Standardizing Date format
+## Administrative Boundaries
+
+-   For Broad Analysis:
 
 ```{r}
-acled_sf %>% 
-  st_as_sf(coords = c(
-    "longitude", "latitude"),
-    crs=4326) %>% 
-  st_transform(crs = 32647) %>% 
+national_boundaries <- st_read(dsn = "data/National_Boundaries", layer="mmr_polbnda_adm0_250k_mimu_1")
+
+state_region_subregion_boundaries <- st_read(dsn = "data/State_And_Region_With_Sub-regions_Boundaries", layer="mmr_polbnda2_adm1_250k_mimu_1")
+```
+
+-   For Detailed Local Analysis:
+
+```{r}
+district_boundaries <- st_read(dsn = "data/District_Boundaries", layer="mmr_polbnda_adm2_250k_mimu")
+
+township_boundaries <- st_read(dsn = "data/Township_Boundaries", layer="mmr_polbnda_adm3_250k_mimu_1")
+
+ward_boundaries <- st_read(dsn = "data/Ward_Boundaries", layer="mmr_polbnda_adm5_mimu_v9_4")
+```
+
+-   Self-Administered region Boundaries
+
+```{r}
+self_administered_boundaries <- st_read(dsn = "data/Self_Administered_Region_Boundaries", layer="mmr_polbnda_self_administered_zones_1")
+```
+:::
+
+<br/><br/>
+
+### 1.4 **Checking Geospatial Data**
+
+::: panel-tabset
+## Armed Conflict Data
+
+```{r}
+class(acled_sf)
+st_crs(acled_sf)
+```
+
+::: callout-note
+Since
+
+-   Since the class of **acled_sf** != sf object
+
+<!-- -->
+
+-   Coordinate Reference System of **acled_sf** = NA
+
+we have to transform it.
+:::
+
+## Administrative Boundaries
+
+```{r}
+class(national_boundaries)
+st_crs(national_boundaries)
+```
+
+<br/><br/>
+
+```{r}
+class(state_region_subregion_boundaries)
+st_crs(state_region_subregion_boundaries)
+```
+
+<br/><br/>
+
+```{r}
+class(district_boundaries)
+st_crs(district_boundaries)
+```
+
+<br/><br/>
+
+```{r}
+class(township_boundaries)
+st_crs(township_boundaries)
+```
+
+<br/><br/>
+
+```{r}
+class(ward_boundaries)
+st_crs(ward_boundaries)
+```
+
+<br/><br/>
+
+```{r}
+class(self_administered_boundaries)
+st_crs(self_administered_boundaries)
+```
+
+::: callout-note
+Since Coordinate Reference System of
+
+-   **national_boundaries**
+-   **state_region_subregion_boundaries**
+-   **district_boundaries**
+-   **township_boundaries**
+-   **ward_boundaries**
+-   **self_administered_boundaries**
+
+is in 4326 (unit of measurement = degree), we have to transform it
+:::
+:::
+
+<br/><br/>
+
+### 1.5 **Understanding the data**
+
+```{r}
+# Select relevant columns and group by disorder_type, event_type, sub_event_type
+related_types <- acled_sf %>%
+  dplyr::select(disorder_type, event_type, sub_event_type) %>%
+  group_by(disorder_type, event_type, sub_event_type) %>%
+  summarize(count = n(), .groups = 'drop')  # Count occurrences of each combination
+print(related_types, n = Inf)
+```
+
+::: callout-note
+## Note!
+
+The dataset includes non-conflict events such as:
+
+-   **"Change to group/activity"**
+
+-   **"Agreement"**
+
+-   **"Headquarters or base established"**
+
+Additionally, it contains a sub-event category labeled **"Other"**. Including these non-conflict events under the general category of "conflict nature" may lead to biased or misleading interpretations. To ensure accurate and meaningful analysis, I recommend removing these non-conflict events from the dataset.
+:::
+
+<br/><br/>
+
+### 1.6 **Data Preparation and Wrangling**
+
+::: panel-tabset
+## Armed Conflict Data
+
+##### Convert Data Frame to `sf` Object
+
+```{r}
+acled_sf <- acled_sf %>%
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
+
+class(acled_sf)
+```
+
+##### Transform Coordinate Reference System
+
+```{r}
+acled_sf <- acled_sf %>%
+  st_transform(crs = 32647)
+```
+
+##### Convert Date Column to Date Format
+
+```{r}
+acled_sf <- acled_sf %>%
   mutate(event_date = dmy(event_date))
+```
+
+##### Eliminating Columns not used for analysis
+
+```{r}
+acled_sf <- acled_sf[, !(names(acled_sf) %in% c("event_id_cnty", "time_precision", "inter1", "inter2", "notes", "tags"))]
+```
+
+##### Preparing Data for Quarterly KDE Analysis
+
+1.  Create a Quarter Column
+
+```{r}
+acled_sf <- acled_sf %>%
+  mutate(quarter = paste0("Q", quarter(event_date), "-", year(event_date)))
+```
+
+2.  Remove non-conflict data
+
+```{r}
+non_conflict_events <- c(
+  "Change to group/activity",
+  "Agreement",
+  "Headquarters or base established",
+  "Other"
+)
+
+# Filter out the non-conflict events from the dataset
+conflict_acled_sf_data <- acled_sf %>%
+  filter(!sub_event_type %in% non_conflict_events)
+```
+
+##### Adding a new analysis dimension: month
+
+```{r}
+conflict_acled_sf_data <- conflict_acled_sf_data %>%
+  mutate(month = month(event_date))
+```
+
+## Administrative Boundaries
+
+##### Transform the Coordinate Reference System of these:
+
+```{r}
+national_boundaries <- national_boundaries %>%
+  st_transform(crs = 32647)
+
+state_region_subregion_boundaries <- state_region_subregion_boundaries %>%
+  st_transform(crs = 32647)
+
+district_boundaries <- district_boundaries %>%
+  st_transform(crs = 32647)
+
+township_boundaries <- township_boundaries %>%
+  st_transform(crs = 32647)
+
+ward_boundaries <- ward_boundaries %>%
+  st_transform(crs = 32647)
+
+self_administered_boundaries <- self_administered_boundaries %>%
+  st_transform(crs = 32647)
+```
+
+##### Sample plot
+
+```{r}
+ggplot(data = state_region_subregion_boundaries) +
+  geom_sf() +
+  theme_minimal() +
+  labs(title = "Map of Geometries",
+       subtitle = "Displaying multipolygon geometries",
+       caption = "Source: Example Data")
+```
+:::
+
+<br/><br/>
+
+# 2.0 Exploratory Data Analysis
+
+### 2.1 Temporal Analysis: Frequency of Conflict Events Over Time
+
+```{r}
+ggplot(conflict_acled_sf_data, aes(x = event_date)) +
+  geom_histogram(binwidth = 30, fill = "steelblue", color = "black") +
+  labs(title = "Conflict Events Over Time", x = "Date", y = "Number of Events")
+```
+
+### 2.2 Event Type Distribution
+
+```{r}
+ggplot(conflict_acled_sf_data, aes(x = event_date, fill = event_type)) +
+  geom_histogram(binwidth = 30) +
+  labs(title = "Event Types Over Time", x = "Date", y = "Number of Events") +
+  theme_minimal()
+
+```
+
+### 2.3 Spatial Analysis
+
+```{r}
+# Plot a choropleth of the conflict events by year using ggplot2
+ggplot() +
+  geom_sf(data = national_boundaries, fill = "lightgrey") +
+  geom_sf(data = conflict_acled_sf_data, aes(color = event_type), size = 0.1, alpha = 0.6) +
+  facet_wrap(~year, ncol = 4) +  # Facet by year with 4 columns
+  labs(title = "Spatial Distribution of Conflict Events by Year", color = "Event Type") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+### 2.4 Conflict Hotspots by district
+
+##### 2.4.1 Preparing the hotspots
+
+```{r}
+# Ensure the CRS of both datasets match
+conflict_acled_sf_data <- st_transform(conflict_acled_sf_data, crs = st_crs(district_boundaries))
+
+# Perform spatial join to add district information to the conflict dataset
+acled_with_districts <- st_join(conflict_acled_sf_data, district_boundaries, join = st_intersects)
+
+# Filter out rows where DT is NA before summarizing
+acled_with_districts <- acled_with_districts %>%
+  filter(!is.na(DT))
+
+# Group by district and summarize conflict data
+conflict_summary_by_district <- acled_with_districts %>%
+  group_by(DT) %>%
+  summarise(
+    total_conflicts = n(),
+    total_fatalities = sum(fatalities, na.rm = TRUE),
+    .groups = 'drop'
+  )
+
+# Convert district boundaries to a regular data frame (non-spatial)
+district_boundaries_df <- as.data.frame(district_boundaries)
+
+# Merge the summary data with the district boundaries data frame
+district_boundaries_summary <- district_boundaries_df %>%
+  left_join(conflict_summary_by_district, by = c("DT" = "DT"))
+
+# Convert back to an sf object with geometry
+district_boundaries_summary <- st_as_sf(district_boundaries_summary, crs = st_crs(district_boundaries))
+```
+
+##### 2.4.2 Plot the Hotspots
+
+```{r}
+#| fig-width: 7
+#| fig-height: 25
+
+district_hotspot_tm <- tm_shape(district_boundaries_summary) +
+  tm_polygons(col = "lightgrey", border.col = "black") +
+  tm_shape(conflict_summary_by_district) +
+  tm_dots(col = "total_conflicts", palette = "viridis", size = 0.1, alpha = 0.6) +
+  tm_layout(
+    legend.position = c("left", "center"),
+    legend.title.size = 0.9,
+    legend.text.size = 0.7,
+    frame = FALSE,
+    inner.margins = c(0, 0, 0, 0),  # Control inner margins within the map area
+    outer.margins = c(0, 0, 0, 0)  # Control outer margins around the map area
+  ) +
+  tm_facets(
+    by = c("DT"),  # Facet by the DT and event_type variable
+    ncol = 5,  # Number of columns in the facet grid
+    free.scales = FALSE  # Use a common scale across all facets
+  )
+
+print(district_hotspot_tm)
+```
+
+<br/><br/>
+
+# 3.0 Deriving Quarterly KDE layers
+
+**Kernel Density Estimation (KDE)** provides a comprehensive view of where conflicts are occurring by visualizing the density of events across different quarters. By analyzing KDE on a quarterly basis, we can identify areas with high conflict intensity and gain insights into how the distribution of conflicts evolves over time. This approach helps in understanding temporal patterns and hotspots, offering a more detailed perspective on conflict dynamics.
+
+For quarterly KDE layers:
+
+-   Subset data by quarter and compute KDE for each subset using `spatstat`
+
+::: callout-note
+## Note on Handling Duplicate Points
+
+**Duplicate points are removed in the analysis to avoid artificially inflating the density estimate.** Including duplicates could lead to an exaggerated representation of conflict hotspots, as each duplicate would incorrectly suggest multiple occurrences of the same event. By removing duplicates, we ensure that the Kernel Density Estimation (KDE) reflects the true intensity and distribution of distinct armed conflict events, providing a more accurate and reliable identification of hotspots.
+:::
+
+### 1. Create a list to store KDE for each quarter
+
+```{r}
+kde_list <- list()
+```
+
+### 2. Get Unique Quarters
+
+```{r}
+quarters <- unique(conflict_acled_sf_data$quarter)
+```
+
+### 3. Loop Over Each Quarter and Filter Data
+
+```{r}
+# Loop over each quarter to process data
+for (q in quarters) {
+  
+  # Filter the dataset for the current quarter
+  quarter_data <- acled_sf %>%
+    filter(quarter == q)
+}
+```
+
+### 4. Check for and Remove Duplicates
+
+```{r}
+#| eval: true
+# Loop over each quarter to process data
+for (q in quarters) {
+  
+  # Filter the dataset for the current quarter
+  quarter_data <- conflict_acled_sf_data %>%
+    filter(quarter == q)
+  
+  # Extract spatial coordinates
+  coords <- st_coordinates(st_geometry(quarter_data))
+  
+  # Check for duplicates
+  if (any(duplicated(coords))) {
+    
+    # Remove duplicates
+    quarter_data <- quarter_data %>%
+      distinct(st_coordinates(st_geometry(.)), .keep_all = TRUE)
+  }
+}
+```
+
+### 5. Convert Filtered Data to a Spatial Point Pattern
+
+```{r}
+#| eval: true
+# Loop over each quarter to process data
+for (q in quarters) {
+  
+  # Filter the dataset for the current quarter
+  quarter_data <- conflict_acled_sf_data %>%
+    filter(quarter == q)
+  
+  # Remove duplicates
+  coords <- st_coordinates(st_geometry(quarter_data))
+  if (any(duplicated(coords))) {
+    quarter_data <- quarter_data %>%
+      distinct(st_coordinates(st_geometry(.)), .keep_all = TRUE)
+  }
+  
+  # Convert the filtered data to a spatial point pattern (ppp object)
+  quarter_ppp <- as.ppp(st_geometry(quarter_data), W = as.owin(national_boundaries))
+}
+```
+
+### 6. Perform Kernel Density Estimation (KDE)
+
+```{r}
+#| eval: true
+# Loop over each quarter to process data
+for (q in quarters) {
+  
+  # Filter the dataset for the current quarter
+  quarter_data <- conflict_acled_sf_data %>%
+    filter(quarter == q)
+  
+  # Remove duplicates
+  coords <- st_coordinates(st_geometry(quarter_data))
+  if (any(duplicated(coords))) {
+    quarter_data <- quarter_data %>%
+      distinct(st_coordinates(st_geometry(.)), .keep_all = TRUE)
+  }
+  
+  # Convert the filtered data to a spatial point pattern (ppp object)
+  quarter_ppp <- as.ppp(st_geometry(quarter_data), W = as.owin(national_boundaries))
+  
+  # Perform Kernel Density Estimation (KDE)
+  kde <- density(quarter_ppp, sigma = 0.1)  # Adjust sigma as needed for smoothness
+  
+  # Store KDE in the list
+  kde_list[[q]] <- kde
+}
+```
+
+### 7. Plot the KDE for Each Quarter
+
+```{r}
+#| eval: true
+#| fig-width: 10
+#| fig-height: 20
+par(mfcol=c(5, 3))
+# Plot the KDEs for all quarters
+for (q in quarters) {
+  if (!is.null(kde_list[[q]])) {
+    plot(kde_list[[q]], main = paste("KDE for", q))
+  } else {
+    print(paste("No KDE available for quarter:", q))
+  }
+}
+```
+
+```{r}
+#| eval: true
+# Prepare a list to store tmap objects for each quarter
+tmap_list <- list()
+
+# Loop through each quarter
+for (q in quarters) {
+  
+  # Filter the dataset for the current quarter
+  quarter_data <- conflict_acled_sf_data %>%
+    filter(quarter == q)
+  
+  # Remove duplicates
+  coords <- st_coordinates(st_geometry(quarter_data))
+  if (any(duplicated(coords))) {
+    quarter_data <- quarter_data %>%
+      distinct(st_coordinates(st_geometry(.)), .keep_all = TRUE)
+  }
+  
+  # Create a tmap visualization
+  tmap_plot <- tm_shape(national_boundaries) +
+    tm_polygons() +
+    tm_shape(quarter_data) +
+    tm_dots(size = 0.01, col = "red", title = "Conflicts") +
+    tm_layout(title = paste("Conflicts for", q),
+              title.size = 1.2,
+              legend.outside = TRUE)
+  
+  # Store the tmap object in the list
+  tmap_list[[q]] <- tmap_plot
+}
+
+# Print all tmap plots
+for (q in quarters) {
+  if (!is.null(tmap_list[[q]])) {
+    print(tmap_list[[q]])
+  } else {
+    print(paste("No data available for quarter:", q))
+  }
+}
+```
+
+# 3.0 Performing 2nd-Order Spatial Point Patterns Analysis
+
+Now, we will explore how armed conflict events are distributed and related.
+
+**Ripley’s K-function** is a useful tool for detecting whether events are clustered or spread out. It measures how the density of events changes with distance, helping to identify clustering or dispersion.
+
+**Whereas G-Function** examine the nearest-neighbor distances and understand how far apart the nearest events are.
+
+**F-Function** analyze the distribution of distances from a randomly chosen location to the nearest event
+
+#### **Computing K-Function Estimation**
+
+```{r}
+#| eval: true
+# Initialize list to store K-function results
+kfunction_list <- list()
+
+# Get unique quarters from the dataset
+quarters <- unique(conflict_acled_sf_data$quarter)
+
+# Loop over each quarter to compute K-function
+for (q in quarters) {
+  
+  # Filter the dataset for the current quarter
+  quarter_data <- conflict_acled_sf_data %>%
+    filter(quarter == q)
+  
+  # Remove duplicates
+  coords <- st_coordinates(st_geometry(quarter_data))
+  if (any(duplicated(coords))) {
+    quarter_data <- quarter_data %>%
+      distinct(st_coordinates(st_geometry(.)), .keep_all = TRUE)
+  }
+  
+  # Convert the filtered data to a spatial point pattern (ppp object)
+  quarter_ppp <- as.ppp(st_geometry(quarter_data), W = as.owin(national_boundaries))
+  
+  # Compute the K-function
+  kfunction <- Kest(quarter_ppp, correction = "border")
+  
+  # Store the K-function in the list
+  kfunction_list[[q]] <- kfunction
+}
+```
+
+::: callout-note
+## Note
+
+Ripley’s Correction: Provides a more sophisticated adjustment for edge effects by modifying the expected K-function, leading to potentially more accurate results in large areas. Border Correction: Simplifies the adjustment by extending the study area and is less computationally intensive but might be less accurate in areas with significant boundary effects.
+
+We use correction = "border" rather than correction = "Ripley" for our analysis. Our primary goal is to observe the general distribution of conflict hotspots, which will guide more detailed follow-up studies. Given that our focus is on broad patterns rather than precise details, the simpler and less computationally intensive border correction is sufficient. While Ripley's correction offers more accuracy by adjusting for edge effects, it requires more computational resources and time, which we can afford to forego for this preliminary analysis.
+:::
+
+#### Plotting K-Function
+
+**Interpretation**:
+
+-   **Above the theoretical line**: Indicates clustering of points.
+
+-   **Below the theoretical line**: Suggests dispersion or regularity.
+
+-   **Close to the line**: Implies a random distribution.
+
+```{r}
+#| eval: true
+#| fig-width: 10
+#| fig-height: 20
+par(mfcol=c(5, 3))
+# Plot the K-functions for all quarters
+for (q in quarters) {
+  if (!is.null(kfunction_list[[q]])) {
+    # Plot K-function
+    plot(kfunction_list[[q]], . -r ~ r, ylab= "K(d)-r", xlab = "d(m)", main = paste("K-function for Quarter", q))
+  } else {
+    print(paste("No K-function available for quarter:", q))
+  }
+}
+```
+
+# 4.0 Deriving Quarterly spatio-temporal KDE layers
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+
+# 5.0 Performing 2nd-Order Spatio-temporal Point Patterns
+
+# 6.0 KDE and Spatio-temporal KDE layers on openstreetmap of Myanmar
+
+```{r}
+tmap_mode("plot")
+acled_sf %>% 
+  filter(year == 2024 |
+           event_type == "Polticial Violence") %>% 
+  tm_shape() +
+  tm_dots()
+
 ```
