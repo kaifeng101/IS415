@@ -64,6 +64,10 @@ Source: [10 Conflicts to Watch in 2024](https://www.crisisgroup.org/global/10-co
 
 -   `dplyr`: provide data manipulation capabilities (eg. to group and summarize the relationships between these columns)
 
+## *Mapping display*
+
+-   `patchwork`: To arrange map layout
+
 ## *Deriving Quarterly KDE Layers*
 
 -   `spatstat`: For kernel density estimation (KDE) and spatial point pattern analysis.
@@ -77,6 +81,8 @@ Source: [10 Conflicts to Watch in 2024](https://www.crisisgroup.org/global/10-co
 -   `spatstat`: For analyzing second-order spatial point patterns, such as pair correlation functions.
 
 -   `ggplot2`: For visualizing the results of spatial analysis.
+
+-   `animation, png, magick`: For animation work
 
 ## *Deriving Quarterly Spatio-Temporal KDE Layers*
 
@@ -100,7 +106,7 @@ Source: [10 Conflicts to Watch in 2024](https://www.crisisgroup.org/global/10-co
 :::
 
 ```{r}
-pacman::p_load(tidyverse, sf, readr, spatstat, raster, ggstatsplot, ggplot2, tmap, osmdata, dplyr)
+pacman::p_load(tidyverse, sf, readr, spatstat, raster, ggstatsplot, ggplot2, tmap, osmdata, dplyr, patchwork, animation, png, magick)
 ```
 
 <br/><br/>
@@ -266,11 +272,11 @@ is in 4326 (unit of measurement = degree), we have to transform it
 
 ```{r}
 # Select relevant columns and group by disorder_type, event_type, sub_event_type
-related_types <- acled_sf %>%
+type_of_conflict <- acled_sf %>%
   dplyr::select(disorder_type, event_type, sub_event_type) %>%
   group_by(disorder_type, event_type, sub_event_type) %>%
   summarize(count = n(), .groups = 'drop')  # Count occurrences of each combination
-print(related_types, n = Inf)
+print(type_of_conflict, n = Inf)
 ```
 
 ::: callout-note
@@ -422,27 +428,36 @@ ggplot() +
   facet_wrap(~year, ncol = 4) +  # Facet by year with 4 columns
   labs(title = "Spatial Distribution of Conflict Events by Year", color = "Event Type") +
   theme_minimal() +
-  theme(legend.position = "bottom")
+  theme(legend.position = "bottom") + 
+  guides(color = guide_legend(override.aes = list(size = 1)))
 ```
 
-### 2.4 Conflict Hotspots by district
+::: callout-note
+## ![](images/clipboard-890644755.png){width="22"}Insights
+
+From 2021 to 2024, the conflicts in Myanmar have escalated significantly, evolving from largely peaceful protests to increasingly violent confrontations and armed battles.
+:::
+
+### 2.4 Conflict Hotspots by state & region
 
 ##### 2.4.1 Preparing the hotspots
 
 ```{r}
+#| eval: true
+
 # Ensure the CRS of both datasets match
-conflict_acled_sf_data <- st_transform(conflict_acled_sf_data, crs = st_crs(district_boundaries))
+conflict_acled_sf_data <- st_transform(conflict_acled_sf_data, crs = st_crs(state_region_subregion_boundaries))
 
-# Perform spatial join to add district information to the conflict dataset
-acled_with_districts <- st_join(conflict_acled_sf_data, district_boundaries, join = st_intersects)
+# Perform spatial join to add state/region information to the conflict dataset
+acled_with_state_region <- st_join(conflict_acled_sf_data, state_region_subregion_boundaries, join = st_intersects)
 
-# Filter out rows where DT is NA before summarizing
-acled_with_districts <- acled_with_districts %>%
-  filter(!is.na(DT))
+# Filter out rows where ST is NA before summarizing
+acled_with_state_region <- acled_with_state_region %>%
+  filter(!is.na(ST))
 
-# Group by district and summarize conflict data
-conflict_summary_by_district <- acled_with_districts %>%
-  group_by(DT) %>%
+# Group by state/region and summarize conflict data
+conflict_summary_by_state_region <- acled_with_state_region %>%
+  group_by(ST, event_type, year) %>%
   summarise(
     total_conflicts = n(),
     total_fatalities = sum(fatalities, na.rm = TRUE),
@@ -450,41 +465,146 @@ conflict_summary_by_district <- acled_with_districts %>%
   )
 
 # Convert district boundaries to a regular data frame (non-spatial)
-district_boundaries_df <- as.data.frame(district_boundaries)
+state_region_boundaries_df <- as.data.frame(state_region_subregion_boundaries)
 
 # Merge the summary data with the district boundaries data frame
-district_boundaries_summary <- district_boundaries_df %>%
-  left_join(conflict_summary_by_district, by = c("DT" = "DT"))
+state_region_boundaries_summary <- state_region_boundaries_df %>%
+  left_join(conflict_summary_by_state_region, by = c("ST" = "ST"))
 
 # Convert back to an sf object with geometry
-district_boundaries_summary <- st_as_sf(district_boundaries_summary, crs = st_crs(district_boundaries))
+state_region_boundaries_summary <- st_as_sf(state_region_boundaries_summary, crs = st_crs(state_region_subregion_boundaries))
 ```
 
 ##### 2.4.2 Plot the Hotspots
 
 ```{r}
-#| fig-width: 7
-#| fig-height: 25
+#| fig-width: 10
+#| fig-height: 15
+#| eval: true
 
-district_hotspot_tm <- tm_shape(district_boundaries_summary) +
+# Base map with state/region boundaries
+state_region_hotspot_tm <- tm_shape(state_region_boundaries_summary) +
   tm_polygons(col = "lightgrey", border.col = "black") +
-  tm_shape(conflict_summary_by_district) +
-  tm_dots(col = "total_conflicts", palette = "viridis", size = 0.1, alpha = 0.6) +
+  
+  # Overlay conflict data
+  tm_shape(conflict_summary_by_state_region) +
+  tm_dots(
+    col = "event_type", 
+    palette = "viridis", 
+    size = "total_conflicts", 
+    alpha = 0.6)  +
+  
+  # Layout adjustments
   tm_layout(
-    legend.position = c("left", "center"),
-    legend.title.size = 0.9,
-    legend.text.size = 0.7,
-    frame = FALSE,
-    inner.margins = c(0, 0, 0, 0),  # Control inner margins within the map area
-    outer.margins = c(0, 0, 0, 0)  # Control outer margins around the map area
+    frame = FALSE,  # Remove the frame around the plot
+    legend.outside = TRUE,  # Keep the legend outside
+    legend.outside.position = "bottom",  # Position the legend outside at the bottom
+    legend.outside.size = 0.1,  # Adjust the size of the outside legend (reduce if too large)
   ) +
+  
+  # Faceting by state/region
   tm_facets(
-    by = c("DT"),  # Facet by the DT and event_type variable
-    ncol = 5,  # Number of columns in the facet grid
+    by = c("ST"),
     free.scales = FALSE  # Use a common scale across all facets
   )
 
-print(district_hotspot_tm)
+print(state_region_hotspot_tm)
+```
+
+::: callout-note
+## ![](images/clipboard-890644755.png){width="22"}Insights
+
+This map illustrates conflict patterns across a four-year period, revealing significant regional variations. It highlights that certain states and regions experience relatively lower levels of conflict, indicating greater overall peace.
+
+Conversely, other areas show higher concentrations of specific types of conflicts. This distribution helps identify regions with frequent conflict events and those more prone to particular conflict types, offering valuable insights into the geographical and thematic spread of conflicts.
+:::
+
+##### 2.4.3 Visualize by Event Type
+
+```{r}
+#| eval: true
+# Define the conflict types
+conflict_types <- c("Battles", "Protests", "Strategic developments", "Explosions/Remote violence", "Riots", "Violence against civilians")
+
+# Initialize an empty list to store summaries
+conflict_summaries <- list()
+
+# Loop through each conflict type and summarize the data
+for (type in conflict_types) {
+  summary <- acled_with_state_region %>%
+    filter(event_type == type) %>%
+    group_by(ST) %>%
+    summarise(
+      total_events = n(),
+      .groups = 'drop'
+    )
+  
+  # Store the summary in the list with the conflict type as the key
+  conflict_summaries[[type]] <- summary
+}
+
+# Convert district boundaries to a regular data frame (non-spatial)
+state_region_subregion_boundaries_df <- as.data.frame(state_region_subregion_boundaries)
+
+# Merge each summary with the district boundaries data frame
+region_conflict_summaries <- lapply(conflict_summaries, function(summary) {
+  region_summary <- state_region_subregion_boundaries_df %>%
+    left_join(summary, by = "ST")
+  
+  # Convert back to an sf object with geometry
+  st_as_sf(region_summary, crs = st_crs(state_region_subregion_boundaries))
+})
+
+# Rename the list elements for clarity
+names(region_conflict_summaries) <- conflict_types
+```
+
+```{r}
+#| fig-width: 10
+#| fig-height: 20
+#| eval: true
+# Create a list to store plots
+plots <- list()
+
+# Loop through each conflict type to create a plot
+for (type in conflict_types) {
+  plots[[type]] <- tm_shape(region_conflict_summaries[[type]]) +
+    tm_polygons(
+      col = "total_events", 
+      palette = "Reds", 
+      title = paste("Number of", type),
+      border.col = "black",
+      style = "quantile"  # This divides the data into quantiles for better visualization
+    ) +
+    
+    tm_text(
+      text = "ST",  # Use the column name that contains the region names
+      size = 0.6,        # Adjust the size as needed
+      col = "black",     # Text color
+      shadow = TRUE,    # Optional: Add shadow to make text more readable
+      remove.overlap = TRUE  # Avoid text overlapping
+    ) +
+    
+    tm_layout(
+      frame = FALSE,  # Remove the frame around the plot
+      legend.outside = TRUE,  # Keep the legend outside
+      legend.outside.position = "right",  # Position the legend outside at the bottom
+      legend.outside.size = 0.4  # Adjust the size of the outside legend (reduce if too large)
+    ) +
+    
+    tm_legend(
+      position = c("right", "bottom")  # Position the legend outside at the bottom
+    )
+}
+
+
+# Arrange all plots in a single view using tm_arrange
+combined_plot <- tmap_arrange(plots, ncol = 2, nrow = 3, 
+                             legend.position = c("right", "bottom"), 
+                             legend.outside = TRUE)
+
+# Print the combined plot
+print(combined_plot)
 ```
 
 <br/><br/>
@@ -515,46 +635,13 @@ kde_list <- list()
 quarters <- unique(conflict_acled_sf_data$quarter)
 ```
 
-### 3. Loop Over Each Quarter and Filter Data
-
-```{r}
-# Loop over each quarter to process data
-for (q in quarters) {
-  
-  # Filter the dataset for the current quarter
-  quarter_data <- acled_sf %>%
-    filter(quarter == q)
-}
-```
-
-### 4. Check for and Remove Duplicates
+### 3. Perform Kernel Density Estimation (KDE)
 
 ```{r}
 #| eval: true
-# Loop over each quarter to process data
-for (q in quarters) {
-  
-  # Filter the dataset for the current quarter
-  quarter_data <- conflict_acled_sf_data %>%
-    filter(quarter == q)
-  
-  # Extract spatial coordinates
-  coords <- st_coordinates(st_geometry(quarter_data))
-  
-  # Check for duplicates
-  if (any(duplicated(coords))) {
-    
-    # Remove duplicates
-    quarter_data <- quarter_data %>%
-      distinct(st_coordinates(st_geometry(.)), .keep_all = TRUE)
-  }
-}
-```
 
-### 5. Convert Filtered Data to a Spatial Point Pattern
+boundary_window <- as.owin(national_boundaries)
 
-```{r}
-#| eval: true
 # Loop over each quarter to process data
 for (q in quarters) {
   
@@ -570,30 +657,7 @@ for (q in quarters) {
   }
   
   # Convert the filtered data to a spatial point pattern (ppp object)
-  quarter_ppp <- as.ppp(st_geometry(quarter_data), W = as.owin(national_boundaries))
-}
-```
-
-### 6. Perform Kernel Density Estimation (KDE)
-
-```{r}
-#| eval: true
-# Loop over each quarter to process data
-for (q in quarters) {
-  
-  # Filter the dataset for the current quarter
-  quarter_data <- conflict_acled_sf_data %>%
-    filter(quarter == q)
-  
-  # Remove duplicates
-  coords <- st_coordinates(st_geometry(quarter_data))
-  if (any(duplicated(coords))) {
-    quarter_data <- quarter_data %>%
-      distinct(st_coordinates(st_geometry(.)), .keep_all = TRUE)
-  }
-  
-  # Convert the filtered data to a spatial point pattern (ppp object)
-  quarter_ppp <- as.ppp(st_geometry(quarter_data), W = as.owin(national_boundaries))
+  quarter_ppp <- as.ppp(st_geometry(quarter_data), W = boundary_window)
   
   # Perform Kernel Density Estimation (KDE)
   kde <- density(quarter_ppp, sigma = 0.1)  # Adjust sigma as needed for smoothness
@@ -603,7 +667,7 @@ for (q in quarters) {
 }
 ```
 
-### 7. Plot the KDE for Each Quarter
+### 4. Plot the KDE for Each Quarter
 
 ```{r}
 #| eval: true
@@ -616,48 +680,6 @@ for (q in quarters) {
     plot(kde_list[[q]], main = paste("KDE for", q))
   } else {
     print(paste("No KDE available for quarter:", q))
-  }
-}
-```
-
-```{r}
-#| eval: true
-# Prepare a list to store tmap objects for each quarter
-tmap_list <- list()
-
-# Loop through each quarter
-for (q in quarters) {
-  
-  # Filter the dataset for the current quarter
-  quarter_data <- conflict_acled_sf_data %>%
-    filter(quarter == q)
-  
-  # Remove duplicates
-  coords <- st_coordinates(st_geometry(quarter_data))
-  if (any(duplicated(coords))) {
-    quarter_data <- quarter_data %>%
-      distinct(st_coordinates(st_geometry(.)), .keep_all = TRUE)
-  }
-  
-  # Create a tmap visualization
-  tmap_plot <- tm_shape(national_boundaries) +
-    tm_polygons() +
-    tm_shape(quarter_data) +
-    tm_dots(size = 0.01, col = "red", title = "Conflicts") +
-    tm_layout(title = paste("Conflicts for", q),
-              title.size = 1.2,
-              legend.outside = TRUE)
-  
-  # Store the tmap object in the list
-  tmap_list[[q]] <- tmap_plot
-}
-
-# Print all tmap plots
-for (q in quarters) {
-  if (!is.null(tmap_list[[q]])) {
-    print(tmap_list[[q]])
-  } else {
-    print(paste("No data available for quarter:", q))
   }
 }
 ```
@@ -744,18 +766,181 @@ for (q in quarters) {
 # 4.0 Deriving Quarterly spatio-temporal KDE layers
 
 ```{r}
+# Define the output directory for saving KDE plots
+output_dir <- "quarterly_kde_images"
+dir.create(output_dir, showWarnings = FALSE)
 
+# Define a list to hold filenames of saved KDE plots
+saved_files <- list()
+
+# Define a function to create and save KDE plots for each quarter
+save_kde_plot <- function(kde, quarter, output_dir) {
+  # Create a file path for the KDE image
+  file_name <- file.path(output_dir, paste0("quarterly_kde_", gsub(" ", "_", quarter), ".png"))
+  
+  # Open a PNG device to save the plot
+  png(file_name, width = 800, height = 800)
+  
+  # Plot KDE
+  plot(kde, main = paste("Spatio-Temporal KDE for", quarter))
+  
+  # Close the PNG device
+  dev.off()
+  
+  # Print confirmation message
+  print(paste("Saved:", file_name))
+  
+  # Return the filename of the saved plot
+  return(file_name)
+}
+
+# Generate and save KDE plots for each quarter in reverse chronological order
+for (q in rev(quarters)) {
+  if (!is.null(kde_list[[q]])) {
+    file_name <- save_kde_plot(kde_list[[q]], q, output_dir)
+    saved_files <- append(saved_files, file_name)
+  } else {
+    print(paste("No KDE data available for quarter:", q))
+  }
+}
 
 ```
 
 ```{r}
+# Load saved images and combine them into an animated GIF
+images <- lapply(saved_files, image_read)
 
+# Create an animation from the KDE images
+animation <- image_animate(image_join(images), fps = 1)
 
+# Define the path for the GIF animation
+gif_path <- "spatio_temporal_kde_animation.gif"
+
+# Save the animation as a GIF file
+image_write(animation, path = gif_path)
+
+# Print confirmation that the GIF was saved
+print("Spatio-temporal KDE animation saved as spatio_temporal_kde_animation.gif")
+
+# Display the GIF using magick
+gif_image <- image_read(gif_path)
+print(gif_image) 
 ```
 
 # 5.0 Performing 2nd-Order Spatio-temporal Point Patterns
 
+```{r}
+# Define the output directory for saving K-function plots
+kfunction_output_dir <- "quarterly_kfunction_images"
+dir.create(kfunction_output_dir, showWarnings = FALSE)
+
+# Define a list to hold filenames of saved K-function plots
+kfunction_files <- list()
+
+# Define a function to create and save K-function plots for each quarter
+save_kfunction_plot <- function(kfunction, quarter, output_dir) {
+  # Create a file path for the K-function image
+  file_name <- file.path(output_dir, paste0("quarterly_kfunction_", gsub(" ", "_", quarter), ".png"))
+  
+  # Open a PNG device to save the plot
+  png(file_name, width = 800, height = 800)
+  
+  # Plot K-function
+  plot(kfunction, . -r ~ r, ylab = "K(d) - d", xlab = "d (m)", main = paste("Ripley's K-function for Quarter", quarter))
+  
+  # Close the PNG device
+  dev.off()
+  
+  # Print confirmation message
+  print(paste("Saved:", file_name))
+  
+  # Return the filename of the saved plot
+  return(file_name)
+}
+
+# Save K-function plots for each quarter
+for (q in rev(quarters)) {
+  if (!is.null(kfunction_list[[q]])) {
+    file_name <- save_kfunction_plot(kfunction_list[[q]], q, kfunction_output_dir)
+    kfunction_files <- append(kfunction_files, file_name)
+  } else {
+    print(paste("No K-function data available for quarter:", q))
+  }
+}
+```
+
+```{r}
+# Load saved images and combine them into an animated GIF
+kfunction_images <- lapply(kfunction_files, image_read)
+
+# Create an animation from the K-function images
+kfunction_animation <- image_animate(image_join(kfunction_images), fps = 1)
+
+# Define the path for the GIF animation
+kfunction_gif_path <- "spatio_temporal_kfunction_animation.gif"
+
+# Save the animation as a GIF file
+image_write(kfunction_animation, path = kfunction_gif_path)
+
+# Print confirmation that the GIF was saved
+print("Ripley's K-function animation saved as spatio_temporal_kfunction_animation.gif")
+
+# Display the GIF using magick
+kfunction_gif_image <- image_read(kfunction_gif_path)
+print(kfunction_gif_image)
+```
+
 # 6.0 KDE and Spatio-temporal KDE layers on openstreetmap of Myanmar
+
+### 6.1 Download OSM Data for Mynmar
+
+```{r}
+#| eval: false
+# Get bounding box for Myanmar
+bbox_myanmar <- getbb("Yangon")
+
+# Create Overpass query
+query <- opq(bbox = bbox_myanmar) 
+
+# Download data
+osm_data <- osmdata_sf(query)
+```
+
+```{r}
+
+```
+
+```{r}
+#| eval: false
+# Create a basic plot of the OSM data using tmap
+tm_shape(osm_data$osm_points) +
+  tm_dots( # Using tm_dots instead of tm_lines for point data
+    col = "blue", # Color of the dots
+    size = 0.01, # Size of the dots (adjust as needed)
+    alpha = 0.7 # Transparency of the dots
+  ) +
+  tm_layout(
+    frame = FALSE, # Remove the frame around the plot
+    legend.outside = TRUE, # Place the legend outside the plot
+    legend.outside.position = "bottom", # Position the legend outside at the bottom
+    legend.outside.size = 0.1 # Adjust the size of the outside legend (reduce if too large)
+  ) +
+  tm_scale_bar() # Add a scale bar to the map
+```
+
+### 6.2 Extract Points and Prepare Data for KDE
+
+```{r}
+#| eval: false
+```
+
+```{r}
+#| eval: false
+```
+
+```{r}
+#| eval: false
+```
 
 ```{r}
 tmap_mode("plot")
@@ -765,4 +950,46 @@ acled_sf %>%
   tm_shape() +
   tm_dots()
 
+```
+
+```{r}
+#| eval: false
+# Prepare a list to store tmap objects for each quarter
+tmap_list <- list()
+
+# Loop through each quarter
+for (q in quarters) {
+  
+  # Filter the dataset for the current quarter
+  quarter_data <- conflict_acled_sf_data %>%
+    filter(quarter == q)
+  
+  # Remove duplicates
+  coords <- st_coordinates(st_geometry(quarter_data))
+  if (any(duplicated(coords))) {
+    quarter_data <- quarter_data %>%
+      distinct(st_coordinates(st_geometry(.)), .keep_all = TRUE)
+  }
+  
+  # Create a tmap visualization
+  tmap_plot <- tm_shape(state_region_subregion_boundaries) +
+    tm_polygons() +
+    tm_shape(quarter_data) +
+    tm_dots(size = 0.01, col = "event_type", title = "Conflicts") +
+    tm_layout(title = paste("Conflicts for", q),
+              title.size = 1.2,
+              legend.outside = TRUE)
+  
+  # Store the tmap object in the list
+  tmap_list[[q]] <- tmap_plot
+}
+
+# Print all tmap plots
+for (q in quarters) {
+  if (!is.null(tmap_list[[q]])) {
+    print(tmap_list[[q]])
+  } else {
+    print(paste("No data available for quarter:", q))
+  }
+}
 ```
