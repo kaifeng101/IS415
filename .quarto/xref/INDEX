@@ -1,0 +1,68 @@
+{
+  "about.qmd": {
+    "about.html": "1a7f7add"
+  },
+  "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.qmd": {
+    "Hands-on_Ex01.html": "b5f4e6b2"
+  },
+  "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.qmd": {
+    "Hands-on_Ex02.html": "a3852d46"
+  },
+  "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03.qmd": {
+    "Hands-on_Ex03.html": "d89e89c5"
+  },
+  "In-class_Ex/In-class_Ex01/In-class_Ex01.qmd": {
+    "In-class_Ex01.html": "32c837f3"
+  },
+  "In-class_Ex/In-class_Ex02/In-class_Ex02.qmd": {
+    "In-class_Ex02.html": "de785d33"
+  },
+  "In-class_Ex/In-class_Ex03/In-class_Ex03.qmd": {
+    "In-class_Ex03.html": "60c2f0e1"
+  },
+  "index.qmd": {
+    "index.html": "28bc14cc"
+  },
+  "Notes/Lesson_1.qmd": {
+    "Lesson_1.html": "78914f76"
+  },
+  "Notes/Lesson_2.qmd": {
+    "Lesson_2.html": "2cf31008"
+  },
+  "In-class_Ex/In-class_Ex01/data/MPSZ-2019/MPSZ-2019.qmd": {
+    "MPSZ-2019.html": "2cd6c4a6"
+  },
+  "In-class_Ex/In-class_Ex02/data/MPSZ-2019/MPSZ-2019.qmd": {
+    "MPSZ-2019.html": "48db8ae7"
+  },
+  "In-class_Ex/In-class_Ex03/data/MPSZ-2019/MPSZ-2019.qmd": {
+    "MPSZ-2019.html": "616df924"
+  },
+  "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.qmd": {
+    "Take-home_Ex01.html": "42bbc21a"
+  },
+  "Notes/Lesson_3.qmd": {
+    "Lesson_3.html": "7924a9c6"
+  },
+  "In-class_Ex/In-class_Ex03/In-class_Ex03.rmarkdown": {
+    "In-class_Ex03.html": "f76c856d"
+  },
+  "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04.qmd": {
+    "Hands-on_Ex04.html": "023c61b1"
+  },
+  "In-class_Ex/In-class_Ex04/data/rawdata/Kepulauan_Bangka_Belitung.qmd": {
+    "Kepulauan_Bangka_Belitung.html": "93192cf5"
+  },
+  "In-class_Ex/In-class_Ex04/In-class_Ex04.qmd": {
+    "In-class_Ex04.html": "d0aa3ddd"
+  },
+  "Hands-on_Ex/Hands-on_Ex05/Hands-on_Ex05.qmd": {
+    "Hands-on_Ex05.html": "99a40ce5"
+  },
+  "In-class_Ex/In-class_Ex05/In-class_Ex05.qmd": {
+    "In-class_Ex05.html": "ea9535c1"
+  },
+  "Notes/Lesson_5.qmd": {
+    "Lesson_5.html": "68523571"
+  }
+}
