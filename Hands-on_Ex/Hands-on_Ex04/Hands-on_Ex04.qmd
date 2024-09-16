@@ -1,0 +1,47 @@
+---
+title: "Hands-on Exercise 4"
+subtitle: "Network Constrained Spatial Point Patterns Analysis (NetSPAA)"
+author: "Kai Feng"
+date: "Sept 06, 2024"
+date-modified: "last-modified"
+execute:
+  eval: true
+  echo: true
+  freeze: true
+---
+
+## **1.0 Overview**
+
+**NetSPAA** is used to analyze events that happen along networks, like roads or rivers.
+
+eg.study where traffic accidents mostly happen on a road, or where childcare centers are located along streets
+
+In this exercise, we'll use a tool called `spNetwork`:
+
+-   **Network Kernel Density Estimation (NKDE)**: This helps you see where events (like accidents) are happening the most along a network (like a road), showing areas where events are more common.
+
+-   **Network G-function and K-function**: These are methods to check if events are clustering together (happening close to each other) or if they’re spread out along the network.
+
+## **2.0 Setup**
+
+### **2.1 Installing R-Packages**
+
+-   [**sf**](https://r-spatial.github.io/sf/) for handling geospatial data. It can manage, process, and manipulate **Simple Features**, a formal geospatial data standard that specifies a storage and access model of spatial geometries such as points, lines, and polygons.
+
+-   [**spNetwork**](https://cran.r-project.org/web/packages/spNetwork/index.html), can perform Spatial Point Patterns Analysis such as kernel density estimation (KDE) and K-function on network. It also can be used to build spatial matrices (‘listw’ objects like in ‘spdep’ package) to conduct any kind of traditional spatial analysis with spatial weights based on reticular distances.
+
+-   [**tmap**](https://cran.r-project.org/web/packages/tmap/index.html) to plot cartographic quality static point patterns maps or interactive maps
+
+```{r}
+pacman::p_load(sf, spNetwork, tmap, tidyverse)
+```
+
+### **2.2 Data Acquisition**
+
+2 datasets will be used to analyse the spatial distribution of childcare centre in Punggol planning area **(Both data sets are in ESRI shapefile format)**:
+
+-   `Punggol_St`, a line features geospatial data which store the road network within Punggol Planning Area.
+
+-   `Punggol_CC`, a point feature geospatial data which store the location of childcare centres within Punggol Planning Area.
+
+### **2.3 Importing Geospatial Data into R**

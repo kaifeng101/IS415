@@ -1,0 +1,322 @@
+---
+title: "Notes 3"
+subtitle: "Spatial Point Patterns Analysis"
+author: "Kai Feng"
+date: "Sept 2, 2024"
+date-modified: "last-modified"
+execute:
+  eval: true
+  echo: true
+  freeze: true
+---
+
+# 
+
+# Purpose of Geospatial Analytics
+
+-   So that we can quantitatively derive it (eg. using KDE).
+
+-   Uses data related to locations to find patterns & trends
+
+# Spatial Point Patterns
+
+-   To study how points (Event) are spread out over an area
+
+-   **Only map Events, no 'Non-Event'**
+
+-   The mapped pattern should not be:
+
+    -   selection bias
+
+    -   Not a sample (eg. It is ok to take aged 70-80 from the population. But **do not do random sampling out of this group**)
+
+Example:
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson03/img/image4-1.jpg){width="344"}
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson03/img/image4-3.jpg){width="295"}
+
+# Real-world spatial point patterns -Random OR Patterned?
+
+-   hard to have random distribution
+
+    -   eg. Some areas like the airport will never have childcare
+
+    -   We can use **2nd Order Spatial Point Pattern Analysis** to prove
+
+-   hard to find something uniform in real world
+
+    -   eg. For instance a desert, if you zoom out a bit, there could be small hills, different land. It would not be the same across such as flat land
+
+-   Before performing any spatial analysis, **exclude areas that is definitely dont have the occurence. \[Else, when generate the spatial random data, you might have childcare center there\]**
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson03/img/image4-7.jpg){width="250"}
+
+# Spatial Point Patterns Analysis
+
+-   usually in 2D space
+
+-   set X = {x ∈ D}, **D = study region**, **subset of Rn, a** n-dimensional **Euclidean space**
+
+-   Issue: We need infer if the given is **merely random** or result of some process:
+
+    -   ![](https://is415-ay2024-25t1.netlify.app/lesson/lesson03/img/image4-9.jpg){width="402"}
+
+### 1st-order VS 2nd-order Analysis
+
++-----------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+
+|           | 1st Order                                                                                                                                                                                 | 2nd Order                                                                                                  |
++===========+===========================================================================================================================================================================================+============================================================================================================+
+|           | -   focuses on the overall **intensity** or **density** of events across a study area.                                                                                                    | -   examines the **interaction** or **relationships** between points within a study area.                  |
+|           |                                                                                                                                                                                           |                                                                                                            |
+|           | examines how the number of points (events) changes over space, often influenced by external factors such as environmental conditions, socioeconomic factors, or other large-scale trends. | -   help to identify whether points tend to cluster, repel, or distribute randomly relative to each other. |
+|           |                                                                                                                                                                                           |                                                                                                            |
+|           | Example:                                                                                                                                                                                  | Example:                                                                                                   |
+|           |                                                                                                                                                                                           |                                                                                                            |
+|           | "Where are the points more or less dense?"                                                                                                                                                | "Are the points clustered, dispersed, or randomly distributed in relation to each other?"                  |
+|           |                                                                                                                                                                                           |                                                                                                            |
+|           | "How does the density of events vary across the study area?                                                                                                                               | "How does the pattern change with distance?"                                                               |
++-----------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+
+| Technique | **Density-based:**                                                                                                                                                                        | -   G function                                                                                             |
+|           |                                                                                                                                                                                           |                                                                                                            |
+|           | -   KDE (Kernel density estimation)                                                                                                                                                       | -   F function                                                                                             |
+|           |                                                                                                                                                                                           |                                                                                                            |
+|           | -   Quadrat analysis                                                                                                                                                                      | -   K function                                                                                             |
+|           |                                                                                                                                                                                           |                                                                                                            |
+|           | **Distance-based:**                                                                                                                                                                       | -   L function                                                                                             |
+|           |                                                                                                                                                                                           |                                                                                                            |
+|           | -   Nearest Neighbour Index                                                                                                                                                               |                                                                                                            |
++-----------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------+
+
+# 1st-order\[Kernel Density Estimation (KDE)\]
+
+-   used to estimate the probability density function of a random variable.
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson03/img/image4-20.jpg){width="358"}
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson03/img/image4-20b.png){width="311"}
+
+### Steps in KDE
+
+1.  Place a Kernel on Each Point (event location)
+    -   The height and shape of this bump depend on the chosen kernel function and the bandwidth.
+2.  Sum the Kernels
+    -   For each point in the study area, the contribution of all surrounding kernels is summed to calculate the density value at that point.
+3.  Create a Continuous Surface
+    -   The result is a smooth surface where higher values indicate areas with higher event densities, and lower values indicate areas with fewer events.
+
+### KDE Methods
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson03/img/image4-22.jpg){width="371"}
+
+1.  **Uniform** -\> intensity will not change during this period, immediately after, it will be 0
+
+2.  **Triangular** -\> move away from center point, it will decrease very fast from the center point
+
+3.  **Quartic & Gaussian** -\>
+
+    -   not identical, but similar. If get negative value from Gaussian, can switch to Quartic.
+
+    -   **Gaussian** is very common (**Gives more weight to points closer to the event & less weight to points farther away)**
+
+    -   Try different option, select the appropriate one & explain why
+
+### KDE Bandwidth
+
++-----------------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------+
+| **Fixed Bandwidth -determine distance for you**                                                                                   | ![](https://is415-ay2024-25t1.netlify.app/lesson/lesson03/img/image4-23.jpg){width="307"} |
+|                                                                                                                                   |                                                                                           |
+| -   Define a fixed distance -\> use this distance throughout the study                                                            |                                                                                           |
+|                                                                                                                                   |                                                                                           |
+| -   In extreme case, might not able to calibrate in local areas where data are too sparse to satisfy the calibration requirements |                                                                                           |
++-----------------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------+
+| -   **Adaptive Bandwidth -determine the k for you**                                                                               | ![](https://is415-ay2024-25t1.netlify.app/lesson/lesson03/img/image4-24.jpg)              |
+|                                                                                                                                   |                                                                                           |
+|     -   Fixed the no. of spatial points                                                                                           |                                                                                           |
+|                                                                                                                                   |                                                                                           |
+|     -   eg. I will search for 8 childcare center no matter the length                                                             |                                                                                           |
++-----------------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------+
+
+**\* Small bandwidth = highly localized estimate, showing fine details (but could miss broader patterns)**
+
+**\* Large bandwidth = smooth out the estimart (possibly oversimplifying the data)**
+
+\* **Automatic bandwidth -\> bw.diggle()**
+
+![](images/clipboard-2183884731.png)
+
+# 1st-order \[Quadrat Analysis\]
+
+### Steps
+
++------------------------------------------------------------+------------------------------------------------------------------------------+
+| 1.  Divide the study area into subregion of equal size,    | ![](https://is415-ay2024-25t1.netlify.app/lesson/lesson03/img/image4-12.jpg) |
+|                                                            |                                                                              |
+|     -   often squares, but don’t have to be.               |                                                                              |
++------------------------------------------------------------+------------------------------------------------------------------------------+
+| 2.  Count the frequency of events in each region.          | ![](https://is415-ay2024-25t1.netlify.app/lesson/lesson03/img/image4-13.jpg) |
++------------------------------------------------------------+------------------------------------------------------------------------------+
+| 3.  Calculate the intensity of events in each region.      | ![](https://is415-ay2024-25t1.netlify.app/lesson/lesson03/img/image4-14.jpg) |
++------------------------------------------------------------+------------------------------------------------------------------------------+
+| 4.  Calculate the quadrat statistics and perform CSR test. | ![](https://is415-ay2024-25t1.netlify.app/lesson/lesson03/img/image4-15.jpg) |
++------------------------------------------------------------+------------------------------------------------------------------------------+
+
+**Uniform distribution** -\> variance-mean ratio = 0
+
+**Random distribution** -\> variance-mean ratio **close to 1**
+
+**Cluster distribution** -\> variance-mean ratio **greater than 1**
+
+### Interpretation
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson03/img/image4-17.jpg){width="410"}
+
+### Weaknesses
+
+-   sensitive to the quadrat size
+
+    -   If too small, they may contain only a couple of points, and
+
+    -   If too large, they may contain too many points.
+
+-   It is a measure of **dispersion** rather than a measure of **pattern**.
+
+<!-- -->
+
+-   It results in a single measure for the entire distribution, so variation within the region are not recognised.
+
+# Complete Spatial Randomness CSR
+
+-   satisfy 2 conditions
+
+    -   any event has equal probability of being in any location, a **1st order** effect
+
+    -   The location of one event is independent of the location of another event, a **2nd order** effect.
+
+# 1st-order \[**Distance-based:** Nearest Neighbour Index\]
+
+-   Direct distance from a point to its nearest neighbour
+
+-   Index \< 1: clustering
+
+-   Index = 1: random
+
+-   Index \> 1: dispersion
+
+    ![](https://is415-ay2024-25t1.netlify.app/lesson/lesson03/img/image4-28.jpg)
+
+Example:
+
+![](images/clipboard-3457834433.png){width="425"}
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson03/img/image4-30.jpg){width="438"}
+
+**p-value is \< 0.05, so reject null hypo that the point patterns are randomly distributed**
+
+# 2nd-order \[G function\]
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson03/img/image4-32.jpg){width="230"}
+
+-   within this radius, how many childcare i found
+
+-   Within 0-9, what is the intensity
+
+-   **Clustered**: If G increases rapidly at short distance
+
+-   **Evenness**: If G increases slowly up to distance where most events spaced, then increases rapidly
+
+### Monte Carlo simulation test of CSR
+
+![](images/clipboard-3416485639.png)
+
+-   nsim = 999 **\<- Performed 999 simulations \[Cannot do 1 only, the more = more stable, result will converge\]**
+
+-   for each simulated point pattern, estimate G(r) & use the max 95th and min 5th of these functions for the simulated patterns to define an upper and lower simulation envelope.
+
+-   **Estimate G(r) is statistically significant** if estimated G(r) lies above the upper envelope or below the lower envelope
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson03/img/image4-35.jpg){width="365"}
+
+# 2nd-order \[F function\]
+
+-   Select a sample of point locations anywhere in the study region at random
+
+    -   Determine min distance from each point to any event in the study area.
+
+    ![](https://is415-ay2024-25t1.netlify.app/lesson/lesson03/img/image4-36.jpg){width="527"}
+
+-   **Clustered** = F(r) rises slowly at first, but more rapidly at longer distances.
+
+```{=html}
+<!-- -->
+```
+-   **Evenness** = F(r) rises rapidly at first, then slowly at longer distances.
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson03/img/image4-37.jpg){width="521"}
+
+# Comparison between F and G function
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson03/img/image4-38.jpg)
+
+# 2nd-order \[K function\]
+
+-   Limitation of nearest neighbor distance method is that it uses only nearest distance
+
+-   Considers only the shortest scales of variation.
+
+-   K function uses more points.
+
+    -   Provides an estimate of spatial dependence over a wider range of scales.
+
+    -   Based on all the distances between events in the study area.
+
+    -   Assumes isotropy over the region.
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson03/img/image4-39.jpg){width="343"}
+
+### Calculating K function
+
+-   Construct a circle of radius h around each point event(i).
+
+-   Count the number of other events (j) that fall inside this circle.
+
+-   Repeat these two steps for all points (i) and sum results.
+
+-   Increment h by a small amount and repeat the calculation.
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson03/img/image4-42.jpg){width="446"}
+
+Significant **cluster** pattern -\> above envelop
+
+Significant **regular** pattern -\> below envelop
+
+**CSR** -\> inside envelop
+
+# 2nd-order \[L function\]
+
+-   K function will be normalised to obtained a benchmark of zero.
+
+```{=html}
+<!-- -->
+```
+-   When an observed L value is greater than its corresponding L(theo)(i.e. red break line) value for a particular distance and above the upper confidence envelop, spatial clustering for that distance is statistically significant (e.g. distance beyond C).
+
+-   When an observed L value is greater than its corresponding L(theo) value for a particular distance and lower than the upper confidence envelop, spatial clustering for that distance is statistically NOT significant (e.g. distance between B and C).
+
+-   When an observed L value is smaller than its corresponding L(theo) value for a particular distance and beyond the lower confidence envelop, spatial dispersion for that distance is statistically significant. - When an observed L value is smaller than its corresponding L(theo) value for a particular distance and within the lower confidence envelop, spatial dispersion for that distance is statistically NOT significant (e.g. distance between A and B).
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson03/img/image4-44.jpg){width="393"}
+
+-   L(r)\>0 indicates that the observed distribution is geographically concentrated.
+
+-   L(r)\<0 implies dispersion.
+
+-   L(r)=0 indicates complete spatial randomness (CRS).
+
+\* Anything outside of envelop, you will have enough statistical evidence, if inside means you still fall into the confidence lvl (cannot reject null, cause not enough evidence to infer)
+
+# set.seed()
+
+-   to produce reproducible result
+
+-   result from algo might change every run, use this to fix it

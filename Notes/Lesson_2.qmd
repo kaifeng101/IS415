@@ -1,0 +1,210 @@
+---
+title: "Notes 2"
+subtitle: "Thematic Mapping and GeoVisualisation with R"
+author: "Kai Feng"
+date: "August 27, 2024"
+date-modified: "last-modified"
+execute:
+  eval: true
+  echo: true
+  freeze: true
+---
+
+# Choropleth Map (a.k.a area shaded map)
+
+A type of thematic map, areas shaded, values aggregated into geographical layer (eg. subzone)
+
+The shading is the things we want to map (eg. Dependency ratio)
+
+![](images/clipboard-2808213866.png){width="249"}
+
+## 2 types of Choropleth Map 
+
+### 1) Classified -Classed
+
+-   combines areal units into small no. of groups (10 methods eg. 'equal', 'quantile')
+
+No. of Classes
+
+-   if \<4, overly generalized map \[Can use depending on context, eg. USA election, red camp VS blue camp\]
+
+-   keep \<= 12, 7/8 shades of the same color
+
+-   if too many, our eyes cannot differentiate them wel
+
+![](images/clipboard-1935585594.png){width="248"}
+
+equal = divide into same range (not suitable for highly skewed data set)
+
+quantile -\> into different percentage
+
+natural breaks (a.k.a. jenks) -\> fuse between equal & quantile method
+
+standard deviation -\> if data is normal distribution only
+
+### 2) Unclassified -Unclassed
+
+-   map it to the color, spectrum (the value) (eg. 0 -\> 223)
+
+## Colour Scheme -ColorBrewer
+
+![](images/clipboard-2269324777.png){width="206"}
+
+\* Nominal Color Scheme -\> Only for categorical data
+
++--------------------------------------+---------------------------+
+| Color Scheme                         | Remarks                   |
++======================================+===========================+
+| ![](images/clipboard-2148829889.png) | Only for categorical data |
++--------------------------------------+---------------------------+
+| ![](images/clipboard-4154642551.png) | For continuous            |
+|                                      |                           |
+|                                      | \+                        |
+|                                      |                           |
+|                                      | All value +/-             |
++--------------------------------------+---------------------------+
+| ![](images/clipboard-2983750397.png) | For continuous            |
+|                                      |                           |
+|                                      | \+                        |
+|                                      |                           |
+|                                      | Value have both +/- only  |
++--------------------------------------+---------------------------+
+
+# tmap package
+
+![](images/clipboard-837005071.png){width="285"}
+
+-   supports 2 modes: **plot** (static map), **view** (interactive map)
+
+## Shape objects
+
+![](images/clipboard-1160544185.png){width="200"}
+
+### tmap element
+
+-\> always start with **tm_shape()**
+
+\* Put plus**(+)** sign to indicate it is a continuous code (Put it at the back)
+
+![](images/clipboard-4170268982.png){width="392"}
+
+-\> can later add
+
+![](images/clipboard-2920258230.png){width="262"}
+
+-\>can choose from this list
+
+![](images/clipboard-2478902316.png){width="367"}
+
+![](images/clipboard-3277114312.png){width="274"}
+
+### tm_polygons()
+
+-   default classes = 5bins
+
+-   default classification method = "pretty"
+
+-   default color scheme = "YIOrRd" (yellow-orange)
+
+-   missing value = gray
+
+![](images/clipboard-3434512484.png){width="263"}
+
+### tm_border()
+
+-   default lwd (border line width) = 1
+
+-   alpha = between 0 (totally transparent) and 1 (not transparent)
+
+    -   Default alpha = 1
+
+-   col (border color)
+
+-   default lty (border line type) = "solid"
+
+![](images/clipboard-1592500716.png){width="259"}
+
+------------------------------------------------------------------------------------------
+
+##  Map & Geographical Data
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-1c.jpg)
+
+## Geo VS Aspatial Data
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-1d.jpg){width="522"}
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-6.jpg){width="305"}
+
++-----------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
+| **Reference Maps**![](https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-7.jpg) | show buildings, roads, vegetation, rivers                                                                                                       |
+|                                                                                               |                                                                                                                                                 |
+|                                                                                               | eg. topo map like Google Map                                                                                                                    |
++-----------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
+| **Thematic Map**                                                                              | emphasize the spatial pattern of geographic attributes or statistics about places and relationships between places such as Life in Los Angeles. |
+|                                                                                               |                                                                                                                                                 |
+| ![](https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-8.jpg)                   |                                                                                                                                                 |
++-----------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------+
+
+## Qualitative Thematic Map
+
++--------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------+
+| **Point symbol map**                                                                 | ![](https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-10.jpg){width="337"} |
+|                                                                                      |                                                                                           |
+| Use point to represent school types                                                  |                                                                                           |
++--------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------+
+| **Line symbol map**                                                                  | ![](https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-11.jpg){width="116"} |
+|                                                                                      |                                                                                           |
+| Show road network                                                                    |                                                                                           |
+|                                                                                      |                                                                                           |
+| Different color intensity and thickness are used to differentiate hierarchy of roads |                                                                                           |
++--------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------+
+| **Area Map**                                                                         | ![](https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-12.jpg)              |
+|                                                                                      |                                                                                           |
+| different colors to represent different land use types                               |                                                                                           |
++--------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------+
+
+## Proportional Symbol Map
+
+Use symbols of different sizes to represent data associated with different areas
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-14.jpg){width="405"}
+
+Go for this kind:\
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-16b.jpg)
+
+## Proportional Symbol Map -Bar Chart Map
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-16.jpg){width="320"}
+
+## Proportional Symbol Map -Pie Chart Map
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-15.jpg){width="351"}
+
+## Proportional Symbol Map -Junk Map
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-16c.jpg)
+
+\* ensure geographical lvl used is same
+
+## Brick Map 
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-17.jpg){width="322"}
+
+better to encode quantitative info graphically
+
+## Bricks VS Proportional Symbol Map
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-17a.jpg){width="273"}
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-17.jpg){width="320"}
+
+Proportional Symbol map can be more difficult to distinguish than brick
+
+## Dot Density Map
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson02/img/image6-18.jpg){width="287"}
+
+a type of thematic map -\> use dot/symbols to show the values of \>= 1 numeric value
+
+each dot represent some amt of data
