@@ -5,7 +5,7 @@ author: "Kai Feng"
 date: "August 30, 2024"
 date-modified: "last-modified"
 execute:
-  eval: false
+  eval: true
   echo: true
   freeze: true
 ---
@@ -162,6 +162,7 @@ sum(multiplicity(childcare_ppp) > 1)
 ### **View locations of these duplicated point events:**
 
 ```{r}
+#| eval: false
 tmap_mode('view')
 tm_shape(childcare) +
   tm_dots(alpha=0.4, 
@@ -574,6 +575,7 @@ tm_shape(mpsz_sf) +
 ### OR -\> Pin Map
 
 ```{r}
+#| eval: false
 tmap_mode('view')
 tm_shape(childcare_sf) +
   tm_dots()
