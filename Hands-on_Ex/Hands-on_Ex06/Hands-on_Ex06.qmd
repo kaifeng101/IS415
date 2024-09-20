@@ -1,0 +1,415 @@
+---
+title: "Hands-on Exercise 6"
+subtitle: "Global Measures of Spatial Autocorrelation"
+author: "Kai Feng"
+date: "Sept 20, 2024"
+date-modified: "last-modified"
+execute:
+  eval: true
+  echo: true
+  freeze: true
+---
+
+## 1.0 Overview
+
+-   **Objective of spatial policy**: Ensure equal distribution of development in the province.
+
+-   **Study Purpose**: Use spatial statistics to check for even distribution of development.
+
+-   **If Not Even**:
+
+    -   Investigate signs of spatial clustering (areas where development is grouped).
+
+    -   Identify where these clusters are located.
+
+-   **Focus**: Analyze the spatial pattern of GDP per capita in Hunan Province, China.
+
+<br/><br/>
+
+## **2.0 Setup**
+
+### **2.1 Installing R-Packages**
+
+-   **sf**: Importing and handling geospatial data in R
+
+-   **spdep**: Compute spatial weights, global and local spatial autocorrelation statistics
+
+-   **tmap**: Trepare cartographic quality chropleth map
+
+-   **tidyverse**: For wrangling attribute data in R
+
+```{r}
+pacman::p_load(sf, spdep, tmap, tidyverse)
+```
+
+<br/><br/>
+
+### **2.2 Data Acquisition**
+
+Two data sets will be used:
+
+-   `Hunan county boundary layer`: a geospatial data set in ESRI shapefile format.
+
+-   `Hunan_2012.csv`: contains selected Hunan’s local development indicators in 2012.
+
+::: panel-tabset
+# **Importing Geospatial Data**
+
+```{r}
+hunan <- st_read(dsn = "data/geospatial", 
+                 layer = "Hunan")
+```
+
+# Importing Aspatial Data
+
+```{r}
+hunan2012 <- read_csv("data/aspatial/Hunan_2012.csv")
+```
+:::
+
+<br/><br/>
+
+### **2.3 Performing relational join**
+
+```{r}
+hunan <- left_join(hunan,hunan2012) %>%
+  select(1:4, 7, 15)
+```
+
+### 2.4 Visualising Regional Development Indicator
+
+```{r}
+equal <- tm_shape(hunan) +
+  tm_fill("GDPPC",
+          n = 5,
+          style = "equal") +
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "Equal interval classification")
+
+quantile <- tm_shape(hunan) +
+  tm_fill("GDPPC",
+          n = 5,
+          style = "quantile") +
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "Equal quantile classification")
+
+tmap_arrange(equal, 
+             quantile, 
+             asp=1, 
+             ncol=2)
+```
+
+## 3.0 **Global Measures of Spatial Autocorrelation**
+
+::: panel-tabset
+## Step 1: Computing Contiguity Spatial Weights
+
+Before we can compute the Global Spatial autocorrelation statistics, we need to:
+
+-   Construct spatial weights for the study area.
+
+    -   By Computing contiguity weight matrices based on adjacent regions.
+    -   **using Queen Criteria**:
+        -   Default is **TRUE**: Includes all neighbors that touch at edges or corners.
+
+        -   You can set `queen = FALSE` to consider only edge-touching neighbors (first-order neighbors).
+
+-   So we can Define neighborhood relationships between geographical units (e.g., counties).
+
+```{r}
+wm_q <- poly2nb(hunan, 
+                queen=TRUE)
+summary(wm_q)
+```
+
+::: callout-note
+There are 88 area units in Hunan.
+
+The most connected area unit has 11 neighbours
+
+Only 2 area aunits with 1 link
+:::
+
+## Step 2: Row-standardised weights matrix
+
+Now, assign weights to each neighboring polygon.
+
+-   **Method**: Assign each using equal weights (style = "W")
+
+-   **Weight Calculation**:
+
+    -   Assign weight of fraction 1/(#ofneighbors) to each neighboring county
+
+    -   Sum the weighted values (e.g., income) from neighbors.
+
+-   **Drawback**:
+
+    -   Edge polygons have fewer neighbors, which can skew results (over- or under-estimate spatial autocorrelation).
+
+-   **Note**: For this example, we'll use style = "W" for simplicity, but other options, like style = "B," are more robust.
+
+```{r}
+rswm_q <- nb2listw(wm_q, 
+                   style="W", 
+                   zero.policy = TRUE)
+rswm_q
+```
+
+::: callout-note
+The function `nb2listw()` requires an object of class **nb** (neighborhood list).
+
+**style**: Defines how weights are calculated. Options include:
+
+-   **"W"**: Row standardized weights (sums to 1 across neighbors).
+
+-   **"B"**: Basic binary coding (weights are either 0 or 1).
+
+-   **"C"**: Globally standardized weights (sums to the total number of connections).
+
+-   **"U"**: Equal weights divided by the number of neighbors (sums to 1).
+
+-   **"minmax"**: Min-max normalization (scales weights between 0 and 1).
+
+-   **"S"**: Variance-stabilizing coding (improves stability of weights).
+
+**zero.poly**:
+
+-   If set to **TRUE**, this includes weights of zero for regions without neighbors.
+
+-   This results in lag values of zero for those regions, which means they won't affect the analysis.
+
+-   It uses a formula that generates a vector of zeros for regions without neighbors, leading to a spatially lagged value of zero for those regions.
+
+**Summary**
+
+-   The **style** argument determines how to handle the weights for neighboring regions.
+
+-   **zero.poly** allows for handling of regions that have no neighbors, potentially simplifying analysis but may not always be sensible.
+:::
+:::
+
+## 3.0 **Global Measures of Spatial Autocorrelation: Moran’s I**
+
+::: panel-tabset
+## Maron’s I test
+
+```{r}
+moran.test(hunan$GDPPC, 
+           listw=rswm_q, 
+           zero.policy = TRUE, 
+           na.action=na.omit)
+```
+
+::: callout-note
+## Findings
+
+Moran I statistic (0.300749970) -\> indicate Positive correlation in GDP per capita
+
+SD of 4.7351 -\> indicate Moran's I is \> expected value under null hypo
+
+P-value of 1.095e-06 (0.000001095) -\> is \< 0.05, indicates strong statistical significance
+
+Expectation of -0.011494253 -\> we expect slight negative autocorrelation if there were no spatial structure
+
+Since p-value \< 0.05, we reject null hypo of no spatial autocorrelation. This strongly suggests there is significant positive spatial clustering of GDPPC in Hunan Province. (Regions with High GDPPC is near areas with high GDPPC
+:::
+
+## Computing Monte Carlo Moran’s I
+
+```{r}
+set.seed(1234)
+bperm= moran.mc(hunan$GDPPC, 
+                listw=rswm_q, 
+                nsim=999, 
+                zero.policy = TRUE, 
+                na.action=na.omit)
+bperm
+```
+
+::: callout-note
+## Findings
+
+Moran I statistic (0.30075) -\> indicate Positive correlation in GDP per capita
+
+P-value of 0.001 -\> \< 0.05, indicates that the probability of obtaining a Moran's I value as extreme as the observed \>= 1 under the null hypo
+
+Thus, we reject null hypo as p value \< 0.05. There is strong evidence that areas with high GDPPC are near areas with high GDPPC
+:::
+
+## Visualising Monte Carlo Moran’s I
+
+```{r}
+mean(bperm$res[1:999])
+var(bperm$res[1:999])
+summary(bperm$res[1:999])
+hist(bperm$res, 
+     freq=TRUE, 
+     breaks=20, 
+     xlab="Simulated Moran's I")
+abline(v=0, 
+       col="red") 
+```
+
+## Plotting using ggplot2
+
+```{r}
+# Create a data frame from the simulated results
+data <- data.frame(Simulated_Morans_I = bperm$res[1:999])
+
+# Plot using ggplot2
+ggplot(data, aes(x = Simulated_Morans_I)) +
+  geom_histogram(binwidth = (max(data$Simulated_Morans_I) - min(data$Simulated_Morans_I)) / 20, 
+                 fill = "blue", 
+                 color = "black") +
+  geom_vline(xintercept = 0, 
+             color = "red", 
+             linetype = "dashed", 
+             size = 1) +
+  labs(title = "Histogram of Simulated Moran's I",
+       x = "Simulated Moran's I",
+       y = "Frequency") +
+  theme_minimal()
+```
+:::
+
+## 3.0 **Global Measures of Spatial Autocorrelation: Geary’s C**
+
+::: panel-tabset
+### **Geary’s C test**
+
+```{r}
+geary.test(hunan$GDPPC, listw=rswm_q)
+```
+
+::: callout-note
+## Findings
+
+Geary C statistic (0.6907223) -\> indicate a level of spatial autocorrelation, lower value suggest positive spatial autocorrelation
+
+SD of 3.6108 -\> indicates significant lower than expected value under null hypo
+
+P-value of 0.0001526 -\> is \< 0.05, indicates strong statistical significance
+
+Expectation of 1.0000000 -\> on avg, we would expect no spatial autocorrelation
+
+Since p-value \< 0.05, we reject null hypo of no spatial autocorrelation. This strongly suggests there is significant positive spatial clustering of GDPPC in Hunan Province. (Regions with High GDPPC is near areas with high GDPPC than would be expected by chance
+:::
+
+## Computing Monte Carlo **Geary’s C**
+
+```{r}
+set.seed(1234)
+bperm=geary.mc(hunan$GDPPC, 
+               listw=rswm_q, 
+               nsim=999)
+bperm
+```
+
+::: callout-note
+## Findings
+
+Geary's C Statistic (0.69072) -\> indicate some level of positive spatial autocorrelation
+
+Observed Rank of 1 -\> indicates that the observed value is the smallest among all the simulated values. This suggests that the observed spatial autocorrelation is much stronger than what would be expected under the null hypothesis.
+
+P-value of 0.001 -\> \< 0.05, indicates strong statistical significance
+
+Thus, we reject null hypo as p value \< 0.05. There is strong evidence that areas with high GDPPC are near areas with high GDPPC
+:::
+
+## Visualising Monte Carlo **Geary’s C**
+
+```{r}
+mean(bperm$res[1:999])
+var(bperm$res[1:999])
+summary(bperm$res[1:999])
+hist(bperm$res, freq=TRUE, breaks=20, xlab="Simulated Geary c")
+abline(v=1, col="red") 
+```
+:::
+
+<br/><br/>
+
+## 4.0 **Spatial Correlogram**
+
+-   **Spatial Correlograms**: Useful for examining patterns of spatial autocorrelation.
+
+-   **Function**: Show how correlated pairs of spatial observations are as distance (lag) increases.
+
+-   **Plot Type**: Graphs of autocorrelation indices (like Moran’s I or Geary’s c) against distance.
+
+-   **Comparison with Variograms**:
+
+    -   Not as fundamental as variograms, which are key in geostatistics.
+
+    -   Provide richer information for exploratory and descriptive analysis than variograms.
+
+::: panel-tabset
+## Compute Moran’s I correlogram
+
+```{r}
+MI_corr <- sp.correlogram(wm_q, 
+                          hunan$GDPPC, 
+                          order=6, 
+                          method="I", 
+                          style="W")
+plot(MI_corr)
+```
+
+-   **Plot Limitations**:
+
+    -   Plots may not give a complete interpretation of autocorrelation results.
+
+    -   Not all autocorrelation values are statistically significant.
+
+-   **Importance of Full Analysis**:
+
+    -   Necessary to examine the complete analysis report.
+
+    -   Printing the analysis results provides more detailed insights.
+
+```{r}
+print(MI_corr)
+```
+
+::: callout-note
+### Statistical Observations
+
+1.  **Positive Autocorrelation**:
+
+    -   The first three lags (1, 2, and 3) show positive Moran's I values (0.30075, 0.20601, and 0.06683), indicating clustering of similar GDP per capita values at these distances.
+
+2.  **Statistical Significance**:
+
+    -   **Lags 1 and 2**: Highly significant (p-values of **2.189e-06** and **2.029e-06**), suggesting strong evidence of positive spatial autocorrelation.
+
+    -   **Lag 3**: Also significant (p-value of **0.0404**), indicating some level of clustering, but less strong than the first two lags.
+
+    -   **Lag 4**: Not significant (p-value of **0.2260**), suggesting a lack of clustering at this distance.
+
+    -   **Lag 5 and 6**: Show negative values (-0.15305 and -0.11871) with significant p-values (**5.984e-05** and **0.008886**), indicating that at these distances, similar values are less clustered.
+
+3.  **General Trend**:
+
+    -   The trend shows strong positive autocorrelation at shorter distances (lags 1-3), but transitions to negative autocorrelation at longer distances (lags 5-6).
+
+### Conclusion:
+
+-   There is strong evidence of positive spatial clustering of GDP per capita in Hunan Province at shorter distances, but this pattern diminishes and even reverses at greater distances, suggesting that local clusters may dissipate as distance increases.
+:::
+
+## Compute Geary’s C correlogram and plot
+
+```{r}
+GC_corr <- sp.correlogram(wm_q, 
+                          hunan$GDPPC, 
+                          order=6, 
+                          method="C", 
+                          style="W")
+plot(GC_corr)
+```
+
+```{r}
+print(GC_corr)
+```
+:::
