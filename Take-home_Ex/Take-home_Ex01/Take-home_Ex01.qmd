@@ -93,20 +93,10 @@ Source: [10 Conflicts to Watch in 2024](https://www.crisisgroup.org/global/10-co
 ## *Performing 2nd-Order Spatio-Temporal Point Patterns Analysis*
 
 -   `spatstat`: For advanced spatio-temporal analysis, including the study of second-order effects over time.
-
-## *Displaying Maps with KDE and Spatio-temporal KDE Layers*
-
--   `tmap`: For creating thematic maps and displaying KDE layers.
-
--   `ggplot2`: For additional custom visualizations if needed.
-
--   `leaflet`: For interactive maps, if required.
-
--   `osmdata`: To fetch and integrate OpenStreetMap data for background maps.
 :::
 
 ```{r}
-pacman::p_load(tidyverse, sf, readr, spatstat, raster, ggstatsplot, ggplot2, tmap, osmdata, dplyr, patchwork, animation, png, magick)
+pacman::p_load(tidyverse, sf, readr, spatstat, raster, ggstatsplot, ggplot2, tmap, dplyr, patchwork, animation, png, magick, osmdata, osrm, scales, MASS)
 ```
 
 <br/><br/>
@@ -137,15 +127,8 @@ We will be using 2 sets of data:
 ## Administrative Boundary Data
 
 -   **Source:** [Myanmar Information Management Unit](https://geonode.themimu.info/layers/?limit=100&offset=0) (MIMU).
--   For Broad Analysis:
-    -   **National Boundaries**: To get an overview of conflict patterns across the entire country.
-
-    -   **State and Region with Sub-region Boundaries**: For understanding conflict distribution across larger administrative divisions.
--   For Detailed Local Analysis:
-    -   **District Boundaries**: Useful for a more detailed view of conflict distribution within specific districts.
-
-    -   **Township and Ward Boundaries**: For very granular analysis, especially useful if you're interested in the impact at the community level.
--   **Self-Administered Region Boundaries:** For Analyzing Conflict Dynamics in Self-Administered Regions (SARs) Relative to Administrative Autonomy
+-   **National Boundaries**: To get an overview of conflict patterns across the entire country.
+-   **State and Region with Sub-region Boundaries**: For understanding conflict distribution across larger administrative divisions.
 :::
 
 <br/><br/>
@@ -161,28 +144,10 @@ acled_sf <- read_csv("data/ACLED_Myanmar.csv")
 
 ## Administrative Boundaries
 
--   For Broad Analysis:
-
 ```{r}
 national_boundaries <- st_read(dsn = "data/National_Boundaries", layer="mmr_polbnda_adm0_250k_mimu_1")
 
 state_region_subregion_boundaries <- st_read(dsn = "data/State_And_Region_With_Sub-regions_Boundaries", layer="mmr_polbnda2_adm1_250k_mimu_1")
-```
-
--   For Detailed Local Analysis:
-
-```{r}
-district_boundaries <- st_read(dsn = "data/District_Boundaries", layer="mmr_polbnda_adm2_250k_mimu")
-
-township_boundaries <- st_read(dsn = "data/Township_Boundaries", layer="mmr_polbnda_adm3_250k_mimu_1")
-
-ward_boundaries <- st_read(dsn = "data/Ward_Boundaries", layer="mmr_polbnda_adm5_mimu_v9_4")
-```
-
--   Self-Administered region Boundaries
-
-```{r}
-self_administered_boundaries <- st_read(dsn = "data/Self_Administered_Region_Boundaries", layer="mmr_polbnda_self_administered_zones_1")
 ```
 :::
 
@@ -202,9 +167,6 @@ st_crs(acled_sf)
 Since
 
 -   Since the class of **acled_sf** != sf object
-
-<!-- -->
-
 -   Coordinate Reference System of **acled_sf** = NA
 
 we have to transform it.
@@ -217,39 +179,9 @@ class(national_boundaries)
 st_crs(national_boundaries)
 ```
 
-<br/><br/>
-
 ```{r}
 class(state_region_subregion_boundaries)
 st_crs(state_region_subregion_boundaries)
-```
-
-<br/><br/>
-
-```{r}
-class(district_boundaries)
-st_crs(district_boundaries)
-```
-
-<br/><br/>
-
-```{r}
-class(township_boundaries)
-st_crs(township_boundaries)
-```
-
-<br/><br/>
-
-```{r}
-class(ward_boundaries)
-st_crs(ward_boundaries)
-```
-
-<br/><br/>
-
-```{r}
-class(self_administered_boundaries)
-st_crs(self_administered_boundaries)
 ```
 
 ::: callout-note
@@ -257,10 +189,6 @@ Since Coordinate Reference System of
 
 -   **national_boundaries**
 -   **state_region_subregion_boundaries**
--   **district_boundaries**
--   **township_boundaries**
--   **ward_boundaries**
--   **self_administered_boundaries**
 
 is in 4326 (unit of measurement = degree), we have to transform it
 :::
@@ -358,6 +286,8 @@ conflict_acled_sf_data <- acled_sf %>%
 ```{r}
 conflict_acled_sf_data <- conflict_acled_sf_data %>%
   mutate(month = month(event_date))
+
+write_rds(conflict_acled_sf_data, "data/rds/conflict_acled_sf_data.rds")
 ```
 
 ## Administrative Boundaries
@@ -369,18 +299,6 @@ national_boundaries <- national_boundaries %>%
   st_transform(crs = 32647)
 
 state_region_subregion_boundaries <- state_region_subregion_boundaries %>%
-  st_transform(crs = 32647)
-
-district_boundaries <- district_boundaries %>%
-  st_transform(crs = 32647)
-
-township_boundaries <- township_boundaries %>%
-  st_transform(crs = 32647)
-
-ward_boundaries <- ward_boundaries %>%
-  st_transform(crs = 32647)
-
-self_administered_boundaries <- self_administered_boundaries %>%
   st_transform(crs = 32647)
 ```
 
@@ -464,10 +382,10 @@ conflict_summary_by_state_region <- acled_with_state_region %>%
     .groups = 'drop'
   )
 
-# Convert district boundaries to a regular data frame (non-spatial)
+# Convert state boundaries to a regular data frame (non-spatial)
 state_region_boundaries_df <- as.data.frame(state_region_subregion_boundaries)
 
-# Merge the summary data with the district boundaries data frame
+# Merge the summary data with the state boundaries data frame
 state_region_boundaries_summary <- state_region_boundaries_df %>%
   left_join(conflict_summary_by_state_region, by = c("ST" = "ST"))
 
@@ -543,10 +461,10 @@ for (type in conflict_types) {
   conflict_summaries[[type]] <- summary
 }
 
-# Convert district boundaries to a regular data frame (non-spatial)
+# Convert state boundaries to a regular data frame (non-spatial)
 state_region_subregion_boundaries_df <- as.data.frame(state_region_subregion_boundaries)
 
-# Merge each summary with the district boundaries data frame
+# Merge each summary with the state boundaries data frame
 region_conflict_summaries <- lapply(conflict_summaries, function(summary) {
   region_summary <- state_region_subregion_boundaries_df %>%
     left_join(summary, by = "ST")
@@ -890,106 +808,165 @@ kfunction_gif_image <- image_read(kfunction_gif_path)
 print(kfunction_gif_image)
 ```
 
-# 6.0 KDE and Spatio-temporal KDE layers on openstreetmap of Myanmar
+<br/><br/>
 
-### 6.1 Download OSM Data for Mynmar
+# 6.0 Analysis using Openstreetmap of Myanmar
 
+We can make use of OpenStreetMap(OSM) data to create a vivid picture of how armed conflict affects not just the landscape but also the lives and infrastructure essential for the population. From identifying hotspots to understanding the disruption of critical services, here’s how we can delve deeper into the conflict’s impact.
+
+### 6.1 Download OSM Data
+
+::: panel-tabset
 ```{r}
 #| eval: false
-# Get bounding box for Myanmar
-bbox_myanmar <- getbb("Yangon")
 
-# Create Overpass query
-query <- opq(bbox = bbox_myanmar) 
+# Define list of states in Myanmar
+states <- c("Ayeyarwady", "Bago", "Kachin", "Kayah", "Kayin", 
+            "Magway", "Mandalay", "Mon", "Rakhine", "Shan", "Tanintharyi", "Yangon")
 
-# Download data
-osm_data <- osmdata_sf(query)
+# Define amenities to retrieve
+amenities <- c("hospital", "school", "police", "fire_station", "pharmacy")
+
+# Initialize empty lists to store data
+all_amenities <- list()
+all_roads <- list()
+
+# Loop through each state
+for (state in states) {
+  # Define bounding box for each state
+  bbox <- getbb(state)
+  
+  # Initialize an empty list to store amenities data for the current state
+  state_amenities <- list()
+  
+  # Loop through each amenity and retrieve the data
+  for (amenity in amenities) {
+    query <- opq(bbox = bbox) %>%
+             add_osm_feature(key = "amenity", value = amenity)
+    amenity_data <- osmdata_sf(query)
+    state_amenities[[amenity]] <- amenity_data$osm_points  # Store points
+  }
+  
+  # Combine all amenities into one spatial object for the current state
+  state_amenities_sf <- bind_rows(state_amenities)
+  state_amenities_sf <- state_amenities_sf[!is.na(state_amenities_sf$amenity), ]
+  
+  # Download road data for the current state
+  roads_query <- opq(bbox = bbox, timeout = 180) %>%
+                 add_osm_feature(key = "highway", value = "primary")
+  roads_data <- osmdata_sf(roads_query)
+  
+  # Store data in lists
+  all_amenities[[state]] <- state_amenities_sf
+  all_roads[[state]] <- roads_data$osm_lines
+  
+  # Save the data to files if needed
+  write_rds(state_amenities_sf, paste0("data/rds/", tolower(state), "_amenities.rds"))
+  write_rds(roads_data, paste0("data/rds/", tolower(state), "_roads.rds"))
+}
+```
+:::
+
+::: panel-tabset
+## Mapping Conflict Hotspots and Assessing Infrastructure Risks
+
+Conflicts are rarely isolated events. They often impact critical infrastructures such as roads, hospitals, and schools. By mapping these infrastructures and overlaying conflict event data, we can identify areas at risk and evaluate the potential disruption to civilian services.
+
+-   **Proximity Analysis to Critical Infrastructure:**\
+    Using OSM, we can pinpoint key infrastructure locations. For instance, if we map hospitals and schools across conflict-affected regions, we can then measure how close these events are to such critical points. This helps us identify high-risk zones where services are most likely to be disrupted, putting civilian lives and wellbeing at immediate risk.
+
+-   **Assessing Road and Transportation Disruption:**\
+    Roads are the lifelines that connect people to essential services and humanitarian aid. By mapping major highways and railways, we can overlay conflict data to see which routes are most affected. Visualizing these disrupted routes can highlight areas where civilian movement is restricted, potentially hindering access to safety or relief.
+
+```{r}
+conflict_acled_sf_data <- read_rds("data/rds/conflict_acled_sf_data.rds")
 ```
 
 ```{r}
-
-```
-
-```{r}
-#| eval: false
-# Create a basic plot of the OSM data using tmap
-tm_shape(osm_data$osm_points) +
-  tm_dots( # Using tm_dots instead of tm_lines for point data
-    col = "blue", # Color of the dots
-    size = 0.01, # Size of the dots (adjust as needed)
-    alpha = 0.7 # Transparency of the dots
-  ) +
-  tm_layout(
-    frame = FALSE, # Remove the frame around the plot
-    legend.outside = TRUE, # Place the legend outside the plot
-    legend.outside.position = "bottom", # Position the legend outside at the bottom
-    legend.outside.size = 0.1 # Adjust the size of the outside legend (reduce if too large)
-  ) +
-  tm_scale_bar() # Add a scale bar to the map
-```
-
-### 6.2 Extract Points and Prepare Data for KDE
-
-```{r}
-#| eval: false
-```
-
-```{r}
-#| eval: false
-```
-
-```{r}
-#| eval: false
-```
-
-```{r}
+#| fig-width: 10
+#| fig-height: 20
 tmap_mode("plot")
-acled_sf %>% 
-  filter(year == 2024 |
-           event_type == "Polticial Violence") %>% 
-  tm_shape() +
-  tm_dots()
 
-```
+# List of all states in Myanmar
+states <- c("Ayeyarwady", "Kayah", "Kayin", 
+            "Magway", "Rakhine", "Tanintharyi", "Yangon")
 
-```{r}
-#| eval: false
-# Prepare a list to store tmap objects for each quarter
-tmap_list <- list()
+# Initialize an empty list to store the maps
+maps <- list()
 
-# Loop through each quarter
-for (q in quarters) {
+# Loop through each state to create maps
+for (state in states) {
+  # Construct file paths for roads and amenities data
+  road_data_path <- paste0("data/rds/", tolower(state), "_roads.rds")
+  amenity_data_path <- paste0("data/rds/", tolower(state), "_amenities.rds")
   
-  # Filter the dataset for the current quarter
-  quarter_data <- conflict_acled_sf_data %>%
-    filter(quarter == q)
-  
-  # Remove duplicates
-  coords <- st_coordinates(st_geometry(quarter_data))
-  if (any(duplicated(coords))) {
-    quarter_data <- quarter_data %>%
-      distinct(st_coordinates(st_geometry(.)), .keep_all = TRUE)
-  }
-  
-  # Create a tmap visualization
-  tmap_plot <- tm_shape(state_region_subregion_boundaries) +
-    tm_polygons() +
-    tm_shape(quarter_data) +
-    tm_dots(size = 0.01, col = "event_type", title = "Conflicts") +
-    tm_layout(title = paste("Conflicts for", q),
-              title.size = 1.2,
-              legend.outside = TRUE)
-  
-  # Store the tmap object in the list
-  tmap_list[[q]] <- tmap_plot
-}
-
-# Print all tmap plots
-for (q in quarters) {
-  if (!is.null(tmap_list[[q]])) {
-    print(tmap_list[[q]])
+  # Check if the files exist before reading
+  if (file.exists(road_data_path) && file.exists(amenity_data_path)) {
+    # Read road and amenities data for the current state
+    roads <- read_rds(road_data_path)
+    amenities <- read_rds(amenity_data_path)
+    
+    # Check that the road and amenities data have valid geometry
+    if (!is.null(roads$osm_lines) && !is.null(amenities)) {
+      roads_sf <- roads$osm_lines
+      amenities_sf <- amenities
+      
+      # Set conflict dot size based on the state
+      conflict_dot_size <- ifelse(state %in% c("Ayeyarwady", "Magway"), 0.01, 0.1)
+      
+      # Create the map for the current state
+      state_map <- tm_shape(roads_sf) +
+        tm_lines(col = "gray", lwd = 0.5) +  # Add lines for roads
+        tm_shape(amenities_sf) +  
+        tm_symbols(col = "amenity", size = 0.01, shape = 21,
+                   palette = c("yellow", "blue", "green", "orange", "purple"),
+                   title.col = "Amenity Type") +  # Color by amenity type
+        tm_shape(conflict_acled_sf_data) +  # Ensure this is defined correctly
+        tm_symbols(size = conflict_dot_size, col = "red", shape = 3, style = "cont") +
+        tm_layout(title = paste("Key Amenities and Conflict Events in", state),
+                  title.position = c("center", "top"),
+                  legend.text.size = 0.8,
+                  legend.title.size = 1.0,
+                  title.size = 1.0,
+                  title.color = "black",
+                  legend.position = c("right", "bottom"))
+      
+      # Store the map in the list
+      maps[[state]] <- state_map
+    } else {
+      warning(paste("Invalid or empty data for state:", state))
+    }
   } else {
-    print(paste("No data available for quarter:", q))
+    warning(paste("Files not found for state:", state))
   }
 }
+
+if (length(maps) > 0) {
+  # Arrange and display all maps in a grid format
+  do.call(tmap_arrange, c(maps, list(ncol = 2)))
+} else {
+  warning("No maps available to display.")
+}
+
 ```
+
+::: callout-note
+Notably, conflict events tend to be concentrated around major road networks, indicating potential hotspots of unrest and activity.
+:::
+:::
+
+::: panel-tabset
+## Learnings
+
+-   **Importance of Data Storage**: To speed up my project, I used the `write_rds` method to save downloaded files, especially from OpenStreetMap (OSM). This helps me avoid repeated downloads.
+
+-   **Choosing Visualization Tools**: I found that `tmap` is easier for users to understand when visualizing maps compared to `ggplot2`, which can be more complex, especially for global views.
+
+-   **KDE Selection**: The choice of bandwidth for Kernel Density Estimation (KDE) depends on the specific needs of the analysis.
+
+## Reflections
+
+This exercise has been both insightful and challenging. I tried various plotting methods, experiencing both successes and failures. Some results met my expectations, while others revealed new insights that encouraged me to dig deeper.
+
+I've not only improved my technical skills but also gained a greater understanding of the ethical aspects of data representation. Each map I create tells a story of resilience and struggle. Merging data, cleaning it, and presenting it with `ggplot2` and `tmap` has shown me how important it is to communicate clearly and accurately.
+:::
