@@ -7,9 +7,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Kai Feng">
-<meta name="dcterms.date" content="2024-09-16">
+<meta name="dcterms.date" content="2024-09-24">
 
-<title>IS415 - Notes 5</title>
+<title>IS415 - Notes 6</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -173,6 +173,10 @@ ul.task-list li input[type="checkbox"] {
     <a class="dropdown-item" href="../In-class_Ex/In-class_Ex05/In-class_EX05.html">
  <span class="dropdown-text">In-class Exercise 5</span></a>
   </li>  
+        <li>
+    <a class="dropdown-item" href="../In-class_Ex/In-class_Ex06/In-class_EX06.html">
+ <span class="dropdown-text">In-class Exercise 6</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item dropdown ">
@@ -212,18 +216,27 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#spatial-weights-wij" id="toc-spatial-weights-wij" class="nav-link active" data-scroll-target="#spatial-weights-wij">Spatial Weights <em>(wij)</em></a></li>
-  <li><a href="#defining-spatial-weights" id="toc-defining-spatial-weights" class="nav-link" data-scroll-target="#defining-spatial-weights">Defining Spatial Weights</a></li>
-  <li><a href="#contiguity-neighbours" id="toc-contiguity-neighbours" class="nav-link" data-scroll-target="#contiguity-neighbours">Contiguity Neighbours</a>
+  <li><a href="#toblers-first-law-of-geography" id="toc-toblers-first-law-of-geography" class="nav-link active" data-scroll-target="#toblers-first-law-of-geography"><strong>Tobler’s First Law of Geography</strong></a></li>
+  <li><a href="#spatial-dependency" id="toc-spatial-dependency" class="nav-link" data-scroll-target="#spatial-dependency"><strong>Spatial Dependency</strong></a></li>
+  <li><a href="#types-of-autocorrelation" id="toc-types-of-autocorrelation" class="nav-link" data-scroll-target="#types-of-autocorrelation"><strong>Types of Autocorrelation</strong></a></li>
+  <li><a href="#local-vs-global-measures" id="toc-local-vs-global-measures" class="nav-link" data-scroll-target="#local-vs-global-measures"><strong>Local VS Global Measures</strong></a></li>
+  <li><a href="#global-spatial-autocorrelation" id="toc-global-spatial-autocorrelation" class="nav-link" data-scroll-target="#global-spatial-autocorrelation"><strong>Global Spatial Autocorrelation</strong></a>
   <ul class="collapse">
-  <li><a href="#have-2nd-3rd-4th-etc-contiguity" id="toc-have-2nd-3rd-4th-etc-contiguity" class="nav-link" data-scroll-target="#have-2nd-3rd-4th-etc-contiguity">Have 2nd, 3rd, 4th etc contiguity</a></li>
-  <li><a href="#weights-matrix" id="toc-weights-matrix" class="nav-link" data-scroll-target="#weights-matrix">Weights matrix:</a></li>
+  <li><a href="#measures-of-global-spatial-autocorrelation" id="toc-measures-of-global-spatial-autocorrelation" class="nav-link" data-scroll-target="#measures-of-global-spatial-autocorrelation">Measures of Global Spatial Autocorrelation</a></li>
+  <li><a href="#measures-of-global-highlow-clustering-getis-ord-global-g" id="toc-measures-of-global-highlow-clustering-getis-ord-global-g" class="nav-link" data-scroll-target="#measures-of-global-highlow-clustering-getis-ord-global-g">Measures of Global High/Low Clustering: Getis-Ord Global G</a></li>
   </ul></li>
-  <li><a href="#row-standardisation" id="toc-row-standardisation" class="nav-link" data-scroll-target="#row-standardisation">Row standardisation</a></li>
-  <li><a href="#applications-of-spatial-weights" id="toc-applications-of-spatial-weights" class="nav-link" data-scroll-target="#applications-of-spatial-weights">Applications of Spatial Weights</a>
+  <li><a href="#local-spatial-autocorrelation" id="toc-local-spatial-autocorrelation" class="nav-link" data-scroll-target="#local-spatial-autocorrelation"><strong>Local Spatial Autocorrelation</strong></a>
   <ul class="collapse">
-  <li><a href="#spatially-lagged-variables" id="toc-spatially-lagged-variables" class="nav-link" data-scroll-target="#spatially-lagged-variables">Spatially Lagged Variables</a></li>
-  <li><a href="#spatially-window-sum" id="toc-spatially-window-sum" class="nav-link" data-scroll-target="#spatially-window-sum">Spatially Window Sum</a></li>
+  <li><a href="#local-spatial-autocorrelation-statistics" id="toc-local-spatial-autocorrelation-statistics" class="nav-link" data-scroll-target="#local-spatial-autocorrelation-statistics">Local Spatial Autocorrelation Statistics</a></li>
+  <li><a href="#local-indicator-of-spatial-association-lisa" id="toc-local-indicator-of-spatial-association-lisa" class="nav-link" data-scroll-target="#local-indicator-of-spatial-association-lisa">Local Indicator of Spatial Association (LISA)</a></li>
+  <li><a href="#fixed-vs-adaptive-weighting-scheme" id="toc-fixed-vs-adaptive-weighting-scheme" class="nav-link" data-scroll-target="#fixed-vs-adaptive-weighting-scheme">Fixed VS Adaptive Weighting Scheme</a></li>
+  <li><a href="#best-practice-guidelines" id="toc-best-practice-guidelines" class="nav-link" data-scroll-target="#best-practice-guidelines">Best Practice Guidelines</a></li>
+  </ul></li>
+  <li><a href="#emerging-hot-spot-analysis-ehsa" id="toc-emerging-hot-spot-analysis-ehsa" class="nav-link" data-scroll-target="#emerging-hot-spot-analysis-ehsa"><strong>Emerging Hot Spot Analysis (EHSA)</strong></a>
+  <ul class="collapse">
+  <li><a href="#mann-kendall-test-for-trend" id="toc-mann-kendall-test-for-trend" class="nav-link" data-scroll-target="#mann-kendall-test-for-trend">Mann-Kendall Test for Trend</a></li>
+  <li><a href="#ehsa-patterns" id="toc-ehsa-patterns" class="nav-link" data-scroll-target="#ehsa-patterns">EHSA Patterns</a></li>
+  <li><a href="#spacetime-cube" id="toc-spacetime-cube" class="nav-link" data-scroll-target="#spacetime-cube">Spacetime Cube</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -233,8 +246,8 @@ ul.task-list li input[type="checkbox"] {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Notes 5</h1>
-<p class="subtitle lead">Spatial Weights and Applications</p>
+<h1 class="title">Notes 6</h1>
+<p class="subtitle lead">Global and Local Measures of Spatial Autocorrelation</p>
 </div>
 
 
@@ -251,14 +264,14 @@ ul.task-list li input[type="checkbox"] {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 16, 2024</p>
+      <p class="date">September 24, 2024</p>
     </div>
   </div>
   
     <div>
     <div class="quarto-title-meta-heading">Modified</div>
     <div class="quarto-title-meta-contents">
-      <p class="date-modified">September 16, 2024</p>
+      <p class="date-modified">September 24, 2024</p>
     </div>
   </div>
     
@@ -269,12 +282,43 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<section id="spatial-weights-wij" class="level2">
-<h2 class="anchored" data-anchor-id="spatial-weights-wij">Spatial Weights <em>(wij)</em></h2>
+<p><br><br></p>
+<section id="toblers-first-law-of-geography" class="level2">
+<h2 class="anchored" data-anchor-id="toblers-first-law-of-geography"><strong>Tobler’s First Law of Geography</strong></h2>
+<p><code>“Everything is related to everything else, but near things are more related than distant things.”</code></p>
+</section>
+<section id="spatial-dependency" class="level2">
+<h2 class="anchored" data-anchor-id="spatial-dependency"><strong>Spatial Dependency</strong></h2>
 <ul>
-<li>A way to define spatial neighbourhood</li>
+<li><p>refers to the way that the value of a variable at one location is influenced by values at neighboring locations</p></li>
+<li><p>highlights the interconnectedness of spatial data</p></li>
+<li><p>Similar values are likely to cluster than randomly distributed</p></li>
 </ul>
-<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson05/img/image6-6.jpg" class="img-fluid" width="375"></p>
+</section>
+<section id="types-of-autocorrelation" class="level2">
+<h2 class="anchored" data-anchor-id="types-of-autocorrelation"><strong>Types of Autocorrelation</strong></h2>
+<ul>
+<li><p><strong>Positive Autocorrelation</strong>:high rainfall areas likely to be near other high rainfall areas</p></li>
+<li><p><strong>Negative Autocorrleation:</strong> eg. a region where high property values are next to areas of low property values.</p></li>
+</ul>
+<p><br><br></p>
+</section>
+<section id="local-vs-global-measures" class="level2">
+<h2 class="anchored" data-anchor-id="local-vs-global-measures"><strong>Local VS Global Measures</strong></h2>
+<p>Global</p>
+<ul>
+<li>Summary for entire area. Eg, Overall, are crime rates clumped together or not</li>
+</ul>
+<p>Local</p>
+<ul>
+<li>Zoom on specific area. Eg. Where exactly are clusters or unusal spots in this area</li>
+</ul>
+<p><br><br></p>
+</section>
+<section id="global-spatial-autocorrelation" class="level1">
+<h1><strong>Global Spatial Autocorrelation</strong></h1>
+<section id="measures-of-global-spatial-autocorrelation" class="level2">
+<h2 class="anchored" data-anchor-id="measures-of-global-spatial-autocorrelation">Measures of Global Spatial Autocorrelation</h2>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -285,116 +329,129 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>It measure from centroid!</p>
-<p>Need to clean data properly. EG. If we only need to find the childcare in SG, we should remove the outer island, else u might see centroid being not in the center of where you expect it</p>
+<p>* Can use both together -&gt; if Moran’s I shows clustering + Geary’s C indicate low differences between neighbors = strengthen the conclusion that there’s a strong spatial pattern</p>
+<p>The 2 measures are inversely related -&gt; High C correspond to Low I</p>
 </div>
 </div>
-<p><br><br></p>
-</section>
-<section id="defining-spatial-weights" class="level1">
-<h1>Defining Spatial Weights</h1>
 <div class="tabset-margin-container"></div><div class="panel-tabset">
-<ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-1-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-1" role="tab" aria-controls="tabset-1-1" aria-selected="true">Adjacency Criterion</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-2" role="tab" aria-controls="tabset-1-2" aria-selected="false">Distance Criterion</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-3-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-3" role="tab" aria-controls="tabset-1-3" aria-selected="false">General Spatial Distance weight matrices</a></li></ul>
+<ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-1-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-1" role="tab" aria-controls="tabset-1-1" aria-selected="true">Moran’s I</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-2" role="tab" aria-controls="tabset-1-2" aria-selected="false">Geary’s c</a></li></ul>
 <div class="tab-content">
 <div id="tabset-1-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-1-1-tab">
+<p>broad view of overall spatial patterns—are similar values clustered or dispersed?</p>
 <ul>
-<li>defines spatial weights based on if spatial units are physically contiguous or share a boundary or point of contact.</li>
+<li><p>Negative (I &lt;0) -&gt; Dissimilar values, eg. High value next to low value</p></li>
+<li><p>Positive (I&gt;0) -&gt; Lots of similar values nearby, eg high temp areas near each other</p></li>
+<li><p>Close to 0 -&gt; No real pattern</p></li>
 </ul>
-<p><strong>Types:</strong></p>
-<ul>
-<li><p>Rook’s Case: Units share a common edge (horizontally or vertically).</p></li>
-<li><p>Bishop’s Case: Units share a corner (diagonally).</p></li>
-<li><p>Queen’s Case: Units share either an edge or a corner, encompassing both Rook’s and Bishop’s cases.</p></li>
-</ul>
-<p><strong>Characteristics:</strong></p>
-<ul>
-<li><p>Binary Matrix: weights are either 1 (adjacent) or 0 (not adjacent).</p></li>
-<li><p>Straightforward and easy to interpret.</p></li>
-<li><p>Applicability: Useful for grid-based data, like raster data or when spatial units are laid out in a regular pattern. Applications: Often used in grid-based spatial models and geographic information systems (GIS) where spatial units are aligned in a regular pattern.</p></li>
-</ul>
-<p><img src="images/clipboard-2503288394.png" class="img-fluid" width="588"></p>
 </div>
 <div id="tabset-1-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-2-tab">
+<p>local differences between neighbors—how similar or different are individual locations from their immediate surroundings?</p>
 <ul>
-<li>defines spatial weights based on the distance between spatial units. (calculate the distance between the centroids or the nearest boundaries of the units)</li>
+<li><p>Small c (&lt;1) -&gt; neighbours are similar -<strong>Clustered</strong></p></li>
+<li><p>(C = 1) -&gt; observations are arranged randomly over space</p></li>
+<li><p>Large c (&gt; 1) -&gt; neighbours are very different from u <strong>-Dispersed</strong></p></li>
 </ul>
-<p><strong>Types:</strong></p>
-<ul>
-<li><p><strong>Fixed Distance:</strong> Weights are assigned based on whether the distance between units is less than a specified threshold. For instance, units within 10 kilometers might be assigned a weight of 1, while others get a weight of 0.</p></li>
-<li><p><strong>Distance Decay:</strong> Weights decrease with increasing distance, often following a specific functional form like the inverse of distance or a Gaussian function.</p></li>
-</ul>
-<p><strong>Characteristics:</strong></p>
-<ul>
-<li><p><strong>Continuous Matrix:</strong> Results in a matrix where weights can vary continuously depending on the distance, not just a binary 1 or 0.</p></li>
-<li><p><strong>Flexibility:</strong> Can handle irregular patterns and non-grid-based data.</p></li>
-<li><p><strong>Complexity:</strong> Requires distance calculations and can be more computationally intensive.</p></li>
-</ul>
-<p><strong>Applications:</strong> Useful in analyses where spatial units are not uniformly distributed, such as in ecological studies or when analyzing spatial interactions over varying distances.</p>
-<p><img src="images/clipboard-3469777781.png" class="img-fluid" width="592"></p>
-</div>
-<div id="tabset-1-3" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-3-tab">
-<ul>
-<li>it generalize the distance criterion by allowing for various forms of distance-based weighting and are not restricted to binary or simple fixed-distance schemes.</li>
-</ul>
-<p><strong>Types:</strong></p>
-<ul>
-<li><p><strong>Inverse Distance Weighting (IDW):</strong> Weights are inversely proportional to the distance.</p></li>
-<li><p><strong>Gaussian Weighting:</strong> Weights are based on a Gaussian function of the distance.</p></li>
-<li><p><strong>K-nearest Neighbors (KNN):</strong> Weights are assigned to the k nearest neighbors of each unit. This can be used to ensure a fixed number of neighbors regardless of distance.</p></li>
-</ul>
-<p><strong>Characteristics:</strong></p>
-<ul>
-<li><p><strong>Versatility:</strong> Can accommodate various forms of distance relationships and decay functions.</p></li>
-<li><p><strong>Customizability:</strong> Allows for fine-tuning of spatial relationships based on the specific needs of the analysis.</p></li>
-<li><p><strong>Complexity:</strong> Can involve more complex calculations and parameter tuning.</p></li>
-</ul>
-<p><strong>Applications:</strong> Suitable for a range of spatial models, including those needing flexible distance-weighting schemes or when the relationship between spatial units is not strictly binary.</p>
-<p><img src="images/clipboard-948209757.png" class="img-fluid" width="584"></p>
 </div>
 </div>
 </div>
-<p><br><br></p>
-</section>
-<section id="contiguity-neighbours" class="level1">
-<h1>Contiguity Neighbours</h1>
-<ul>
-<li>Contiguity (common/shared boundary)</li>
-</ul>
-<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson05/img/image6-8.jpg" class="img-fluid" width="539"></p>
-<p><br><br></p>
-<section id="have-2nd-3rd-4th-etc-contiguity" class="level3">
-<h3 class="anchored" data-anchor-id="have-2nd-3rd-4th-etc-contiguity">Have 2nd, 3rd, 4th etc contiguity</h3>
-<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson05/img/image6-18.jpg" class="img-fluid" width="435"></p>
-<p><br><br></p>
-</section>
-<section id="weights-matrix" class="level3">
-<h3 class="anchored" data-anchor-id="weights-matrix">Weights matrix:</h3>
 <div class="tabset-margin-container"></div><div class="panel-tabset">
-<ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-2-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-1" role="tab" aria-controls="tabset-2-1" aria-selected="true">Adjacency-based neighbours</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-2" role="tab" aria-controls="tabset-2-2" aria-selected="false">Distance-based neighbours</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-3-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-3" role="tab" aria-controls="tabset-2-3" aria-selected="false">Mesaured distance</a></li></ul>
+<ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-2-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-1" role="tab" aria-controls="tabset-2-1" aria-selected="true">Z-Score</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-2" role="tab" aria-controls="tabset-2-2" aria-selected="false">P-value</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-3-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-3" role="tab" aria-controls="tabset-2-3" aria-selected="false">Spatial Randomness (Null Hypo)</a></li></ul>
 <div class="tab-content">
 <div id="tabset-2-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-2-1-tab">
-<p>Neighbour(s) of area 1202 using Rook case</p>
-<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson05/img/image6-9.jpg" class="img-fluid" width="476"></p>
-<div class="callout callout-style-default callout-important callout-titled">
+<ul>
+<li><p>See how far away a value is from the avg(mean) in S.D.</p></li>
+<li><p>High score = value is much higher than avg</p></li>
+</ul>
+</div>
+<div id="tabset-2-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-2-2-tab">
+<ul>
+<li><p>Help to&nbsp; decide if result are significant or due to chance</p></li>
+<li><p>Low p = unlikely to happen by chance, so reject null hypo</p></li>
+<li><p>Fail to reject null hypo if p-value &gt; alpha value (0.05)<strong>[95% confidence]</strong></p></li>
+</ul>
+</div>
+<div id="tabset-2-3" class="tab-pane" role="tabpanel" aria-labelledby="tabset-2-3-tab">
+<ul>
+<li><p>Assumes the value at 1 place doesn’t depend on any value nearby</p></li>
+<li><p>So, moving values around won’t change the overall info</p></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Important
+If your Data violates assumptions
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Do not include urself in the calculation</p>
+<p>If Moran’s I and Geary’s C aren’t true, can use Monte Carlo simulation</p>
+<ul>
+<li><p>Simulate Moran’s I many times with the assumption that there’s no pattern</p></li>
+<li><p>Assigning all regions the mean value</p></li>
+<li><p>Calculate Moran’s I</p></li>
+<li><p>Compare it with Actual Moran’s I value to get a p-value</p></li>
+</ul>
 </div>
 </div>
+<p><br></p>
+</section>
+<section id="measures-of-global-highlow-clustering-getis-ord-global-g" class="level2">
+<h2 class="anchored" data-anchor-id="measures-of-global-highlow-clustering-getis-ord-global-g">Measures of Global High/Low Clustering: Getis-Ord Global G</h2>
+<ul>
+<li><p>measures how clustered/spread out high &amp; low values are among neighbouring areas.</p></li>
+<li><p>The variables must contain only positive</p></li>
+<li><p>If <strong>P-Value Not Significant (High P-value)</strong>: can’t reject the null hypothesis. The pattern could just be random.</p></li>
+<li><p>If <strong>P-Value Significant (Low P-value):</strong> can reject null hypo</p>
+<ul>
+<li><p>+ Z score -&gt; High values are more clustered together than expected by chance.</p></li>
+<li><p>- Z score -&gt; Low values are more clustered together than expected by chance.</p></li>
+</ul></li>
+</ul>
+<p><br><br></p>
+</section>
+</section>
+<section id="local-spatial-autocorrelation" class="level1">
+<h1><strong>Local Spatial Autocorrelation</strong></h1>
+<section id="local-spatial-autocorrelation-statistics" class="level2">
+<h2 class="anchored" data-anchor-id="local-spatial-autocorrelation-statistics">Local Spatial Autocorrelation Statistics</h2>
+<ul>
+<li><p>to understand the distribution patterns.</p></li>
+<li><p>Uses methods focusing on identifying <strong>how attribute values</strong> (eg. crime rates, disease incidence) <strong>are spatially related</strong> to each other <strong>across different locations</strong>, <strong>revealing spatial clusters/anomalies</strong></p></li>
+<li><p>Common methods:</p>
+<div class="tabset-margin-container"></div><div class="panel-tabset">
+<ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-3-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-3-1" role="tab" aria-controls="tabset-3-1" aria-selected="true">Local Moran’s I</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-3-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-3-2" role="tab" aria-controls="tabset-3-2" aria-selected="false">Local Geary’s c</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-3-3-tab" data-bs-toggle="tab" data-bs-target="#tabset-3-3" role="tab" aria-controls="tabset-3-3" aria-selected="false">Getis-Ord Gi*</a></li></ul>
+<div class="tab-content">
+<div id="tabset-3-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-3-1-tab">
+<ul>
+<li><p>Identifies clusters of similar values (high-high or low-low) or spatial outliers (high-low or low-high).</p></li>
+<li><p>Indicates if a location has attribute values similar to its neighbors</p></li>
+</ul>
+<p><br></p>
+<p><strong>Interpretation of Local Moran</strong></p>
+<ul>
+<li><p><strong>Outlier:</strong> if it has low values while surrounding have high values</p></li>
+<li><p><strong>Cluster:</strong> You and surrounding areas have high values</p></li>
+<li><p><strong>P-value</strong> need to be <strong>small</strong> enough for cluster/outlier to be considered <strong>Statistically Significant</strong></p></li>
+<li><p>alpha-values are 0.1(90%), 0.05 (95%), 0.01 (99%), 0.001 (99.9%) confidence intervals</p></li>
+</ul>
 </div>
-<div id="tabset-2-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-2-2-tab">
-<p>Weights matrix for d = 650</p>
-<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson05/img/image6-10.jpg" class="img-fluid" width="616"></p>
+<div id="tabset-3-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-3-2-tab">
+<ul>
+<li><p>Similar to Local Moran’s I but focuses more on differences between adjacent locations</p></li>
+<li><p>Used to detect local spatial heterogeneity</p></li>
+</ul>
 </div>
-<div id="tabset-2-3" class="tab-pane" role="tabpanel" aria-labelledby="tabset-2-3-tab">
-<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson05/img/image6-11.jpg" class="img-fluid"></p>
+<div id="tabset-3-3" class="tab-pane" role="tabpanel" aria-labelledby="tabset-3-3-tab">
+<ul>
+<li><p>Identifies hot spots, cold spots Area Analysis <strong>(HCSA)</strong></p></li>
+<li><p>Useful to detect areas with significantly high or low attribute values</p></li>
+</ul>
+<p><br></p>
+<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson06/img/image7-18.jpg" class="img-fluid" width="288"></p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -405,89 +462,172 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Same as Distance-based neighbours, but inverse</p>
+<p>With * consider observation itself</p>
 </div>
 </div>
 </div>
 </div>
+</div></li>
+<li><p>Use case: Detect clusters/outliers, hot spot or cold spot, patterns in data that don’t change over distance</p></li>
+</ul>
+<p><br></p>
+</section>
+<section id="local-indicator-of-spatial-association-lisa" class="level2">
+<h2 class="anchored" data-anchor-id="local-indicator-of-spatial-association-lisa">Local Indicator of Spatial Association (LISA)</h2>
+<ul>
+<li><p>help to find clusters/unusual areas in a specific area &amp; ensure it align with the overall trend of the entire area -&gt; When you add up all the LISA values, it should reflect overall pattern of the entire area</p></li>
+<li><p>Detecting Spatial Clusters &amp; Outliers:</p>
+<ul>
+<li>calculate local statistic value, a Z-score, a P-value, a code representing cluster type for each statistically significance of the computed index values</li>
+</ul></li>
+</ul>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson06/img/image7-10.jpg" class="img-fluid quarto-figure quarto-figure-center figure-img"></p>
+</figure>
 </div>
-<div class="callout callout-style-default callout-tip callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
+<p><br></p>
+</section>
+<section id="fixed-vs-adaptive-weighting-scheme" class="level2">
+<h2 class="anchored" data-anchor-id="fixed-vs-adaptive-weighting-scheme">Fixed VS Adaptive Weighting Scheme</h2>
+<div class="tabset-margin-container"></div><div class="panel-tabset">
+<ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-4-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-4-1" role="tab" aria-controls="tabset-4-1" aria-selected="true">Fixed Weighting Scheme</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-4-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-4-2" role="tab" aria-controls="tabset-4-2" aria-selected="false">Adaptive Weighting Scheme</a></li></ul>
+<div class="tab-content">
+<div id="tabset-4-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-4-1-tab">
+<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson06/img/image7-20.jpg" class="img-fluid"></p>
+<ul>
+<li><p>Uses a set distance to determine neighbors for each feature.</p></li>
+<li><p><strong>Considerations:</strong></p>
+<ul>
+<li><p>Every feature should have at least one neighbor within this distance.</p></li>
+<li><p>No feature should have <em>all</em> other features as neighbors (the distance shouldn’t be too large).</p></li>
+<li><p>Ideally, each feature should have around 8 neighbors to get reliable results.</p>
+<p><strong>Issues:</strong></p>
+<ul>
+<li><p>In areas with few data points, estimates can be unreliable.</p></li>
+<li><p>In dense areas, this scheme might miss small local patterns.</p></li>
+<li><p>In very sparse areas, it might not work at all because there aren’t enough neighbors to analyze properly.</p></li>
+</ul></li>
+</ul></li>
+</ul>
 </div>
-<div class="callout-title-container flex-fill">
-For Point, there is no boundary, it is shared
+<div id="tabset-4-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-4-2-tab">
+<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson06/img/image7-21.jpg" class="img-fluid"></p>
+<ul>
+<li><p>Adjusts the distance based on data density.</p></li>
+<li><p><strong>Features:</strong></p>
+<ul>
+<li><p>In dense areas, the “neighborhood” is smaller to capture local variations.</p></li>
+<li><p>In sparse areas, the “neighborhood” is larger to include enough neighbors.</p></li>
+<li><p>Often, this scheme uses the nearest number of neighbors instead of a fixed distance. This makes it more flexible and accurate in varied data densities.</p></li>
+</ul></li>
+</ul>
 </div>
 </div>
-<div class="callout-body-container callout-body">
-
+</div>
+</section>
+<section id="best-practice-guidelines" class="level2">
+<h2 class="anchored" data-anchor-id="best-practice-guidelines">Best Practice Guidelines</h2>
+<div class="tabset-margin-container"></div><div class="panel-tabset">
+<ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-5-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-5-1" role="tab" aria-controls="tabset-5-1" aria-selected="true">To get Reliable Results</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-5-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-5-2" role="tab" aria-controls="tabset-5-2" aria-selected="false">Choosing a Spatial Weighting Method</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-5-3-tab" data-bs-toggle="tab" data-bs-target="#tabset-5-3" role="tab" aria-controls="tabset-5-3" aria-selected="false">Choosing a Fixed-Distance Band</a></li></ul>
+<div class="tab-content">
+<div id="tabset-5-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-5-1-tab">
+<ul>
+<li><p>Ensure your dataset has at least 30 features.</p></li>
+<li><p>Use continuous numeric data (e.g., counts, rates). Avoid categorical data.</p></li>
+</ul>
+</div>
+<div id="tabset-5-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-5-2-tab">
+<ul>
+<li><p><strong>Polygon Contiguity:</strong></p>
+<ul>
+<li><p>Good for similar-sized polygons.</p></li>
+<li><p>Works when spatial interaction is stronger between neighboring polygons.</p></li>
+<li><p>Use “row standardization” to balance the influence of polygons with different numbers of neighbors.</p></li>
+</ul></li>
+<li><p><strong>Fixed Distance:</strong></p>
+<ul>
+<li><p>Ideal for point data or polygons with varying sizes.</p></li>
+<li><p>Ensures consistent analysis by maintaining the same distance for all points.</p></li>
+</ul></li>
+</ul>
+<!-- -->
+<ul>
+<li><p><strong>Inverse Distance:</strong></p>
+<ul>
+<li><p>Suitable for continuous data or processes where closer features interact more.</p></li>
+<li><p>Can be computationally heavy because every feature can be a neighbor to every other feature.</p></li>
+</ul></li>
+<li><p><strong>K-Nearest Neighbors:</strong></p>
+<ul>
+<li><p>Guarantees a minimum number of neighbors for each feature.</p></li>
+<li><p>Useful when data values are skewed, ensuring context with at least eight neighbors.</p></li>
+<li><p>Adjusts for varying feature distribution, adapting to sparse or dense areas.</p></li>
+<li><p>Focuses on the number of neighbors, not fixed distance.</p></li>
+</ul></li>
+</ul>
+</div>
+<div id="tabset-5-3" class="tab-pane" role="tabpanel" aria-labelledby="tabset-5-3-tab">
+<ul>
+<li><p>Select a distance based on the spatial scale of the phenomenon you’re studying.</p></li>
+<li><p>Ensure all features have at least one neighbor within this distance.</p></li>
+<li><p>Don’t worry about finding a single “correct” distance—multiple processes can influence clustering.</p></li>
+<li><p>Avoid making every feature a neighbor to all others.</p></li>
+<li><p>For skewed data, aim for each feature to have about eight neighbors.</p></li>
+</ul>
+</div>
 </div>
 </div>
 <p><br><br></p>
 </section>
 </section>
-<section id="row-standardisation" class="level1">
-<h1>Row standardisation</h1>
-<p>In practice, we will use this instead of spatial weights</p>
-<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson05/img/image6-12.jpg" class="img-fluid" width="503"></p>
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Note
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>Can use either row/col standardisation, it will give the same result</p>
-</div>
-</div>
-</section>
-<section id="applications-of-spatial-weights" class="level1">
-<h1>Applications of Spatial Weights</h1>
-<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson05/img/image6-17.jpg" class="img-fluid" width="405"></p>
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Note
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>You are calculating the avg weight of ur neighbours, excluding yourself</p>
-</div>
-</div>
-<section id="spatially-lagged-variables" class="level3">
-<h3 class="anchored" data-anchor-id="spatially-lagged-variables">Spatially Lagged Variables</h3>
-<p>Spatial Lag with row-standardized weights</p>
-<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson05/img/image6-19.png" class="img-fluid" width="663"></p>
-</section>
-<section id="spatially-window-sum" class="level3">
-<h3 class="anchored" data-anchor-id="spatially-window-sum">Spatially Window Sum</h3>
+<section id="emerging-hot-spot-analysis-ehsa" class="level1">
+<h1><strong>Emerging Hot Spot Analysis (EHSA)</strong></h1>
+<p>Combines both <strong>Hot Spot Analysis + Mann-Kendall Test</strong></p>
+<section id="mann-kendall-test-for-trend" class="level2">
+<h2 class="anchored" data-anchor-id="mann-kendall-test-for-trend">Mann-Kendall Test for Trend</h2>
 <ul>
-<li>uses and includes the diagonal element.</li>
+<li><p><strong>Purpose</strong>: Determines if a set of values is increasing, decreasing, or stable over time.</p></li>
+<li><p><strong>Non-Parametric</strong>: Works for any data distribution (doesn’t need to be normal).</p></li>
+<li><p><strong>No Serial Correlation</strong>: Your data points should not be influenced by previous values in the series.</p></li>
+<li><p><strong>Hypotheses:</strong></p>
+<ul>
+<li><p><strong>Null Hypothesis</strong>: No trend exists (values are stable over time).</p></li>
+<li><p><strong>Alternative Hypothesis</strong>: A trend exists (values are consistently increasing or decreasing).</p></li>
+</ul></li>
+<li><p><strong>Limitations:</strong></p>
+<ul>
+<li><p>It detects the direction of the trend but not how big the change is.</p></li>
+<li><p>Needs at least 8-10 data points for reliable results. Fewer points increase the risk of missing real trends.</p></li>
+</ul></li>
+<li><p>Data Requirements for Mann-Kendall Test:</p>
+<ol type="1">
+<li><p><strong>No Seasonal Data</strong>: Avoid data that has regular fluctuations (e.g., only collected in summer and winter).</p></li>
+<li><p><strong>No Covariates</strong>: Other factors shouldn’t influence your data. The test should only assess the trend of the specific variable you’re interested in.</p></li>
+<li><p><strong>One Data Point per Time Period</strong>: If you have multiple data points for the same time, use the median value.</p></li>
+</ol></li>
 </ul>
-<p><img src="https://is415-ay2024-25t1.netlify.app/lesson/lesson05/img/image6-20.png" class="img-fluid" width="658"></p>
-<div class="callout callout-style-default callout-important callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Important
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>Spatially Lagged Variables -&gt; exclude yourself</p>
-<p>Spatially Window Sum -&gt; including yourself</p>
-<p>With the diagram on the right, is easier to tell if there is a diff between GDP per capital between East &amp; West [processed data]</p>
-<p><strong>We can tell there is a spatial relationship,</strong> not all the times we have</p>
-</div>
-</div>
+</section>
+<section id="ehsa-patterns" class="level2">
+<h2 class="anchored" data-anchor-id="ehsa-patterns">EHSA Patterns</h2>
+<ul>
+<li><p>No pattern, New hot spot, Intensifying hot spot, Diminishing hot spot, Historical hot spot, Persistent hot spot</p></li>
+<li><p>Consecutive hot spot -&gt; A place that recently became a hot spot with consecutive periods showing significant hot spot activity</p></li>
+<li><p>Sporadic hot spot -&gt; A location that is a significant hot spot in the most recent time period but has had a mixed history of being a hot spot in the past. (on &amp; off)</p></li>
+<li><p>Oscillating hot spot -&gt; A location that is a significant hot spot in the most recent time period but has previously been a significant cold spot.</p></li>
+</ul>
+</section>
+<section id="spacetime-cube" class="level2">
+<h2 class="anchored" data-anchor-id="spacetime-cube">Spacetime Cube</h2>
+<ul>
+<li><p>a structure where every location has a value for every point in time, meaning each location has a complete time series of data.</p></li>
+<li><p><strong>Key Terms</strong>:</p>
+<ul>
+<li><p><strong>Bin</strong>: The basic unit of a spacetime cube, representing a specific combination of a location and a time point.</p></li>
+<li><p><strong>Time Slice</strong>: The collection of all bins (locations) for a specific time point.</p></li>
+<li><p><strong>Bin Time-Series</strong>: The collection of all bins at a particular location across different time points.</p></li>
+</ul></li>
+</ul>
 
 
 </section>
