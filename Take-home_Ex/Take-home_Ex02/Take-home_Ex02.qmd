@@ -1,0 +1,420 @@
+---
+title: "Take-home Exercise 2: Application of Geospatial Analysis Methods to Discover Thailand Drug Abuse at the Province Level"
+author: "kai feng"
+date: "Sep 23, 2024"
+date-modified: "last-modified"
+execute:
+  eval: true
+  echo: true
+  freeze: true
+---
+
+# **Introduction**
+
+### Drug Abuse Overview
+
+-   **Global Impact**: Drug abuse has severe health, financial, and social consequences.
+
+-   **Prevalence**: In 2021, 1 in 17 people aged 15–64 worldwide used a drug in the past year.
+
+-   **Growth Trend**: Drug users increased from 240 million in 2011 to 296 million in 2021.
+
+### Drug Situation in Thailand
+
+-   **Geopolitical Context**: Proximity to the [Golden Triangle](https://en.wikipedia.org/wiki/Golden_Triangle_(Southeast_Asia)), a major drug production area, makes Thailand a key market and transit route for drug trafficking.
+
+-   **Youth Drug Abuse**:
+
+    -   Approximately 2.7 million young people in Thailand use drugs.
+
+    -   Around 300,000 youth aged 15-19 need drug treatment.
+
+    -   Vocational students are nearly twice as involved with drugs compared to secondary-school students.![](https://is415-ay2024-25t1.netlify.app/img/th_ex2_img1.png)
+
+**This Geospatial Analytics will Focus on:**
+
+-   **Objective:** Determine if drug abuse indicators in Thailand show spatial dependence.
+-   **Analysis Goals**:
+    -   Identify clusters, outliers, and hotspots of drug abuse.
+
+    -   Examine how these patterns change over time.
+
+<br/><br/>
+
+# **1.0 Setup**
+
+## 1.1 Installing R-Packages
+
+::: panel-tabset
+## *Importing and Transforming Data*
+
+-   `sf`:
+
+    -   For handling spatial vector data and transforming it into simple features (`sf`) objects.
+
+    -   Functions like `st_read()` for importing spatial data and `st_transform()` for coordinate reference system transformations.
+
+-   `tidyverse`: For data manipulation and transformation, including functions for working with `tibble` data frames.
+
+-   `readr`: For reading in CSV or other text-based data files if needed.
+
+-   `dplyr`: provide data manipulation capabilities (eg. to group and summarize the relationships between these columns)
+
+-   `arrow`: To read parquet files
+
+## *Displaying Maps*
+
+-   `tmap`: For creating thematic maps and displaying KDE layers.
+
+-   `ggplot2`: For additional custom visualizations if needed.
+
+-   *`scales`*: Transform the unit of measurement for coordinate
+
+-   `animation, png, magick`: For animation work
+
+## *Spatial Autocorrelation*
+
+-   `sfdep`: For performing both local and global spatial autocorrelation analysis
+:::
+
+```{r}
+pacman::p_load(tidyverse, sf, readr, ggplot2, tmap, dplyr, arrow, sfdep, scales, animation, png, magick, patchwork)
+```
+
+<br/>
+
+## 1.2 Data Acquisition
+
+We will be using 2 sets of data:
+
+::: panel-tabset
+## Drug offenses Data
+
+-   **Source:** [[Thailand Drug Offenses \[2017-2022\]]{.underline}](https://www.kaggle.com/datasets/thaweewatboy/thailand-drug-offenses-2017-2022)
+
+-   **Study Period:** 2017-2022
+
+## Administrative Boundaries
+
+-   **Source:** [Thailand - Subnational Administrative Boundaries](https://data.humdata.org/dataset/cod-ab-tha?) at HDX.
+-   **Province Boundaries**: For understanding conflict distribution across larger administrative divisions.
+:::
+
+<br/>
+
+## 1.3 Importing Geospatial Data into R
+
+::: panel-tabset
+## Drug Offenses Data
+
+```{r}
+#| eval: false
+drug_offenses_df <- read_parquet("data/drug_offense/thai_drug_offenses_2017_2022.parquet")
+```
+
+```{r}
+drug_offenses <- read_csv("data/drug_offense/thai_drug_offenses_2017_2022.csv")
+```
+
+::: callout-note
+Since the data in CSV and Parquet formats are identical, we only need to import one of these file types.
+:::
+
+## Administrative Boundaries
+
+```{r}
+province_boundaries <- st_read(dsn = "data/subnational_administrative_boundary", layer="tha_admbnda_adm1_rtsd_20220121")
+```
+:::
+
+<br/>
+
+## 1.4 Checking Geospatial Data
+
+::: panel-tabset
+## Drug Offenses Data
+
+```{r}
+class(drug_offenses)
+```
+
+::: callout-note
+Since
+
+-   Since the class of **drug_offenses** != sf object
+
+we have to transform it.
+:::
+
+## Administrative Boundaries
+
+```{r}
+class(province_boundaries)
+st_crs(province_boundaries)
+```
+
+::: callout-note
+Since Coordinate Reference System of **province_boundaries**
+
+is in 4326 (unit of measurement = degree), we have to transform it
+:::
+:::
+
+<br/>
+
+## 1.6 Data Preparation and Wrangling
+
+::: panel-tabset
+## Drug Offenses Data
+
+```{r}
+# Drop & Rename column
+drug_offenses <- drug_offenses %>% 
+  select(fiscal_year, types_of_drug_offenses, no_cases, province_en) %>% 
+  rename(
+    year = fiscal_year,
+    offense_type = types_of_drug_offenses,
+    case_count = no_cases,
+    province_name = province_en
+  )
+```
+
+## Administrative Boundaries
+
+##### Transform the Coordinate Reference System of these:
+
+```{r}
+province_boundaries <- province_boundaries %>%
+  st_transform(crs = 4240)
+```
+
+```{r}
+# Drop & Rename column
+province_boundaries <- province_boundaries %>% 
+  select(Shape_Leng, Shape_Area, ADM1_EN, ADM1_PCODE, geometry) %>% 
+  rename(
+    province_name = ADM1_EN,
+    province_code = ADM1_PCODE
+  )
+```
+
+##### Sample plot
+
+```{r}
+#| eval: false
+
+ggplot(data = province_boundaries) +
+  geom_sf() +
+  theme_minimal() +
+  labs(title = "Map of Geometries",
+       subtitle = "Displaying multipolygon geometries",
+       caption = "Source: Example Data")
+```
+
+## Understanding the Data
+
+```{r}
+# Filter for unmatched province_names between Drug Offenses & Province Boundaries data set
+unmatched_provinces <- drug_offenses %>%
+  left_join(province_boundaries, by = "province_name") %>%
+  filter(is.na(Shape_Leng)) %>%
+  select(province_name)
+
+unmatched_provinces <- unique(unmatched_provinces) #Loburi, buogkan
+
+
+
+# Transform the province_name in the Drug Offenses dataset
+drug_offenses <- drug_offenses %>%
+  mutate(province_name = case_when(
+    province_name == "Loburi" ~ "Lop Buri",
+    province_name == "buogkan" ~ "Bueng Kan",
+    TRUE ~ province_name  # Keep the original name if no match
+  ))
+
+
+# Assign each drug offense to a province
+drug_offenses_by_province <- drug_offenses %>%
+  left_join(province_boundaries, by = "province_name")
+
+# Check for any empty attributes in the test dataset
+empty_attributes <- sapply(drug_offenses_by_province, function(column) any(is.na(column)))
+
+# Identify columns with missing values
+missing_columns <- names(empty_attributes[empty_attributes]) # character(0) = No missing Column
+```
+
+::: callout-warning
+The **Drug Offenses** dataset has some naming issues with `province_name`.
+
+We found two discrepancies: **Loburi** should be changed to **Lop Buri**, and **buogkan** should be updated to **Bueng Kan** to match the **Province Boundaries** dataset.
+
+We will update the `province_name` entries in the **Drug Offenses** dataset accordingly.s
+:::
+:::
+
+<br/><br/>
+
+# 2.0 Understanding the Data
+
+```{r}
+offense_type <- unique(drug_offenses_by_province$offense_type) 
+print(offense_type)
+```
+
+::: callout-note
+These varying degrees of offense types may reveal patterns and trends in drug-related activities, providing a comprehensive understanding of the issue at hand.
+:::
+
+<br/><br/>
+
+# **3.0 Exploratory Data Analysis**
+
+## Summary statistics
+
+```{r}
+summary_stats <- drug_offenses_by_province %>%
+  group_by(province_name, year) %>%
+  summarise(
+    total_cases = sum(case_count, na.rm = TRUE),
+    geometry = first(geometry)
+    )
+summary_stats
+```
+
+## Top /Bottom 10 Related-Drug Incidents Provinces
+
+```{r}
+# Loop through each year and plot top 10 provinces
+years_to_plot <- unique(summary_stats$year)
+```
+
+::: panel-tabset
+## Top 10 Drug Abuse Provinces
+
+```{r}
+top_10_plot_list <- list()
+
+# Loop through each year and create the plots for top 10
+for (current_year in years_to_plot) {
+  # Filter and sort the data for the specific year
+  top_10_year_data <- summary_stats %>%
+    filter(year == current_year) %>%
+    arrange(desc(total_cases)) %>%
+    head(10)
+  
+  # Create the plot for the current year
+  top_10_plot <- ggplot(top_10_year_data, aes(x = reorder(province_name, total_cases), y = total_cases)) +
+    geom_bar(stat = "identity", fill = "pink", width = 0.8) +
+    coord_flip() +
+    labs(x = NULL, y = NULL, subtitle = paste("Year:", current_year)) +
+    scale_y_continuous(labels = scales::comma_format(accuracy = 1)) +
+    theme_minimal(base_size = 10) +
+    geom_text(aes(label = total_cases),
+              position = position_stack(vjust = 0.5),   
+              color = "black", 
+              size = 3) +
+    theme(axis.text.x = element_blank(),   # Hide the y-axis text
+          axis.ticks.x = element_blank())  # Hide the y-axis ticks
+  
+  # Add the plot to the list
+  top_10_plot_list[[as.character(current_year)]] <- top_10_plot
+}
+
+# Combine the top 10 plots into a grid
+combined_top_10_plot <- wrap_plots(top_10_plot_list)
+
+# Add a single title to the combined plot
+combined_top_10_plot_with_title <- combined_top_10_plot +
+  plot_annotation(title = "Top 10 Provinces by Total Drug Abuse Cases Over the Years")
+
+# Print the combined plot
+print(combined_top_10_plot_with_title)
+
+```
+
+## Bottom 10 Drug Abuse Provinces
+
+```{r}
+# Create a list to store the bottom 10 plots
+bottom_10_plot_list <- list()
+
+# Loop through each year and create the plots for bottom 10
+for (current_year in years_to_plot) {
+  # Filter and sort the data for the specific year to get the bottom 10
+  bottom_10_year_data <- summary_stats %>%
+    filter(year == current_year) %>%
+    arrange(total_cases) %>%   # Ascending order to get bottom cases
+    head(10)
+  
+  # Create the plot for the current year
+  bottom_10_plot <- ggplot(bottom_10_year_data, aes(x = reorder(province_name, -total_cases), y = total_cases)) +
+    geom_bar(stat = "identity", fill = "steelblue", width = 0.8) +
+    coord_flip() +
+    labs(x = NULL, y = NULL, subtitle = paste("Year:", current_year)) +  # Subtitle to display year
+    scale_y_continuous(labels = scales::comma_format(accuracy = 1)) +
+    theme_minimal(base_size = 10) +
+    geom_text(aes(label = total_cases),
+              position = position_stack(vjust = 0.5),   
+              color = "black", 
+              size = 3) +
+    theme(axis.text.x = element_blank(),   # Hide the y-axis text
+          axis.ticks.x = element_blank())  # Hide the y-axis ticks
+  
+  # Add the plot to the list
+  bottom_10_plot_list[[as.character(current_year)]] <- bottom_10_plot
+}
+
+# Combine the bottom 10 plots into a grid
+combined_bottom_10_plot <- wrap_plots(bottom_10_plot_list)
+
+# Add a single title to the combined plot
+combined_bottom_10_plot_with_title <- combined_bottom_10_plot +
+  plot_annotation(title = "Bottom 10 Provinces by Total Drug Abuse Cases Over the Years")
+
+# Print the combined plot
+print(combined_bottom_10_plot_with_title)
+
+```
+:::
+
+## Trends over time for the entire country
+
+```{r}
+drug_trends <- drug_offenses_by_province %>%
+  group_by(year) %>%
+  summarise(total_cases = sum(case_count))
+
+# Plot trend over time with formatted y-axis labels
+ggplot(drug_trends, aes(x = year, y = total_cases)) +
+  geom_line(color = "blue") +
+  geom_point(size = 3, color = "red") +  # Optional: Add points for better visibility
+  labs(title = "Drug Abuse Cases Over Time",
+       x = "Year", y = "Total Cases") +
+  scale_y_continuous(labels = comma)
+
+```
+
+<br/><br/>
+
+# **4.0 Global Spatial Autocorrelation Analysis**
+
+### **Deriving Queen’s Contiguity weights: sfdep methods**
+
+```{r}
+wm_q <- drug_offenses_by_province %>% 
+  mutate(nb = st_contiguity(geometry),
+         wt = st_weights(nb,
+                         style = "W"),
+         .before = 1)
+
+print(wm_q)
+```
+
+<br/><br/>
+
+# **5.0 Local Spatial Autocorrelation Analysis**
+
+```{r}
+
+```
