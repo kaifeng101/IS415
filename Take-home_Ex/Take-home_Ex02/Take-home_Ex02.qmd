@@ -322,14 +322,14 @@ for (current_year in years_to_plot) {
 }
 
 # Combine the top 10 plots into a grid
-combined_top_10_plot <- wrap_plots(top_10_plot_list)
+top_10_plot_list <- wrap_plots(top_10_plot_list)
 
 # Add a single title to the combined plot
-combined_top_10_plot_with_title <- combined_top_10_plot +
+top_10_plot_list <- top_10_plot_list +
   plot_annotation(title = "Top 10 Provinces by Total Drug Abuse Cases Over the Years")
 
 # Print the combined plot
-print(combined_top_10_plot_with_title)
+print(top_10_plot_list)
 
 ```
 
@@ -366,14 +366,14 @@ for (current_year in years_to_plot) {
 }
 
 # Combine the bottom 10 plots into a grid
-combined_bottom_10_plot <- wrap_plots(bottom_10_plot_list)
+bottom_10_plot_list <- wrap_plots(bottom_10_plot_list)
 
 # Add a single title to the combined plot
-combined_bottom_10_plot_with_title <- combined_bottom_10_plot +
+bottom_10_plot_list <- bottom_10_plot_list +
   plot_annotation(title = "Bottom 10 Provinces by Total Drug Abuse Cases Over the Years")
 
 # Print the combined plot
-print(combined_bottom_10_plot_with_title)
+print(bottom_10_plot_list)
 
 ```
 :::
@@ -399,22 +399,451 @@ ggplot(drug_trends, aes(x = year, y = total_cases)) +
 
 # **4.0 Global Spatial Autocorrelation Analysis**
 
+Organize into years for more detailed analysis:
+
+```{r}
+summary_stats <- st_as_sf(summary_stats)
+
+summary_stats_2017 <- summary_stats %>%
+  filter(year == 2017) %>%
+  ungroup()  # Remove any grouping
+
+summary_stats_2018 <- summary_stats %>%
+  filter(year == 2018) %>%
+  ungroup()  # Remove any grouping
+
+summary_stats_2019 <- summary_stats %>%
+  filter(year == 2019) %>%
+  ungroup()  # Remove any grouping
+
+summary_stats_2020 <- summary_stats %>%
+  filter(year == 2020) %>%
+  ungroup()  # Remove any grouping
+
+summary_stats_2021 <- summary_stats %>%
+  filter(year == 2021) %>%
+  ungroup()  # Remove any grouping
+
+summary_stats_2022 <- summary_stats %>%
+  filter(year == 2022) %>%
+  ungroup()  # Remove any grouping
+```
+
 ### **Deriving Queen’s Contiguity weights: sfdep methods**
 
 ```{r}
-wm_q <- drug_offenses_by_province %>% 
-  mutate(nb = st_contiguity(geometry),
-         wt = st_weights(nb,
-                         style = "W"),
-         .before = 1)
+nb <- st_contiguity(summary_stats_2017$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
 
-print(wm_q)
+
+wm_q_2017 <- summary_stats_2017 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+
+wm_q_2018 <- summary_stats_2018 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+
+wm_q_2019 <- summary_stats_2019 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+
+wm_q_2020 <- summary_stats_2020 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+
+wm_q_2021 <- summary_stats_2021 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+
+wm_q_2022 <- summary_stats_2022 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+```
+
+::: callout-note
+To derive spatial autocorrelation, we first gather the relevant geographic points for our study area:
+
+1.  **Filtering for Unique Geographic Points**: The `summary_stats` dataset contains multiple entries for each geographic point across different years. We filter it to retain data for a single year (e.g., 2017) to work with a unique set of locations.
+
+2.  **Identifying Neighbors**: To assess the spatial relationships between areas, we identify neighboring regions. We use Queen's contiguity weights, which include all neighbors that touch at edges or corners, capturing comprehensive spatial interactions.
+
+3.  **Calculating Weights**: After identifying neighbors, we calculate spatial weights that quantify the influence neighboring areas have on one another. These weights are crucial for measuring spatial autocorrelation, as they inform how a variable in one area relates to values in its neighbors.
+:::
+
+## 2017: An Initial Overview
+
+### Global Moran' I
+
+::: panel-tabset
+## Computing Global Moran’ I
+
+```{r}
+moranI_2017 <- global_moran(wm_q_2017$total_cases,
+                       wm_q_2017$nb,
+                       wm_q_2017$wt)
+
+glimpse(moranI_2017)
+```
+
+## Performing Global Moran’s I test
+
+```{r}
+global_moran_test(wm_q_2017$total_cases,
+                  wm_q_2017$nb,
+                  wm_q_2017$wt,
+                  zero.policy = TRUE)
+```
+
+::: callout-note
+Moran I statistic (0.133140650) -\> indicates a positive correlation in the variable of interest (e.g., total cases).
+
+SD of 2.4598 -\> suggests that Moran’s I is greater than the expected value under the null hypothesis.
+
+P-value of 0.006951 -\> is \< 0.05, indicating strong statistical significance.
+
+Expectation of -0.013333333 -\> suggests we would expect slight negative autocorrelation if there were no spatial structure.
+
+Since the p-value \< 0.05, we reject the null hypothesis of no spatial autocorrelation. This strongly suggests there is significant positive spatial clustering of the variable in the study area (regions with high values are near areas with high values).
+:::
+
+## Performing Global Moran’s I permutation test (Monte Carlo)
+
+```{r}
+set.seed(1234)
+
+global_moran_perm_result_2017 <- global_moran_perm(wm_q_2017$total_cases,
+                                              wm_q_2017$nb,
+                                              wm_q_2017$wt,
+                                              zero.policy = TRUE,
+                                              nsim = 99)
+global_moran_perm_result_2017
+```
+
+```{r}
+summary(global_moran_perm_result_2017$res)
+
+png("data/rds/global_moran_perm_result_2017.png", width = 800, height = 600)
+
+# Extract the simulated statistics and observed statistic
+simulated_values <- global_moran_perm_result_2017$res
+
+# To capture
+hist(simulated_values, 
+     freq=TRUE, 
+     breaks=20, 
+     xlab="Simulated Moran's I in 2017")
+abline(v=0, 
+       col="red") 
+
+# Close the graphic device
+dev.off()
+
+# To Show
+hist(simulated_values, 
+     freq=TRUE, 
+     breaks=20, 
+     xlab="Simulated Moran's I in 2017")
+abline(v=0, 
+       col="red") 
+```
+
+::: callout-note
+To ensure our results are accurate, we'll perform a Monte Carlo (permutation) test on Moran’s I statistic. This method helps us understand if the observed clustering of values is statistically significant.
+
+First, we set the seed using `set.seed(1234)`. This step is crucial because it guarantees that our simulation results will be reproducible. Every time we run the simulation, we should get the same outcomes, which is important for consistency in our analysis.
+
+Now, looking at the results from our permutation test:
+
+-   **Moran’s I statistic**: 0.13314
+
+-   **Observed rank**: 98
+
+-   **P-value**: 0.04
+
+The p-value being less than 0.05 tells us that there's strong statistical evidence against the null hypothesis of no spatial autocorrelation. This means we can conclude there’s significant positive spatial clustering in our data—areas with high values are near other areas with high values.
+
+Looking at the summary of the simulated statistics, with the maximum being 0.162326 and the minimum at -0.151935. The distribution of these values helps us understand the expected behavior of our statistic under the null hypothesis.
+:::
+:::
+
+::: callout-note
+It's important to note that some areas may have no neighboring regions, which results in null weights. To address this, we use `zero.policy = TRUE` in our analysis, allowing regions with no neighbors to be included without causing errors in calculations.
+
+However, it's essential to understand that Global Moran's I does not accommodate regions without neighbors in its calculations, meaning that these regions, even when included, will not contribute to the overall assessment of spatial autocorrelation.
+
+Consequently, regions with null weights may still affect the results, leading to potential skewing of the analysis and limiting its interpretability. Therefore, careful consideration of how to handle such regions is crucial for ensuring accurate spatial analysis.
+:::
+
+## Visualising across time span (2017-2022)
+
+::: panel-tabset
+## 2018 Global Moran' I
+
+### Performing Global Moran’s I permutation test (Monte Carlo)
+
+```{r}
+set.seed(1234)
+
+global_moran_perm_result_2018 <- global_moran_perm(wm_q_2018$total_cases,
+                                              wm_q_2018$nb,
+                                              wm_q_2018$wt,
+                                              zero.policy = TRUE,
+                                              nsim = 99)
+global_moran_perm_result_2018
+```
+
+```{r}
+summary(global_moran_perm_result_2018$res)
+
+png("data/rds/global_moran_perm_result_2018.png", width = 800, height = 600)
+
+# Extract the simulated statistics and observed statistic
+simulated_values <- global_moran_perm_result_2018$res
+
+# To capture
+hist(simulated_values, 
+     freq=TRUE, 
+     breaks=20, 
+     xlab="Simulated Moran's I in 2018")
+abline(v=0, 
+       col="red") 
+
+# Close the graphic device
+dev.off()
+
+# To show
+hist(simulated_values, 
+     freq=TRUE, 
+     breaks=20, 
+     xlab="Simulated Moran's I in 2018")
+abline(v=0, 
+       col="red") 
+```
+
+## 2019 Global Moran' I
+
+### Performing Global Moran’s I permutation test (Monte Carlo)
+
+```{r}
+set.seed(1234)
+
+global_moran_perm_result_2019 <- global_moran_perm(wm_q_2019$total_cases,
+                                              wm_q_2019$nb,
+                                              wm_q_2019$wt,
+                                              zero.policy = TRUE,
+                                              nsim = 99)
+global_moran_perm_result_2019
+```
+
+```{r}
+summary(global_moran_perm_result_2019$res)
+
+# Extract the simulated statistics and observed statistic
+simulated_values <- global_moran_perm_result_2019$res
+
+png("data/rds/global_moran_perm_result_2019.png", width = 800, height = 600)
+
+# To plot
+hist(simulated_values, 
+     freq=TRUE, 
+     breaks=20, 
+     xlab="Simulated Moran's I in 2019")
+abline(v=0, 
+       col="red") 
+
+
+# Close the graphic device
+dev.off()
+
+# To show
+hist(simulated_values, 
+     freq=TRUE, 
+     breaks=20, 
+     xlab="Simulated Moran's I in 2019")
+abline(v=0, 
+       col="red") 
+```
+
+## 2020 Global Moran' I
+
+### Performing Global Moran’s I permutation test (Monte Carlo)
+
+```{r}
+set.seed(1234)
+
+global_moran_perm_result_2020 <- global_moran_perm(wm_q_2020$total_cases,
+                                              wm_q_2020$nb,
+                                              wm_q_2020$wt,
+                                              zero.policy = TRUE,
+                                              nsim = 99)
+global_moran_perm_result_2020
+```
+
+```{r}
+summary(global_moran_perm_result_2020$res)
+# Extract the simulated statistics and observed statistic
+simulated_values <- global_moran_perm_result_2020$res
+
+png("data/rds/global_moran_perm_result_2020.png", width = 800, height = 600)
+# To capture
+hist(simulated_values, 
+     freq=TRUE, 
+     breaks=20, 
+     xlab="Simulated Moran's I in 2020")
+abline(v=0, 
+       col="red") 
+
+# Close the graphic device
+dev.off()
+
+# To show
+hist(simulated_values, 
+     freq=TRUE, 
+     breaks=20, 
+     xlab="Simulated Moran's I in 2020")
+abline(v=0, 
+       col="red")
+```
+
+## 2021 Global Moran' I
+
+### Performing Global Moran’s I permutation test (Monte Carlo)
+
+```{r}
+set.seed(1234)
+
+global_moran_perm_result_2021 <- global_moran_perm(wm_q_2021$total_cases,
+                                              wm_q_2021$nb,
+                                              wm_q_2021$wt,
+                                              zero.policy = TRUE,
+                                              nsim = 99)
+global_moran_perm_result_2021
+```
+
+```{r}
+summary(global_moran_perm_result_2021$res)
+# Extract the simulated statistics and observed statistic
+simulated_values <- global_moran_perm_result_2021$res
+
+png("data/rds/global_moran_perm_result_2021.png", width = 800, height = 600)
+
+# To capture
+hist(simulated_values, 
+     freq=TRUE, 
+     breaks=20, 
+     xlab="Simulated Moran's I in 2021")
+abline(v=0, 
+       col="red") 
+
+# Close the graphic device
+dev.off()
+
+# To show
+hist(simulated_values, 
+     freq=TRUE, 
+     breaks=20, 
+     xlab="Simulated Moran's I in 2021")
+abline(v=0, 
+       col="red") 
+```
+
+## 2022 Global Moran' I
+
+### Performing Global Moran’s I permutation test (Monte Carlo)
+
+```{r}
+set.seed(1234)
+
+global_moran_perm_result_2022 <- global_moran_perm(wm_q_2022$total_cases,
+                                              wm_q_2022$nb,
+                                              wm_q_2022$wt,
+                                              zero.policy = TRUE,
+                                              nsim = 99)
+global_moran_perm_result_2022
+```
+
+```{r}
+summary(global_moran_perm_result_2022$res)
+# Extract the simulated statistics and observed statistic
+simulated_values <- global_moran_perm_result_2022$res
+
+png("data/rds/global_moran_perm_result_2022.png", width = 800, height = 600)
+
+# To capture
+hist(simulated_values, 
+     freq=TRUE, 
+     breaks=20, 
+     xlab="Simulated Moran's I in 2022")
+abline(v=0, 
+       col="red") 
+
+# Close the graphic device
+dev.off()
+
+# To show
+hist(simulated_values, 
+     freq=TRUE, 
+     breaks=20, 
+     xlab="Simulated Moran's I in 2022")
+abline(v=0, 
+       col="red") 
+```
+:::
+
+::: callout-note
+-   The results indicate a general trend of positive spatial autocorrelation from 2017 to 2022, with significant clustering observed in 2021 and 2022.
+
+-   The years 2017, 2019, 2021, and 2022 show statistically significant evidence of clustering, while 2018 and 2020 have lower evidence of spatial correlation.
+
+-   This trend suggests that the variable of interest tends to cluster in certain areas, particularly from 2021 onwards, which may warrant further investigation into the factors driving this clustering.
+:::
+
+```{r}
+# Specify the directory containing the images
+image_directory <- "data/rds/"
+
+# Get a list of image files in the specified directory
+global_moran_perm_result_files <- list.files(image_directory, pattern = "\\.png$", full.names = TRUE)
+
+# Load saved images and combine them into an animated GIF
+global_moran_images <- lapply(global_moran_perm_result_files, image_read)
+
+# Create an animation from the Global Moran's images
+global_moran_animation <- image_animate(image_join(global_moran_images), fps = 1)
+
+# Define the path for the GIF animation
+global_moran_gif_path <- "data/rds/global_moran_animation.gif"
+
+# Save the animation as a GIF file
+image_write(global_moran_animation, path = global_moran_gif_path)
+
+# Print confirmation that the GIF was saved
+print("Global Moran's animation saved as spatio_temporal_global_moran_animation.gif")
+
+# Display the GIF using magick
+global_moran_gif_image <- image_read(global_moran_gif_path)
+print(global_moran_gif_image)
 ```
 
 <br/><br/>
 
 # **5.0 Local Spatial Autocorrelation Analysis**
-
-```{r}
-
-```
