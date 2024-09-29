@@ -915,50 +915,23 @@ image_read("data/rds/global_moran_animation.gif")
 
 # **5.0 Local Spatial Autocorrelation Analysis**
 
-## Computing Local Moran's I
+## Visualising LISA Map
+
+::: panel-tabset
+## 2017
+
+### Computing Local Moran's I
 
 ```{r}
+#| eval: false
 lisa_2017 <- wm_q_2017 %>% 
-  mutate(local_moran = local_moran(
-    total_cases, nb, wt, nsim = 99, zero.policy = TRUE),
-    .before = 1) %>% 
-  unnest(local_moran)
-
-lisa_2018 <- wm_q_2018 %>% 
-  mutate(local_moran = local_moran(
-    total_cases, nb, wt, nsim = 99, zero.policy = TRUE),
-    .before = 1) %>% 
-  unnest(local_moran)
-
-lisa_2019 <- wm_q_2019 %>% 
-  mutate(local_moran = local_moran(
-    total_cases, nb, wt, nsim = 99, zero.policy = TRUE),
-    .before = 1) %>% 
-  unnest(local_moran)
-
-lisa_2020 <- wm_q_2020 %>% 
-  mutate(local_moran = local_moran(
-    total_cases, nb, wt, nsim = 99, zero.policy = TRUE),
-    .before = 1) %>% 
-  unnest(local_moran)
-
-lisa_2021 <- wm_q_2021 %>% 
-  mutate(local_moran = local_moran(
-    total_cases, nb, wt, nsim = 99, zero.policy = TRUE),
-    .before = 1) %>% 
-  unnest(local_moran)
-
-lisa_2022 <- wm_q_2022 %>% 
   mutate(local_moran = local_moran(
     total_cases, nb, wt, nsim = 99, zero.policy = TRUE),
     .before = 1) %>% 
   unnest(local_moran)
 ```
 
-## Visualising Local Moran's I VS P-Value
-
-::: panel-tabset
-## 2017
+### Local Moran's I VS P-Value
 
 ```{r}
 #| eval: false
@@ -995,7 +968,53 @@ dev.off()
 image_read("data/rds/local_moran_vs_pvalue_map_2017.png")
 ```
 
+### Putting together
+
+```{r}
+#| eval: false
+
+png("data/rds/lisa_map_2017.png", width = 1600, height = 1200)
+
+lisa_sig_2017 <- lisa_2017  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_2017) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa_sig_2017) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2017",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/lisa_map_2017.png")
+```
+
 ## 2018
+
+### Computing Local Moran's I
+
+```{r}
+#| eval: false
+
+lisa_2018 <- wm_q_2018 %>% 
+  mutate(local_moran = local_moran(
+    total_cases, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### Local Moran's I VS P-Value
 
 ```{r}
 #| eval: false
@@ -1032,7 +1051,53 @@ dev.off()
 image_read("data/rds/local_moran_vs_pvalue_map_2018.png")
 ```
 
+### Putting together
+
+```{r}
+#| eval: false
+
+png("data/rds/lisa_map_2018.png", width = 1600, height = 1200)
+
+lisa_sig_2018 <- lisa_2018  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_2018) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa_sig_2018) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2018",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/lisa_map_2018.png")
+```
+
 ## 2019
+
+### Computing Local Moran's I
+
+```{r}
+#| eval: false
+
+lisa_2019 <- wm_q_2019 %>% 
+  mutate(local_moran = local_moran(
+    total_cases, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### Local Moran's I VS P-Value
 
 ```{r}
 #| eval: false
@@ -1069,7 +1134,53 @@ dev.off()
 image_read("data/rds/local_moran_vs_pvalue_map_2019.png")
 ```
 
+### Putting together
+
+```{r}
+#| eval: false
+
+png("data/rds/lisa_map_2019.png", width = 1600, height = 1200)
+
+lisa_sig_2019 <- lisa_2019  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_2019) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa_sig_2019) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2019",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/lisa_map_2019.png")
+```
+
 ## 2020
+
+### Computing Local Moran's I
+
+```{r}
+#| eval: false
+
+lisa_2020 <- wm_q_2020 %>% 
+  mutate(local_moran = local_moran(
+    total_cases, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### Local Moran's I VS P-Value
 
 ```{r}
 #| eval: false
@@ -1106,7 +1217,53 @@ dev.off()
 image_read("data/rds/local_moran_vs_pvalue_map_2020.png")
 ```
 
+### Putting together
+
+```{r}
+#| eval: false
+
+png("data/rds/lisa_map_2020.png", width = 1600, height = 1200)
+
+lisa_sig_2020 <- lisa_2020  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_2020) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa_sig_2020) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2020",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/lisa_map_2020.png")
+```
+
 ## 2021
+
+### Computing Local Moran's I
+
+```{r}
+#| eval: false
+
+lisa_2021 <- wm_q_2021 %>% 
+  mutate(local_moran = local_moran(
+    total_cases, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### Local Moran's I VS P-Value
 
 ```{r}
 #| eval: false
@@ -1143,7 +1300,53 @@ dev.off()
 image_read("data/rds/local_moran_vs_pvalue_map_2021.png")
 ```
 
+### Putting together
+
+```{r}
+#| eval: false
+
+png("data/rds/lisa_map_2021.png", width = 1600, height = 1200)
+
+lisa_sig_2021 <- lisa_2021  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_2021) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa_sig_2021) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2021",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/lisa_map_2021.png")
+```
+
 ## 2022
+
+### Computing Local Moran's I
+
+```{r}
+#| eval: false
+
+lisa_2022 <- wm_q_2022 %>% 
+  mutate(local_moran = local_moran(
+    total_cases, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### Local Moran's I VS P-Value
 
 ```{r}
 #| eval: false
@@ -1179,172 +1382,8 @@ dev.off()
 ```{r}
 image_read("data/rds/local_moran_vs_pvalue_map_2022.png")
 ```
-:::
 
-## Visualising LISA map
-
-::: panel-tabset
-## 2017
-
-```{r}
-#| eval: false
-
-png("data/rds/lisa_map_2017.png", width = 1600, height = 1200)
-
-lisa_sig_2017 <- lisa_2017  %>%
-  filter(p_ii_sim < 0.05)
-tmap_mode("plot")
-
-tm_shape(lisa_2017) +
-  tm_polygons() +
-  tm_borders(alpha = 0.5) +
-tm_shape(lisa_sig_2017) +
-  tm_fill("mean") + 
-  tm_borders(alpha = 0.4) +
-  tm_layout(main.title = "LISA Map 2017",   
-            main.title.size = 2.5,              
-            legend.text.size = 2.0,           
-            legend.title.size = 2.7,         
-            legend.position = c("right", "bottom"), 
-            frame = TRUE)  # Add a frame around the map
-
-# Close the graphic device
-dev.off()
-```
-
-```{r}
-image_read("data/rds/lisa_map_2017.png")
-```
-
-## 2018
-
-```{r}
-#| eval: false
-
-png("data/rds/lisa_map_2018.png", width = 1600, height = 1200)
-
-lisa_sig_2018 <- lisa_2018  %>%
-  filter(p_ii_sim < 0.05)
-tmap_mode("plot")
-
-tm_shape(lisa_2018) +
-  tm_polygons() +
-  tm_borders(alpha = 0.5) +
-tm_shape(lisa_sig_2018) +
-  tm_fill("mean") + 
-  tm_borders(alpha = 0.4) +
-  tm_layout(main.title = "LISA Map 2018",   
-            main.title.size = 2.5,              
-            legend.text.size = 2.0,           
-            legend.title.size = 2.7,         
-            legend.position = c("right", "bottom"), 
-            frame = TRUE)  # Add a frame around the map
-
-# Close the graphic device
-dev.off()
-```
-
-```{r}
-image_read("data/rds/lisa_map_2018.png")
-```
-
-## 2019
-
-```{r}
-#| eval: false
-
-png("data/rds/lisa_map_2019.png", width = 1600, height = 1200)
-
-lisa_sig_2019 <- lisa_2019  %>%
-  filter(p_ii_sim < 0.05)
-tmap_mode("plot")
-
-tm_shape(lisa_2019) +
-  tm_polygons() +
-  tm_borders(alpha = 0.5) +
-tm_shape(lisa_sig_2019) +
-  tm_fill("mean") + 
-  tm_borders(alpha = 0.4) +
-  tm_layout(main.title = "LISA Map 2019",   
-            main.title.size = 2.5,              
-            legend.text.size = 2.0,           
-            legend.title.size = 2.7,         
-            legend.position = c("right", "bottom"), 
-            frame = TRUE)  # Add a frame around the map
-
-# Close the graphic device
-dev.off()
-```
-
-```{r}
-image_read("data/rds/lisa_map_2019.png")
-```
-
-## 2020
-
-```{r}
-#| eval: false
-
-png("data/rds/lisa_map_2020.png", width = 1600, height = 1200)
-
-lisa_sig_2020 <- lisa_2020  %>%
-  filter(p_ii_sim < 0.05)
-tmap_mode("plot")
-
-tm_shape(lisa_2020) +
-  tm_polygons() +
-  tm_borders(alpha = 0.5) +
-tm_shape(lisa_sig_2020) +
-  tm_fill("mean") + 
-  tm_borders(alpha = 0.4) +
-  tm_layout(main.title = "LISA Map 2020",   
-            main.title.size = 2.5,              
-            legend.text.size = 2.0,           
-            legend.title.size = 2.7,         
-            legend.position = c("right", "bottom"), 
-            frame = TRUE)  # Add a frame around the map
-
-# Close the graphic device
-dev.off()
-```
-
-```{r}
-image_read("data/rds/lisa_map_2020.png")
-```
-
-## 2021
-
-```{r}
-#| eval: false
-
-png("data/rds/lisa_map_2021.png", width = 1600, height = 1200)
-
-lisa_sig_2021 <- lisa_2021  %>%
-  filter(p_ii_sim < 0.05)
-tmap_mode("plot")
-
-tm_shape(lisa_2021) +
-  tm_polygons() +
-  tm_borders(alpha = 0.5) +
-tm_shape(lisa_sig_2021) +
-  tm_fill("mean") + 
-  tm_borders(alpha = 0.4) +
-  tm_layout(main.title = "LISA Map 2021",   
-            main.title.size = 2.5,              
-            legend.text.size = 2.0,           
-            legend.title.size = 2.7,         
-            legend.position = c("right", "bottom"), 
-            frame = TRUE)  # Add a frame around the map
-
-# Close the graphic device
-dev.off()
-```
-
-```{r}
-image_read("data/rds/lisa_map_2021.png")
-```
-
-## 2022
+### Putting together
 
 ```{r}
 #| eval: false
@@ -1377,7 +1416,7 @@ image_read("data/rds/lisa_map_2022.png")
 ```
 :::
 
-## Visualising across time span (2017-2022)
+## Visualising LISA map across time span (2017-2022)
 
 ```{r}
 #| eval: false
@@ -1399,12 +1438,16 @@ image_write(lisa_animation, path = "data/rds/lisa_animation.gif")
 image_read("data/rds/lisa_animation.gif")
 ```
 
-## Hot Spot **& Cold Spot Area Analysis (HCSA)**
+## Hot Spot & Cold Spot Area Analysis (HCSA)
 
 ::: panel-tabset
-## Computing local Gi\* statistics
+## 2017
+
+### Computing local Gi\* statistics
 
 ```{r}
+#| eval: false
+
 HCSA_2017 <- wm_q_2017 %>% 
   mutate(local_Gi = local_gstar_perm(
     total_cases, nb, wts, nsim = 99),
@@ -1412,30 +1455,49 @@ HCSA_2017 <- wm_q_2017 %>%
   unnest(local_Gi)
 ```
 
-## Visualising Hot Spot & Cold Spot (HCSA)
+### Gi\* VS P-Value
 
 ```{r}
+#| eval: false
+
+png("data/rds/gistar_vs_pvalue_map_2017.png", width = 1600, height = 1200)
+
 gi_star_2017 <- tm_shape(HCSA_2017) +
   tm_fill("gi_star") + 
   tm_borders(alpha = 0.5) +
   tm_view(set.zoom.limits = c(6,8)) +
   tm_layout(main.title = "Gi* of Total Cases in 2017",
-            main.title.size = 0.8)
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
 
 gi_star_pvalue_2017 <- tm_shape(HCSA_2017) +
   tm_fill("p_value",
           breaks = c(0, 0.001, 0.01, 0.05, 1),
               labels = c("0.001", "0.01", "0.05", "Not sig")) + 
   tm_borders(alpha = 0.5) +
-  tm_layout(main.title = "p-value of Gi* in 2017",
-            main.title.size = 0.8)
+  tm_layout(main.title = "p-value of Gi* in 2017", 
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
 
 tmap_arrange(gi_star_2017, gi_star_pvalue_2017, ncol = 2)
+
+# Close the graphic device
+dev.off()
 ```
 
-## Putting together
+```{r}
+image_read("data/rds/gistar_vs_pvalue_map_2017.png")
+```
+
+### Putting together
 
 ```{r}
+#| eval: false
+
+png("data/rds/hcsa_map_2017.png", width = 1600, height = 1200)
+
 HCSA_sig_2017 <- HCSA_2017  %>%
   filter(p_sim < 0.05)
 tmap_mode("plot")
@@ -1445,6 +1507,437 @@ tm_shape(HCSA_2017) +
   tm_borders(alpha = 0.5) +
 tm_shape(HCSA_sig_2017) +
   tm_fill("cluster") + 
-  tm_borders(alpha = 0.4)
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "HCSA in 2017",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/hcsa_map_2017.png")
+```
+
+## 2018
+
+### Computing local Gi\* statistics
+
+```{r}
+#| eval: false
+
+HCSA_2018 <- wm_q_2018 %>%    
+  mutate(local_Gi = local_gstar_perm(     
+    total_cases, nb, wts, nsim = 99),          
+    .before = 1) %>%   
+  unnest(local_Gi)
+```
+
+### Visualising Hot Spot & Cold Spot (HCSA)
+
+```{r}
+#| eval: false
+
+png("data/rds/gistar_vs_pvalue_map_2018.png", width = 1600, height = 1200)
+
+gi_star_2018 <- tm_shape(HCSA_2018) +
+  tm_fill("gi_star") + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8)) +
+  tm_layout(main.title = "Gi* of Total Cases in 2018",
+            main.title.size = 0.8)
+
+gi_star_pvalue_2018 <- tm_shape(HCSA_2018) +
+  tm_fill("p_value",
+          breaks = c(0, 0.001, 0.01, 0.05, 1),
+              labels = c("0.001", "0.01", "0.05", "Not sig")) + 
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "p-value of Gi* in 2018",
+            main.title.size = 0.8)
+
+tmap_arrange(gi_star_2018, gi_star_pvalue_2018, ncol = 2)
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/gistar_vs_pvalue_map_2018.png")
+```
+
+### Putting together
+
+```{r}
+#| eval: false
+
+png("data/rds/hcsa_map_2018.png", width = 1600, height = 1200)
+
+HCSA_sig_2018 <- HCSA_2018  %>%
+  filter(p_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(HCSA_2018) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(HCSA_sig_2018) +
+  tm_fill("cluster") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "HCSA in 2018",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/hcsa_map_2018.png")
+```
+
+## 2019
+
+### Computing local Gi\* statistics
+
+```{r}
+#| eval: false
+
+HCSA_2019 <- wm_q_2019 %>% 
+  mutate(local_Gi = local_gstar_perm(
+    total_cases, nb, wts, nsim = 99),
+         .before = 1) %>%
+  unnest(local_Gi)
+```
+
+### Gi\* VS P-Value
+
+```{r}
+#| eval: false
+
+png("data/rds/gistar_vs_pvalue_map_2019.png", width = 1600, height = 1200)
+
+gi_star_2019 <- tm_shape(HCSA_2019) +
+  tm_fill("gi_star") + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8)) +
+  tm_layout(main.title = "Gi* of Total Cases in 2019",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+gi_star_pvalue_2019 <- tm_shape(HCSA_2019) +
+  tm_fill("p_value",
+          breaks = c(0, 0.001, 0.01, 0.05, 1),
+              labels = c("0.001", "0.01", "0.05", "Not sig")) + 
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "p-value of Gi* in 2019", 
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+tmap_arrange(gi_star_2019, gi_star_pvalue_2019, ncol = 2)
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/gistar_vs_pvalue_map_2019.png")
+```
+
+### Putting together
+
+```{r}
+#| eval: false
+
+png("data/rds/hcsa_map_2019.png", width = 1600, height = 1200)
+
+HCSA_sig_2019 <- HCSA_2019  %>%
+  filter(p_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(HCSA_2019) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(HCSA_sig_2019) +
+  tm_fill("cluster") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "HCSA in 2019",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/hcsa_map_2019.png")
+```
+
+## 2020
+
+### Computing local Gi\* statistics
+
+```{r}
+#| eval: false
+
+HCSA_2020 <- wm_q_2020 %>% 
+  mutate(local_Gi = local_gstar_perm(
+    total_cases, nb, wts, nsim = 99),
+         .before = 1) %>%
+  unnest(local_Gi)
+```
+
+### Gi\* VS P-Value
+
+```{r}
+#| eval: false
+
+png("data/rds/gistar_vs_pvalue_map_2020.png", width = 1600, height = 1200)
+
+gi_star_2020 <- tm_shape(HCSA_2020) +
+  tm_fill("gi_star") + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8)) +
+  tm_layout(main.title = "Gi* of Total Cases in 2020",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+gi_star_pvalue_2020 <- tm_shape(HCSA_2020) +
+  tm_fill("p_value",
+          breaks = c(0, 0.001, 0.01, 0.05, 1),
+              labels = c("0.001", "0.01", "0.05", "Not sig")) + 
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "p-value of Gi* in 2020", 
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+tmap_arrange(gi_star_2020, gi_star_pvalue_2020, ncol = 2)
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/gistar_vs_pvalue_map_2020.png")
+```
+
+### Putting together
+
+```{r}
+#| eval: false
+
+png("data/rds/hcsa_map_2020.png", width = 1600, height = 1200)
+
+HCSA_sig_2020 <- HCSA_2020  %>%
+  filter(p_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(HCSA_2020) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(HCSA_sig_2020) +
+  tm_fill("cluster") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "HCSA in 2020",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/hcsa_map_2020.png")
+```
+
+## 2021
+
+### Computing local Gi\* statistics
+
+```{r}
+#| eval: false
+
+HCSA_2021 <- wm_q_2021 %>% 
+  mutate(local_Gi = local_gstar_perm(
+    total_cases, nb, wts, nsim = 99),
+         .before = 1) %>%
+  unnest(local_Gi)
+```
+
+### Gi\* VS P-Value
+
+```{r}
+#| eval: false
+
+png("data/rds/gistar_vs_pvalue_map_2021.png", width = 1600, height = 1200)
+
+gi_star_2021 <- tm_shape(HCSA_2021) +
+  tm_fill("gi_star") + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8)) +
+  tm_layout(main.title = "Gi* of Total Cases in 2021",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+gi_star_pvalue_2021 <- tm_shape(HCSA_2021) +
+  tm_fill("p_value",
+          breaks = c(0, 0.001, 0.01, 0.05, 1),
+              labels = c("0.001", "0.01", "0.05", "Not sig")) + 
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "p-value of Gi* in 2021", 
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+tmap_arrange(gi_star_2021, gi_star_pvalue_2021, ncol = 2)
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/gistar_vs_pvalue_map_2021.png")
+```
+
+### Putting together
+
+```{r}
+#| eval: false
+
+png("data/rds/hcsa_map_2021.png", width = 1600, height = 1200)
+
+HCSA_sig_2021 <- HCSA_2021  %>%
+  filter(p_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(HCSA_2021) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(HCSA_sig_2021) +
+  tm_fill("cluster") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "HCSA in 2021",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/hcsa_map_2021.png")
+```
+
+## 2022
+
+### Computing local Gi\* statistics
+
+```{r}
+#| eval: false
+
+HCSA_2022 <- wm_q_2022 %>% 
+  mutate(local_Gi = local_gstar_perm(
+    total_cases, nb, wts, nsim = 99),
+         .before = 1) %>%
+  unnest(local_Gi)
+```
+
+### Gi\* VS P-Value
+
+```{r}
+#| eval: false
+
+png("data/rds/gistar_vs_pvalue_map_2022.png", width = 1600, height = 1200)
+
+gi_star_2022 <- tm_shape(HCSA_2022) +
+  tm_fill("gi_star") + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8)) +
+  tm_layout(main.title = "Gi* of Total Cases in 2022",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+gi_star_pvalue_2022 <- tm_shape(HCSA_2022) +
+  tm_fill("p_value",
+          breaks = c(0, 0.001, 0.01, 0.05, 1),
+              labels = c("0.001", "0.01", "0.05", "Not sig")) + 
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "p-value of Gi* in 2022", 
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+tmap_arrange(gi_star_2022, gi_star_pvalue_2022, ncol = 2)
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/gistar_vs_pvalue_map_2022.png")
+```
+
+### Putting together
+
+```{r}
+#| eval: false
+
+png("data/rds/hcsa_map_2022.png", width = 1600, height = 1200)
+
+HCSA_sig_2022 <- HCSA_2022  %>%
+  filter(p_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(HCSA_2022) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(HCSA_sig_2022) +
+  tm_fill("cluster") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "HCSA in 2022",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/hcsa_map_2022.png")
 ```
 :::
+
+## Visualising HCSA map across time span (2017-2022)
+
+```{r}
+#| eval: false
+
+# Get a list of image files in the specified directory for HCSA maps
+hcsa_map_files <- list.files("data/rds/", pattern = "hcsa_map_\\d{4}\\.png$", full.names = TRUE)
+
+# Load saved images and combine them into an animated GIF
+hcsa_images <- lapply(hcsa_map_files, image_read)
+
+# Create an animation from the HCSA map images
+hcsa_animation <- image_animate(image_join(hcsa_images), fps = 1)
+
+# Save the animation as a GIF file
+image_write(hcsa_animation, path = "data/rds/hcsa_animation.gif")
+```
+
+```{r}
+image_read("data/rds/lisa_animation.gif")
+
+image_read("data/rds/hcsa_animation.gif")
+```
