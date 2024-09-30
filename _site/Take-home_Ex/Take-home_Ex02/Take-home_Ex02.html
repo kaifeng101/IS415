@@ -290,6 +290,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#hot-spot-cold-spot-area-analysis-hcsa" id="toc-hot-spot-cold-spot-area-analysis-hcsa" class="nav-link" data-scroll-target="#hot-spot-cold-spot-area-analysis-hcsa">Hot Spot &amp; Cold Spot Area Analysis (HCSA)</a></li>
   <li><a href="#visualising-hcsa-map-across-time-span-2017-2022" id="toc-visualising-hcsa-map-across-time-span-2017-2022" class="nav-link" data-scroll-target="#visualising-hcsa-map-across-time-span-2017-2022">Visualising HCSA map across time span (2017-2022)</a></li>
   </ul></li>
+  <li><a href="#mann-kendall-test-for-trend" id="toc-mann-kendall-test-for-trend" class="nav-link" data-scroll-target="#mann-kendall-test-for-trend"><strong>6.0 Mann-Kendall Test for Trend</strong></a>
+  <ul class="collapse">
+  <li><a href="#provincial-trends" id="toc-provincial-trends" class="nav-link" data-scroll-target="#provincial-trends">Provincial Trends</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -322,7 +326,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Modified</div>
     <div class="quarto-title-meta-contents">
-      <p class="date-modified">September 29, 2024</p>
+      <p class="date-modified">October 1, 2024</p>
     </div>
   </div>
     
@@ -402,7 +406,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(tidyverse, sf, readr, ggplot2, tmap, dplyr, arrow, sfdep, scales, animation, png, magick, patchwork)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(tidyverse, sf, readr, ggplot2, tmap, dplyr, arrow, sfdep, scales, animation, png, magick, patchwork, Kendall, zoo)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p><br></p>
 </section>
@@ -2646,7 +2650,48 @@ Note
 <span id="cb138-11"><a href="#cb138-11" aria-hidden="true" tabindex="-1"></a><span class="fu">image_write</span>(hcsa_animation, <span class="at">path =</span> <span class="st">"data/rds/hcsa_animation.gif"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb139"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb139-1"><a href="#cb139-1" aria-hidden="true" tabindex="-1"></a><span class="fu">image_read</span>(<span class="st">"data/rds/lisa_animation.gif"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb139"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb139-1"><a href="#cb139-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Read the animations</span></span>
+<span id="cb139-2"><a href="#cb139-2" aria-hidden="true" tabindex="-1"></a>lisa_animation <span class="ot">&lt;-</span> <span class="fu">image_read</span>(<span class="st">"data/rds/lisa_animation.gif"</span>)</span>
+<span id="cb139-3"><a href="#cb139-3" aria-hidden="true" tabindex="-1"></a>hcsa_animation <span class="ot">&lt;-</span> <span class="fu">image_read</span>(<span class="st">"data/rds/hcsa_animation.gif"</span>)</span>
+<span id="cb139-4"><a href="#cb139-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb139-5"><a href="#cb139-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Ensure both animations have the same number of frames by replicating frames if needed</span></span>
+<span id="cb139-6"><a href="#cb139-6" aria-hidden="true" tabindex="-1"></a>lisa_frames <span class="ot">&lt;-</span> <span class="fu">length</span>(lisa_animation)</span>
+<span id="cb139-7"><a href="#cb139-7" aria-hidden="true" tabindex="-1"></a>hcsa_frames <span class="ot">&lt;-</span> <span class="fu">length</span>(hcsa_animation)</span>
+<span id="cb139-8"><a href="#cb139-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb139-9"><a href="#cb139-9" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (lisa_frames <span class="sc">!=</span> hcsa_frames) {</span>
+<span id="cb139-10"><a href="#cb139-10" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (lisa_frames <span class="sc">&gt;</span> hcsa_frames) {</span>
+<span id="cb139-11"><a href="#cb139-11" aria-hidden="true" tabindex="-1"></a>    hcsa_animation <span class="ot">&lt;-</span> <span class="fu">image_cycle</span>(hcsa_animation, lisa_frames)</span>
+<span id="cb139-12"><a href="#cb139-12" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb139-13"><a href="#cb139-13" aria-hidden="true" tabindex="-1"></a>    lisa_animation <span class="ot">&lt;-</span> <span class="fu">image_cycle</span>(lisa_animation, hcsa_frames)</span>
+<span id="cb139-14"><a href="#cb139-14" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb139-15"><a href="#cb139-15" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb139-16"><a href="#cb139-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb139-17"><a href="#cb139-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert each animation into a list of individual frames</span></span>
+<span id="cb139-18"><a href="#cb139-18" aria-hidden="true" tabindex="-1"></a>lisa_frames_list <span class="ot">&lt;-</span> <span class="fu">as.list</span>(lisa_animation)</span>
+<span id="cb139-19"><a href="#cb139-19" aria-hidden="true" tabindex="-1"></a>hcsa_frames_list <span class="ot">&lt;-</span> <span class="fu">as.list</span>(hcsa_animation)</span>
+<span id="cb139-20"><a href="#cb139-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb139-21"><a href="#cb139-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Resize each frame to ensure no margins and same height</span></span>
+<span id="cb139-22"><a href="#cb139-22" aria-hidden="true" tabindex="-1"></a>lisa_frames_resized <span class="ot">&lt;-</span> <span class="fu">lapply</span>(lisa_frames_list, <span class="cf">function</span>(frame) {</span>
+<span id="cb139-23"><a href="#cb139-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">image_scale</span>(frame, <span class="st">"800x"</span>)  <span class="co"># Adjust the width as needed</span></span>
+<span id="cb139-24"><a href="#cb139-24" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb139-25"><a href="#cb139-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb139-26"><a href="#cb139-26" aria-hidden="true" tabindex="-1"></a>hcsa_frames_resized <span class="ot">&lt;-</span> <span class="fu">lapply</span>(hcsa_frames_list, <span class="cf">function</span>(frame) {</span>
+<span id="cb139-27"><a href="#cb139-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">image_scale</span>(frame, <span class="st">"800x"</span>)  <span class="co"># Adjust the width as needed</span></span>
+<span id="cb139-28"><a href="#cb139-28" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb139-29"><a href="#cb139-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb139-30"><a href="#cb139-30" aria-hidden="true" tabindex="-1"></a><span class="co"># Combine corresponding frames side by side with no gaps</span></span>
+<span id="cb139-31"><a href="#cb139-31" aria-hidden="true" tabindex="-1"></a>side_by_side_frames <span class="ot">&lt;-</span> <span class="fu">mapply</span>(<span class="cf">function</span>(lisa_frame, hcsa_frame) {</span>
+<span id="cb139-32"><a href="#cb139-32" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Use `image_append` with `stack = FALSE` for horizontal stacking</span></span>
+<span id="cb139-33"><a href="#cb139-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">image_append</span>(<span class="fu">c</span>(lisa_frame, hcsa_frame), <span class="at">stack =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb139-34"><a href="#cb139-34" aria-hidden="true" tabindex="-1"></a>}, lisa_frames_resized, hcsa_frames_resized, <span class="at">SIMPLIFY =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb139-35"><a href="#cb139-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb139-36"><a href="#cb139-36" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a new animation from the combined frames</span></span>
+<span id="cb139-37"><a href="#cb139-37" aria-hidden="true" tabindex="-1"></a>side_by_side_animation <span class="ot">&lt;-</span> <span class="fu">image_animate</span>(<span class="fu">image_join</span>(side_by_side_frames), <span class="at">fps =</span> <span class="dv">1</span>)</span>
+<span id="cb139-38"><a href="#cb139-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb139-39"><a href="#cb139-39" aria-hidden="true" tabindex="-1"></a><span class="co"># Save the final combined animation</span></span>
+<span id="cb139-40"><a href="#cb139-40" aria-hidden="true" tabindex="-1"></a><span class="fu">image_write</span>(side_by_side_animation, <span class="at">path =</span> <span class="st">"data/rds/lisa_hcsa_side_by_side_animation.gif"</span>)</span>
+<span id="cb139-41"><a href="#cb139-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb139-42"><a href="#cb139-42" aria-hidden="true" tabindex="-1"></a>side_by_side_animation</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -2654,12 +2699,112 @@ Note
 </figure>
 </div>
 </div>
-<div class="sourceCode cell-code" id="cb140"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb140-1"><a href="#cb140-1" aria-hidden="true" tabindex="-1"></a><span class="fu">image_read</span>(<span class="st">"data/rds/hcsa_animation.gif"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="Take-home_Ex02_files/figure-html/unnamed-chunk-115-2.gif" class="img-fluid figure-img"></p>
-</figure>
+</div>
+</section>
+</section>
+<section id="mann-kendall-test-for-trend" class="level1">
+<h1><strong>6.0 Mann-Kendall Test for Trend</strong></h1>
+<p>This will assess the trend of drug abuse in each province over multiple years. [See if the abuse case is increasing, decreasing, or stable over time]</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb140"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb140-1"><a href="#cb140-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Apply Mann-Kendall Test for each province</span></span>
+<span id="cb140-2"><a href="#cb140-2" aria-hidden="true" tabindex="-1"></a>trend_results <span class="ot">&lt;-</span> summary_stats <span class="sc">%&gt;%</span></span>
+<span id="cb140-3"><a href="#cb140-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(province_name) <span class="sc">%&gt;%</span></span>
+<span id="cb140-4"><a href="#cb140-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb140-5"><a href="#cb140-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">total_cases =</span> <span class="fu">list</span>(total_cases),         <span class="co"># Store total cases for each year in a list</span></span>
+<span id="cb140-6"><a href="#cb140-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">trend =</span> <span class="fu">MannKendall</span>(<span class="fu">unlist</span>(total_cases))<span class="sc">$</span>tau,  <span class="co"># Tau value indicates trend direction</span></span>
+<span id="cb140-7"><a href="#cb140-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_value =</span> <span class="fu">MannKendall</span>(<span class="fu">unlist</span>(total_cases))<span class="sc">$</span>sl,   <span class="co"># p-value for significance</span></span>
+<span id="cb140-8"><a href="#cb140-8" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb140-9"><a href="#cb140-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb140-10"><a href="#cb140-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Classify trends based on the Mann-Kendall results</span></span>
+<span id="cb140-11"><a href="#cb140-11" aria-hidden="true" tabindex="-1"></a>trend_results <span class="ot">&lt;-</span> trend_results <span class="sc">%&gt;%</span></span>
+<span id="cb140-12"><a href="#cb140-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">trend_status =</span> <span class="fu">case_when</span>(</span>
+<span id="cb140-13"><a href="#cb140-13" aria-hidden="true" tabindex="-1"></a>    p_value <span class="sc">&lt;</span> <span class="fl">0.05</span> <span class="sc">&amp;</span> trend <span class="sc">&gt;</span> <span class="dv">0</span> <span class="sc">~</span> <span class="st">"Increasing"</span>,</span>
+<span id="cb140-14"><a href="#cb140-14" aria-hidden="true" tabindex="-1"></a>    p_value <span class="sc">&lt;</span> <span class="fl">0.05</span> <span class="sc">&amp;</span> trend <span class="sc">&lt;</span> <span class="dv">0</span> <span class="sc">~</span> <span class="st">"Decreasing"</span>,</span>
+<span id="cb140-15"><a href="#cb140-15" aria-hidden="true" tabindex="-1"></a>    p_value <span class="sc">&gt;=</span> <span class="fl">0.05</span> <span class="sc">~</span> <span class="st">"Stable"</span>,</span>
+<span id="cb140-16"><a href="#cb140-16" aria-hidden="true" tabindex="-1"></a>    <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"No sufficient data"</span></span>
+<span id="cb140-17"><a href="#cb140-17" aria-hidden="true" tabindex="-1"></a>  ))</span>
+<span id="cb140-18"><a href="#cb140-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb140-19"><a href="#cb140-19" aria-hidden="true" tabindex="-1"></a><span class="fu">write_rds</span>(trend_results, <span class="st">"data/rds/trend_results.rds"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="provincial-trends" class="level2">
+<h2 class="anchored" data-anchor-id="provincial-trends">Provincial Trends</h2>
+<div class="tabset-margin-container"></div><div class="panel-tabset">
+<ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-11-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-11-1" role="tab" aria-controls="tabset-11-1" aria-selected="true">Increasing Trends</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-11-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-11-2" role="tab" aria-controls="tabset-11-2" aria-selected="false">Decreasing Trends</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-11-3-tab" data-bs-toggle="tab" data-bs-target="#tabset-11-3" role="tab" aria-controls="tabset-11-3" aria-selected="false">Stable</a></li></ul>
+<div class="tab-content">
+<div id="tabset-11-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-11-1-tab">
+<div class="cell">
+<div class="sourceCode cell-code" id="cb141"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb141-1"><a href="#cb141-1" aria-hidden="true" tabindex="-1"></a>increasing_trends <span class="ot">&lt;-</span> trend_results <span class="sc">%&gt;%</span></span>
+<span id="cb141-2"><a href="#cb141-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(trend_status <span class="sc">==</span> <span class="st">"Increasing"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb141-3"><a href="#cb141-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(province_name)</span>
+<span id="cb141-4"><a href="#cb141-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb141-5"><a href="#cb141-5" aria-hidden="true" tabindex="-1"></a><span class="fu">write_rds</span>(increasing_trends, <span class="st">"data/rds/increasing_trends.rds"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb142"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb142-1"><a href="#cb142-1" aria-hidden="true" tabindex="-1"></a>increasing_trends <span class="ot">&lt;-</span> <span class="fu">read_rds</span>(<span class="st">"data/rds/increasing_trends.rds"</span>)</span>
+<span id="cb142-2"><a href="#cb142-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb142-3"><a href="#cb142-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Check if increasing_trends is null or empty and set a default message</span></span>
+<span id="cb142-4"><a href="#cb142-4" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">is.null</span>(increasing_trends) <span class="sc">||</span> <span class="fu">length</span>(increasing_trends) <span class="sc">==</span> <span class="dv">0</span>) {</span>
+<span id="cb142-5"><a href="#cb142-5" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="st">"NIL"</span></span>
+<span id="cb142-6"><a href="#cb142-6" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb142-7"><a href="#cb142-7" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="fu">paste</span>(increasing_trends, <span class="at">collapse =</span> <span class="st">", "</span>)</span>
+<span id="cb142-8"><a href="#cb142-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb142-9"><a href="#cb142-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb142-10"><a href="#cb142-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Print the result</span></span>
+<span id="cb142-11"><a href="#cb142-11" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(result, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Bueng Kan, Lampang, Mae Hong Son, Maha Sarakham, Roi Et, Sakon Nakhon, Udon Thani </code></pre>
+</div>
+</div>
+</div>
+<div id="tabset-11-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-11-2-tab">
+<div class="cell">
+<div class="sourceCode cell-code" id="cb144"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb144-1"><a href="#cb144-1" aria-hidden="true" tabindex="-1"></a>decreasing_trends <span class="ot">&lt;-</span> trend_results <span class="sc">%&gt;%</span></span>
+<span id="cb144-2"><a href="#cb144-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(trend_status <span class="sc">==</span> <span class="st">"Decreasing"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb144-3"><a href="#cb144-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(province_name)</span>
+<span id="cb144-4"><a href="#cb144-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb144-5"><a href="#cb144-5" aria-hidden="true" tabindex="-1"></a><span class="fu">write_rds</span>(decreasing_trends, <span class="st">"data/rds/decreasing_trends.rds"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb145"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb145-1"><a href="#cb145-1" aria-hidden="true" tabindex="-1"></a>decreasing_trends <span class="ot">&lt;-</span> <span class="fu">read_rds</span>(<span class="st">"data/rds/decreasing_trends.rds"</span>)</span>
+<span id="cb145-2"><a href="#cb145-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb145-3"><a href="#cb145-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Check if decreasing_trends is null or empty and set a default message</span></span>
+<span id="cb145-4"><a href="#cb145-4" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">is.null</span>(decreasing_trends) <span class="sc">||</span> <span class="fu">length</span>(decreasing_trends) <span class="sc">==</span> <span class="dv">0</span>) {</span>
+<span id="cb145-5"><a href="#cb145-5" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="st">"NIL"</span></span>
+<span id="cb145-6"><a href="#cb145-6" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb145-7"><a href="#cb145-7" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="fu">paste</span>(decreasing_trends, <span class="at">collapse =</span> <span class="st">", "</span>)</span>
+<span id="cb145-8"><a href="#cb145-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb145-9"><a href="#cb145-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb145-10"><a href="#cb145-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Print the result</span></span>
+<span id="cb145-11"><a href="#cb145-11" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(result, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>NIL </code></pre>
+</div>
+</div>
+</div>
+<div id="tabset-11-3" class="tab-pane" role="tabpanel" aria-labelledby="tabset-11-3-tab">
+<div class="cell">
+<div class="sourceCode cell-code" id="cb147"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb147-1"><a href="#cb147-1" aria-hidden="true" tabindex="-1"></a>stable_trends <span class="ot">&lt;-</span> trend_results <span class="sc">%&gt;%</span></span>
+<span id="cb147-2"><a href="#cb147-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(trend_status <span class="sc">==</span> <span class="st">"Stable"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb147-3"><a href="#cb147-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(province_name)</span>
+<span id="cb147-4"><a href="#cb147-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb147-5"><a href="#cb147-5" aria-hidden="true" tabindex="-1"></a><span class="fu">write_rds</span>(stable_trends, <span class="st">"data/rds/stable_trends.rds"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb148"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb148-1"><a href="#cb148-1" aria-hidden="true" tabindex="-1"></a>stable_trends <span class="ot">&lt;-</span> <span class="fu">read_rds</span>(<span class="st">"data/rds/stable_trends.rds"</span>)</span>
+<span id="cb148-2"><a href="#cb148-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb148-3"><a href="#cb148-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Check if stable_trends is null or empty and set a default message</span></span>
+<span id="cb148-4"><a href="#cb148-4" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">is.null</span>(stable_trends) <span class="sc">||</span> <span class="fu">length</span>(stable_trends) <span class="sc">==</span> <span class="dv">0</span>) {</span>
+<span id="cb148-5"><a href="#cb148-5" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="st">"NIL"</span></span>
+<span id="cb148-6"><a href="#cb148-6" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb148-7"><a href="#cb148-7" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="fu">paste</span>(stable_trends, <span class="at">collapse =</span> <span class="st">", "</span>)</span>
+<span id="cb148-8"><a href="#cb148-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb148-9"><a href="#cb148-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb148-10"><a href="#cb148-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Print the result</span></span>
+<span id="cb148-11"><a href="#cb148-11" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(result, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Amnat Charoen, Ang Thong, Bangkok, Buri Ram, Chachoengsao, Chai Nat, Chaiyaphum, Chanthaburi, Chiang Mai, Chiang Rai, Chon Buri, Chumphon, Kalasin, Kamphaeng Phet, Kanchanaburi, Khon Kaen, Krabi, Lamphun, Loei, Lop Buri, Mukdahan, Nakhon Nayok, Nakhon Pathom, Nakhon Phanom, Nakhon Ratchasima, Nakhon Sawan, Nakhon Si Thammarat, Nan, Narathiwat, Nong Bua Lam Phu, Nong Khai, Nonthaburi, Pathum Thani, Pattani, Phangnga, Phatthalung, Phayao, Phetchabun, Phetchaburi, Phichit, Phitsanulok, Phra Nakhon Si Ayutthaya, Phrae, Phuket, Prachin Buri, Prachuap Khiri Khan, Ranong, Ratchaburi, Rayong, Sa Kaeo, Samut Prakan, Samut Sakhon, Samut Songkhram, Saraburi, Satun, Si Sa Ket, Sing Buri, Songkhla, Sukhothai, Suphan Buri, Surat Thani, Surin, Tak, Trang, Trat, Ubon Ratchathani, Uthai Thani, Uttaradit, Yala, Yasothon </code></pre>
+</div>
+</div>
 </div>
 </div>
 </div>

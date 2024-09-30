@@ -78,7 +78,7 @@ execute:
 :::
 
 ```{r}
-pacman::p_load(tidyverse, sf, readr, ggplot2, tmap, dplyr, arrow, sfdep, scales, animation, png, magick, patchwork)
+pacman::p_load(tidyverse, sf, readr, ggplot2, tmap, dplyr, arrow, sfdep, scales, animation, png, magick, patchwork, Kendall, zoo)
 ```
 
 <br/>
@@ -1937,7 +1937,156 @@ image_write(hcsa_animation, path = "data/rds/hcsa_animation.gif")
 ```
 
 ```{r}
-image_read("data/rds/lisa_animation.gif")
+# Read the animations
+lisa_animation <- image_read("data/rds/lisa_animation.gif")
+hcsa_animation <- image_read("data/rds/hcsa_animation.gif")
 
-image_read("data/rds/hcsa_animation.gif")
+# Ensure both animations have the same number of frames by replicating frames if needed
+lisa_frames <- length(lisa_animation)
+hcsa_frames <- length(hcsa_animation)
+
+if (lisa_frames != hcsa_frames) {
+  if (lisa_frames > hcsa_frames) {
+    hcsa_animation <- image_cycle(hcsa_animation, lisa_frames)
+  } else {
+    lisa_animation <- image_cycle(lisa_animation, hcsa_frames)
+  }
+}
+
+# Convert each animation into a list of individual frames
+lisa_frames_list <- as.list(lisa_animation)
+hcsa_frames_list <- as.list(hcsa_animation)
+
+# Resize each frame to ensure no margins and same height
+lisa_frames_resized <- lapply(lisa_frames_list, function(frame) {
+  image_scale(frame, "800x")  # Adjust the width as needed
+})
+
+hcsa_frames_resized <- lapply(hcsa_frames_list, function(frame) {
+  image_scale(frame, "800x")  # Adjust the width as needed
+})
+
+# Combine corresponding frames side by side with no gaps
+side_by_side_frames <- mapply(function(lisa_frame, hcsa_frame) {
+  # Use `image_append` with `stack = FALSE` for horizontal stacking
+  image_append(c(lisa_frame, hcsa_frame), stack = FALSE)
+}, lisa_frames_resized, hcsa_frames_resized, SIMPLIFY = FALSE)
+
+# Create a new animation from the combined frames
+side_by_side_animation <- image_animate(image_join(side_by_side_frames), fps = 1)
+
+# Save the final combined animation
+image_write(side_by_side_animation, path = "data/rds/lisa_hcsa_side_by_side_animation.gif")
+
+side_by_side_animation
 ```
+
+# **6.0 Mann-Kendall Test for Trend**
+
+This will assess the trend of drug abuse in each province over multiple years. \[See if the abuse case is increasing, decreasing, or stable over time\]
+
+```{r}
+#| eval: false
+
+# Apply Mann-Kendall Test for each province
+trend_results <- summary_stats %>%
+  group_by(province_name) %>%
+  summarise(
+    total_cases = list(total_cases),         # Store total cases for each year in a list
+    trend = MannKendall(unlist(total_cases))$tau,  # Tau value indicates trend direction
+    p_value = MannKendall(unlist(total_cases))$sl,   # p-value for significance
+  )
+
+# Classify trends based on the Mann-Kendall results
+trend_results <- trend_results %>%
+  mutate(trend_status = case_when(
+    p_value < 0.05 & trend > 0 ~ "Increasing",
+    p_value < 0.05 & trend < 0 ~ "Decreasing",
+    p_value >= 0.05 ~ "Stable",
+    TRUE ~ "No sufficient data"
+  ))
+
+write_rds(trend_results, "data/rds/trend_results.rds")
+```
+
+## Provincial Trends
+
+::: panel-tabset
+## Increasing Trends
+
+```{r}
+#| eval: false
+
+increasing_trends <- trend_results %>%
+  filter(trend_status == "Increasing") %>%
+  pull(province_name)
+
+write_rds(increasing_trends, "data/rds/increasing_trends.rds")
+```
+
+```{r}
+increasing_trends <- read_rds("data/rds/increasing_trends.rds")
+
+# Check if increasing_trends is null or empty and set a default message
+if (is.null(increasing_trends) || length(increasing_trends) == 0) {
+  result <- "NIL"
+} else {
+  result <- paste(increasing_trends, collapse = ", ")
+}
+
+# Print the result
+cat(result, "\n")
+```
+
+## Decreasing Trends
+
+```{r}
+#| eval: false
+
+decreasing_trends <- trend_results %>%
+  filter(trend_status == "Decreasing") %>%
+  pull(province_name)
+
+write_rds(decreasing_trends, "data/rds/decreasing_trends.rds")
+```
+
+```{r}
+decreasing_trends <- read_rds("data/rds/decreasing_trends.rds")
+
+# Check if decreasing_trends is null or empty and set a default message
+if (is.null(decreasing_trends) || length(decreasing_trends) == 0) {
+  result <- "NIL"
+} else {
+  result <- paste(decreasing_trends, collapse = ", ")
+}
+
+# Print the result
+cat(result, "\n")
+```
+
+## Stable
+
+```{r}
+#| eval: false
+
+stable_trends <- trend_results %>%
+  filter(trend_status == "Stable") %>%
+  pull(province_name)
+
+write_rds(stable_trends, "data/rds/stable_trends.rds")
+```
+
+```{r}
+stable_trends <- read_rds("data/rds/stable_trends.rds")
+
+# Check if stable_trends is null or empty and set a default message
+if (is.null(stable_trends) || length(stable_trends) == 0) {
+  result <- "NIL"
+} else {
+  result <- paste(stable_trends, collapse = ", ")
+}
+
+# Print the result
+cat(result, "\n")
+```
+:::
