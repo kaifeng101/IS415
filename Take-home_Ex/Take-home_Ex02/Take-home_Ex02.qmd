@@ -75,10 +75,14 @@ execute:
 ## *Spatial Autocorrelation*
 
 -   `sfdep`: For performing both local and global spatial autocorrelation analysis
+
+## *Prediction*
+
+-   `forecast`: For trend prediction
 :::
 
 ```{r}
-pacman::p_load(tidyverse, sf, readr, ggplot2, tmap, dplyr, arrow, sfdep, scales, animation, png, magick, patchwork, Kendall, zoo)
+pacman::p_load(tidyverse, sf, readr, ggplot2, tmap, dplyr, arrow, sfdep, scales, animation, png, magick, patchwork, Kendall, zoo, forecast)
 ```
 
 <br/>
@@ -1518,7 +1522,7 @@ image_write(lisa_animation, path = "data/rds/lisa_animation.gif")
 image_read("data/rds/lisa_animation.gif")
 ```
 
-### Summarize Local Moran's I values
+## Summarize Local Moran's I values
 
 ```{r}
 #| eval: false
@@ -2123,7 +2127,11 @@ hcsa_animation <- image_animate(image_join(hcsa_images), fps = 1)
 image_write(hcsa_animation, path = "data/rds/hcsa_animation.gif")
 ```
 
-### Summary of HCSA
+```{r}
+image_read("data/rds/hcsa_animation.gif")
+```
+
+## Summary of HCSA value
 
 ```{r}
 #| eval: false
@@ -2252,6 +2260,8 @@ image_write(side_by_side_animation, path = "data/rds/lisa_hcsa_side_by_side_anim
 side_by_side_animation
 ```
 
+<br/><br/>
+
 # **6.0 Mann-Kendall Test for Trend**
 
 This will assess the trend of drug abuse in each province over multiple years. \[See if the abuse case is increasing, decreasing, or stable over time\]
@@ -2357,4 +2367,94 @@ if (is.null(stable_trends) || length(stable_trends) == 0) {
 
 cat(result, "\n")
 ```
+:::
+
+<br/><br/>
+
+# 7.0 Predicting near future trends
+
+By forecasting, we can enhance our strategic planning, enabling proactive policy development, targeted interventions, and more effective resource allocation. This foresight allows decision-makers to anticipate challenges and respond promptly, ultimately reducing the impact of drug abuse on communities.
+
+## Forecast Future Values
+
+```{r}
+library(forecast)
+
+
+# Forecast case counts for each province using ARIMA for the next 5 years
+arima_forecasts <- list()
+
+for (province in unique(drug_offenses_by_province$province_name)) {
+  # Filter data for the province
+  province_data <- drug_offenses_by_province %>%
+    filter(province_name == province) %>%
+    arrange(year)
+  
+  # Create time series object for case count
+  ts_data <- ts(province_data$case_count, start = min(province_data$year), frequency = 1)
+  
+  # Fit ARIMA model
+  fit <- auto.arima(ts_data)
+  
+  # Forecast for the next 5 years (2023 to 2027)
+  forecasted_values <- forecast(fit, h = 5)
+  
+  # Store forecast results for each year
+  arima_forecasts[[province]] <- data.frame(
+    province_name = province,
+    year = 2023:2027,
+    predicted_cases = as.numeric(forecasted_values$mean)
+  )
+}
+
+# Combine forecast results for all provinces
+future_predictions <- bind_rows(arima_forecasts)
+```
+
+## Hot/Cold Spot Classification
+
+```{r}
+# Set thresholds for hot and cold spots (adjust based on your data)
+hot_spot_threshold <- quantile(drug_offenses_by_province$case_count, 0.75)
+cold_spot_threshold <- quantile(drug_offenses_by_province$case_count, 0.25)
+
+# Classify hot/cold spots based on predicted cases for each year
+future_predictions <- future_predictions %>%
+  mutate(hot_cold_label = case_when(
+    predicted_cases > hot_spot_threshold ~ "Hot Spot",
+    predicted_cases < cold_spot_threshold ~ "Cold Spot",
+    TRUE ~ "Neutral"
+  ))
+
+# Preview classified hot/cold spots
+print(future_predictions)
+```
+
+## Visualization of Predictions
+
+```{r}
+library(tmap)
+
+# Merge predictions with spatial data
+future_spatial <- province_boundaries %>%
+  left_join(future_predictions, by = "province_name")
+
+# Visualize predicted hot/cold spots for 2023-2027
+tm_shape(future_spatial) +
+  tm_polygons("hot_cold_label", palette = c("blue", "red", "gray"), 
+              title = "Predicted Hot/Cold Spots (2023-2027)") +
+  tm_borders() +
+  tm_layout(title = "Predicted Drug Abuse Hot/Cold Spots in Thailand (2023-2027)")
+```
+
+::: callout-note
+ARIMA (AutoRegressive Integrated Moving Average) model is used for our time series forecasting.
+
+Also it offers,
+
+-   **Flexibility**: in various time series patterns, suitable for non-stationary data.
+
+-   **Automatic Parameter Selection** (`auto.arima`): simplifies model fitting by automatically selecting optimal parameters.
+
+-   **Robustness**: in capturing fluctuations in historical data.
 :::
