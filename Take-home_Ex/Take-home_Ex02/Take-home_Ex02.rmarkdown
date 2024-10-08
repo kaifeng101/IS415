@@ -1,0 +1,2609 @@
+---
+title: "Take-home Exercise 2: Application of Geospatial Analysis Methods to Discover Thailand Drug Abuse at the Province Level"
+author: "kai feng"
+date: "Sep 23, 2024"
+date-modified: "last-modified"
+execute:
+  eval: true
+  echo: true
+  freeze: true
+---
+
+
+# **Introduction**
+
+### Drug Abuse Overview
+
+-   **Global Impact**: Drug abuse has severe health, financial, and social consequences.
+
+-   **Prevalence**: In 2021, 1 in 17 people aged 15–64 worldwide used a drug in the past year.
+
+-   **Growth Trend**: Drug users increased from 240 million in 2011 to 296 million in 2021.
+
+### Drug Situation in Thailand
+
+-   **Geopolitical Context**: Proximity to the [Golden Triangle](https://en.wikipedia.org/wiki/Golden_Triangle_(Southeast_Asia)), a major drug production area, makes Thailand a key market and transit route for drug trafficking.
+
+-   **Youth Drug Abuse**:
+
+    -   Approximately 2.7 million young people in Thailand use drugs.
+
+    -   Around 300,000 youth aged 15-19 need drug treatment.
+
+    -   Vocational students are nearly twice as involved with drugs compared to secondary-school students.![](https://is415-ay2024-25t1.netlify.app/img/th_ex2_img1.png)
+
+**This Geospatial Analytics will Focus on:**
+
+-   **Objective:** Determine if drug abuse indicators in Thailand show spatial dependence.
+-   **Analysis Goals**:
+    -   Identify clusters, outliers, and hotspots of drug abuse.
+
+    -   Examine how these patterns change over time.
+
+<br/><br/>
+
+# **1.0 Setup**
+
+## 1.1 Installing R-Packages
+
+::: panel-tabset
+## *Importing and Transforming Data*
+
+-   `sf`:
+
+    -   For handling spatial vector data and transforming it into simple features (`sf`) objects.
+
+    -   Functions like `st_read()` for importing spatial data and `st_transform()` for coordinate reference system transformations.
+
+-   `tidyverse`: For data manipulation and transformation, including functions for working with `tibble` data frames.
+
+-   `readr`: For reading in CSV or other text-based data files if needed.
+
+-   `dplyr`: provide data manipulation capabilities (eg. to group and summarize the relationships between these columns)
+
+-   `arrow`: To read parquet files
+
+## *Displaying Maps*
+
+-   `tmap`: For creating thematic maps and displaying KDE layers.
+
+-   `ggplot2`: For additional custom visualizations if needed.
+
+-   *`scales`*: Transform the unit of measurement for coordinate
+
+-   `animation, png, magick`: For animation work
+
+## *Spatial Autocorrelation*
+
+-   `sfdep`: For performing both local and global spatial autocorrelation analysis
+
+## *Prediction*
+
+-   `forecast`: For trend prediction
+:::
+
+
+```{r}
+pacman::p_load(tidyverse, sf, readr, ggplot2, tmap, dplyr, arrow, sfdep, scales, animation, png, magick, patchwork, Kendall, zoo, forecast)
+```
+
+
+<br/>
+
+## 1.2 Data Acquisition
+
+We will be using 2 sets of data:
+
+::: panel-tabset
+## Drug offenses Data
+
+-   **Source:** [[Thailand Drug Offenses \[2017-2022\]]{.underline}](https://www.kaggle.com/datasets/thaweewatboy/thailand-drug-offenses-2017-2022)
+
+-   **Study Period:** 2017-2022
+
+## Administrative Boundaries
+
+-   **Source:** [Thailand - Subnational Administrative Boundaries](https://data.humdata.org/dataset/cod-ab-tha?) at HDX.
+-   **Province Boundaries**: For understanding conflict distribution across larger administrative divisions.
+:::
+
+<br/>
+
+## 1.3 Importing Geospatial Data into R
+
+::: panel-tabset
+## Drug Offenses Data
+
+
+```{r}
+#| eval: false
+drug_offenses <- read_parquet("data/drug_offense/thai_drug_offenses_2017_2022.parquet")
+```
+
+```{r}
+drug_offenses <- read_csv("data/drug_offense/thai_drug_offenses_2017_2022.csv")
+```
+
+
+::: callout-note
+Since the data in CSV and Parquet formats are identical, we only need to import one of these file types.
+:::
+
+## Administrative Boundaries
+
+
+```{r}
+province_boundaries <- st_read(dsn = "data/subnational_administrative_boundary", layer="tha_admbnda_adm1_rtsd_20220121")
+```
+
+:::
+
+<br/>
+
+## 1.4 Checking Geospatial Data
+
+::: panel-tabset
+## Drug Offenses Data
+
+
+```{r}
+class(drug_offenses)
+```
+
+
+::: callout-note
+Since
+
+-   Since the class of **drug_offenses** != sf object
+
+we have to transform it.
+:::
+
+## Administrative Boundaries
+
+
+```{r}
+class(province_boundaries)
+st_crs(province_boundaries)
+```
+
+
+::: callout-note
+Since Coordinate Reference System of **province_boundaries**
+
+is in 4326 (unit of measurement = degree), we have to transform it
+:::
+:::
+
+<br/>
+
+## 1.6 Data Preparation and Wrangling
+
+::: panel-tabset
+## Drug Offenses Data
+
+
+```{r}
+# Drop & Rename column
+drug_offenses <- drug_offenses %>% 
+  select(fiscal_year, types_of_drug_offenses, no_cases, province_en) %>% 
+  rename(
+    year = fiscal_year,
+    offense_type = types_of_drug_offenses,
+    case_count = no_cases,
+    province_name = province_en
+  )
+```
+
+
+## Administrative Boundaries
+
+##### Transform the Coordinate Reference System of these:
+
+
+```{r}
+province_boundaries <- province_boundaries %>%
+  st_transform(crs = 4240)
+```
+
+```{r}
+# Drop & Rename column
+province_boundaries <- province_boundaries %>% 
+  select(Shape_Leng, Shape_Area, ADM1_EN, ADM1_PCODE, geometry) %>% 
+  rename(
+    province_name = ADM1_EN,
+    province_code = ADM1_PCODE
+  )
+```
+
+
+##### Sample plot
+
+
+```{r}
+ggplot(data = province_boundaries) +
+  geom_sf() +
+  theme_minimal() +
+  labs(title = "Map of Geometries",
+       subtitle = "Displaying multipolygon geometries",
+       caption = "Source: Example Data")
+```
+
+
+## Understanding the Data
+
+
+```{r}
+# Filter for unmatched province_names between Drug Offenses & Province Boundaries data set
+unmatched_provinces <- drug_offenses %>%
+  left_join(province_boundaries, by = "province_name") %>%
+  filter(is.na(Shape_Leng)) %>%
+  select(province_name)
+
+unmatched_provinces <- unique(unmatched_provinces) #Loburi, buogkan
+
+
+
+# Transform the province_name in the Drug Offenses dataset
+drug_offenses <- drug_offenses %>%
+  mutate(province_name = case_when(
+    province_name == "Loburi" ~ "Lop Buri",
+    province_name == "buogkan" ~ "Bueng Kan",
+    TRUE ~ province_name  # Keep the original name if no match
+  ))
+
+
+# Assign each drug offense to a province
+drug_offenses_by_province <- drug_offenses %>%
+  left_join(province_boundaries, by = "province_name")
+
+# Check for any empty attributes in the test dataset
+empty_attributes <- sapply(drug_offenses_by_province, function(column) any(is.na(column)))
+
+# Identify columns with missing values
+missing_columns <- names(empty_attributes[empty_attributes]) # character(0) = No missing Column
+```
+
+
+::: callout-warning
+The **Drug Offenses** dataset has some naming issues with `province_name`.
+
+We found two discrepancies: **Loburi** should be changed to **Lop Buri**, and **buogkan** should be updated to **Bueng Kan** to match the **Province Boundaries** dataset.
+
+We will update the `province_name` entries in the **Drug Offenses** dataset accordingly.
+:::
+:::
+
+<br/><br/>
+
+# **2.0 Understanding the Data**
+
+
+```{r}
+offense_type <- unique(drug_offenses_by_province$offense_type) 
+print(offense_type)
+```
+
+
+::: callout-note
+These varying degrees of offense types may reveal patterns and trends in drug-related activities, providing a comprehensive understanding of the issue at hand.
+:::
+
+<br/><br/>
+
+# **3.0 Exploratory Data Analysis**
+
+## Summary statistics
+
+
+```{r}
+#| eval: false
+summary_stats <- drug_offenses_by_province %>%
+  group_by(province_name, year) %>%
+  summarise(
+    total_cases = sum(case_count, na.rm = TRUE),
+    geometry = first(geometry)
+    )
+
+write_rds(summary_stats, "data/rds/summary_stats.rds")
+```
+
+```{r}
+summary_stats <- read_rds("data/rds/summary_stats.rds")
+summary_stats
+```
+
+
+## Top /Bottom 10 Related-Drug Incidents Provinces
+
+
+```{r}
+# Loop through each year and plot top 10 provinces
+years_to_plot <- unique(summary_stats$year)
+```
+
+
+::: panel-tabset
+## Top 10 Drug Abuse Provinces
+
+
+```{r}
+#| eval: false
+
+top_10_plot_list <- list()
+
+# Loop through each year and create the plots for top 10
+for (current_year in years_to_plot) {
+  # Filter and sort the data for the specific year
+  top_10_year_data <- summary_stats %>%
+    filter(year == current_year) %>%
+    arrange(desc(total_cases)) %>%
+    head(10)
+  
+  # Create the plot for the current year
+  top_10_plot <- ggplot(top_10_year_data, aes(x = reorder(province_name, total_cases), y = total_cases)) +
+    geom_bar(stat = "identity", fill = "pink", width = 0.8) +
+    coord_flip() +
+    labs(x = NULL, y = NULL, subtitle = paste("Year:", current_year)) +
+    scale_y_continuous(labels = scales::comma_format(accuracy = 1)) +
+    theme_minimal(base_size = 10) +
+    geom_text(aes(label = total_cases),
+              position = position_stack(vjust = 0.5),   
+              color = "black", 
+              size = 3) +
+    theme(axis.text.x = element_blank(),   # Hide the y-axis text
+          axis.ticks.x = element_blank())  # Hide the y-axis ticks
+  
+  # Add the plot to the list
+  top_10_plot_list[[as.character(current_year)]] <- top_10_plot
+}
+
+# Combine the top 10 plots into a grid
+top_10_plot_list <- wrap_plots(top_10_plot_list)
+
+# Add a single title to the combined plot
+top_10_plot_list <- top_10_plot_list +
+  plot_annotation(title = "Top 10 Provinces by Total Drug Abuse Cases Over the Years")
+
+write_rds(top_10_plot_list, "data/rds/top_10_plot_list.rds")
+
+```
+
+```{r}
+print(read_rds("data/rds/top_10_plot_list.rds"))
+```
+
+
+## Bottom 10 Drug Abuse Provinces
+
+
+```{r}
+#| eval: false
+
+# Create a list to store the bottom 10 plots
+bottom_10_plot_list <- list()
+
+# Loop through each year and create the plots for bottom 10
+for (current_year in years_to_plot) {
+  # Filter and sort the data for the specific year to get the bottom 10
+  bottom_10_year_data <- summary_stats %>%
+    filter(year == current_year) %>%
+    arrange(total_cases) %>%   # Ascending order to get bottom cases
+    head(10)
+  
+  # Create the plot for the current year
+  bottom_10_plot <- ggplot(bottom_10_year_data, aes(x = reorder(province_name, -total_cases), y = total_cases)) +
+    geom_bar(stat = "identity", fill = "steelblue", width = 0.8) +
+    coord_flip() +
+    labs(x = NULL, y = NULL, subtitle = paste("Year:", current_year)) +  # Subtitle to display year
+    scale_y_continuous(labels = scales::comma_format(accuracy = 1)) +
+    theme_minimal(base_size = 10) +
+    geom_text(aes(label = total_cases),
+              position = position_stack(vjust = 0.5),   
+              color = "black", 
+              size = 3) +
+    theme(axis.text.x = element_blank(),   # Hide the y-axis text
+          axis.ticks.x = element_blank())  # Hide the y-axis ticks
+  
+  # Add the plot to the list
+  bottom_10_plot_list[[as.character(current_year)]] <- bottom_10_plot
+}
+
+# Combine the bottom 10 plots into a grid
+bottom_10_plot_list <- wrap_plots(bottom_10_plot_list)
+
+# Add a single title to the combined plot
+bottom_10_plot_list <- bottom_10_plot_list +
+  plot_annotation(title = "Bottom 10 Provinces by Total Drug Abuse Cases Over the Years")
+
+write_rds(bottom_10_plot_list, "data/rds/bottom_10_plot_list.rds")
+```
+
+```{r}
+print(read_rds("data/rds/bottom_10_plot_list.rds"))
+```
+
+:::
+
+## Trends over time for the entire country
+
+
+```{r}
+drug_trends <- drug_offenses_by_province %>%
+  group_by(year) %>%
+  summarise(total_cases = sum(case_count))
+
+# Plot trend over time with formatted y-axis labels
+ggplot(drug_trends, aes(x = year, y = total_cases)) +
+  geom_line(color = "blue") +
+  geom_point(size = 3, color = "red") +  
+  labs(title = "Drug Abuse Cases Over Time",
+       x = "Year", y = "Total Cases") +
+  scale_y_continuous(labels = comma)
+
+```
+
+
+<br/><br/>
+
+# **4.0 Global Spatial Autocorrelation Analysis**
+
+Organize into years for more detailed analysis:
+
+
+```{r}
+summary_stats <- st_as_sf(summary_stats)
+
+summary_stats_2017 <- summary_stats %>%
+  filter(year == 2017) %>%
+  ungroup()  # Remove any grouping
+
+summary_stats_2018 <- summary_stats %>%
+  filter(year == 2018) %>%
+  ungroup()  # Remove any grouping
+
+summary_stats_2019 <- summary_stats %>%
+  filter(year == 2019) %>%
+  ungroup()  # Remove any grouping
+
+summary_stats_2020 <- summary_stats %>%
+  filter(year == 2020) %>%
+  ungroup()  # Remove any grouping
+
+summary_stats_2021 <- summary_stats %>%
+  filter(year == 2021) %>%
+  ungroup()  # Remove any grouping
+
+summary_stats_2022 <- summary_stats %>%
+  filter(year == 2022) %>%
+  ungroup()  # Remove any grouping
+```
+
+
+### Deriving Queen’s Contiguity weights: sfdep methods
+
+
+```{r}
+#| eval: false
+
+nb <- st_contiguity(summary_stats_2017$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+
+wm_q_2017 <- summary_stats_2017 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+
+wm_q_2018 <- summary_stats_2018 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+
+wm_q_2019 <- summary_stats_2019 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+
+wm_q_2020 <- summary_stats_2020 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+
+wm_q_2021 <- summary_stats_2021 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+
+wm_q_2022 <- summary_stats_2022 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+
+write_rds(wm_q_2017, "data/rds/wm_q_2017.rds")
+write_rds(wm_q_2018, "data/rds/wm_q_2018.rds")
+write_rds(wm_q_2019, "data/rds/wm_q_2019.rds")
+write_rds(wm_q_2020, "data/rds/wm_q_2020.rds")
+write_rds(wm_q_2021, "data/rds/wm_q_2021.rds")
+write_rds(wm_q_2022, "data/rds/wm_q_2022.rds")
+```
+
+
+Initialize for use later:
+
+
+```{r}
+wm_q_2017 <- read_rds("data/rds/wm_q_2017.rds")
+wm_q_2018 <- read_rds("data/rds/wm_q_2018.rds")
+wm_q_2019 <- read_rds("data/rds/wm_q_2019.rds")
+wm_q_2020 <- read_rds("data/rds/wm_q_2020.rds")
+wm_q_2021 <- read_rds("data/rds/wm_q_2021.rds")
+wm_q_2022 <- read_rds("data/rds/wm_q_2022.rds")
+```
+
+
+::: callout-note
+To derive spatial autocorrelation, we first gather the relevant geographic points for our study area:
+
+1.  **Filtering for Unique Geographic Points**: The `summary_stats` dataset contains multiple entries for each geographic point across different years. We filter it to retain data for a single year (e.g., 2017) to work with a unique set of locations.
+
+2.  **Identifying Neighbors**: To assess the spatial relationships between areas, we identify neighboring regions. We use Queen's contiguity weights, which include all neighbors that touch at edges or corners, capturing comprehensive spatial interactions.
+
+3.  **Calculating Weights**: After identifying neighbors, we calculate spatial weights that quantify the influence neighboring areas have on one another. These weights are crucial for measuring spatial autocorrelation, as they inform how a variable in one area relates to values in its neighbors.
+:::
+
+## 2017: An Initial Overview
+
+### Global Moran' I
+
+::: panel-tabset
+## Computing Global Moran’ I
+
+
+```{r}
+moranI_2017 <- global_moran(wm_q_2017$total_cases,
+                       wm_q_2017$nb,
+                       wm_q_2017$wt)
+
+glimpse(moranI_2017)
+```
+
+
+## Performing Global Moran’s I test
+
+
+```{r}
+global_moran_test(wm_q_2017$total_cases,
+                  wm_q_2017$nb,
+                  wm_q_2017$wt,
+                  zero.policy = TRUE)
+```
+
+
+::: callout-note
+Moran I statistic (0.133140650) -\> indicates a positive correlation in the variable of interest (e.g., total cases).
+
+SD of 2.4598 -\> suggests that Moran’s I is greater than the expected value under the null hypothesis.
+
+P-value of 0.006951 -\> is \< 0.05, indicating strong statistical significance.
+
+Expectation of -0.013333333 -\> suggests we would expect slight negative autocorrelation if there were no spatial structure.
+
+Since the p-value \< 0.05, we reject the null hypothesis of no spatial autocorrelation. This strongly suggests there is significant positive spatial clustering of the variable in the study area (regions with high values are near areas with high values).
+:::
+
+## Performing Global Moran’s I permutation test (Monte Carlo)
+
+
+```{r}
+set.seed(1234)
+
+global_moran_perm_result_2017 <- global_moran_perm(wm_q_2017$total_cases,
+                                              wm_q_2017$nb,
+                                              wm_q_2017$wt,
+                                              zero.policy = TRUE,
+                                              nsim = 99)
+global_moran_perm_result_2017
+```
+
+```{r}
+summary(global_moran_perm_result_2017$res)
+```
+
+```{r}
+#| eval: false
+
+png("data/rds/global_moran_perm_result_2017.png", width = 1600, height = 1000)
+
+# Adjust font size and scaling using par()
+par(cex = 2,       # Overall scaling for text and symbols
+    cex.axis = 1.5, # Axis text size
+    cex.lab = 2,    # Axis label size
+    cex.main = 2.5, # Main title size
+    mar = c(5, 5, 4, 2) + 0.1) # Adjust margins for more space around the plot
+
+# Extract the simulated statistics and observed statistic
+simulated_values <- global_moran_perm_result_2017$res
+
+global_moran_perm_hist_2017 <- hist(simulated_values, 
+                                    freq=TRUE, 
+                                    breaks=20, 
+                                    xlab="Simulated Moran's I in 2017")
+abline(v=0, 
+       col="red") 
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/global_moran_perm_result_2017.png")
+```
+
+
+::: callout-note
+To ensure our results are accurate, we'll perform a Monte Carlo (permutation) test on Moran’s I statistic. This method helps us understand if the observed clustering of values is statistically significant.
+
+First, we set the seed using `set.seed(1234)`. This step is crucial because it guarantees that our simulation results will be reproducible. Every time we run the simulation, we should get the same outcomes, which is important for consistency in our analysis.
+
+Now, looking at the results from our permutation test:
+
+-   **Moran’s I statistic**: 0.13314
+
+-   **Observed rank**: 98
+
+-   **P-value**: 0.04
+
+The p-value being less than 0.05 tells us that there's strong statistical evidence against the null hypothesis of no spatial autocorrelation. This means we can conclude there’s significant positive spatial clustering in our data—areas with high values are near other areas with high values.
+
+Looking at the summary of the simulated statistics, with the maximum being 0.162326 and the minimum at -0.151935. The distribution of these values helps us understand the expected behavior of our statistic under the null hypothesis.
+:::
+:::
+
+::: callout-note
+It's important to note that some areas may have no neighboring regions, which results in null weights. To address this, we use `zero.policy = TRUE` in our analysis, allowing regions with no neighbors to be included without causing errors in calculations.
+
+However, it's essential to understand that Global Moran's I does not accommodate regions without neighbors in its calculations, meaning that these regions, even when included, will not contribute to the overall assessment of spatial autocorrelation.
+
+Consequently, regions with null weights may still affect the results, leading to potential skewing of the analysis and limiting its interpretability. Therefore, careful consideration of how to handle such regions is crucial for ensuring accurate spatial analysis.
+:::
+
+## Visualising across time span (2017-2022)
+
+::: panel-tabset
+## 2018 Global Moran' I
+
+### Performing Global Moran’s I permutation test (Monte Carlo)
+
+
+```{r}
+set.seed(1234)
+
+global_moran_perm_result_2018 <- global_moran_perm(wm_q_2018$total_cases,
+                                              wm_q_2018$nb,
+                                              wm_q_2018$wt,
+                                              zero.policy = TRUE,
+                                              nsim = 99)
+global_moran_perm_result_2018
+```
+
+```{r}
+summary(global_moran_perm_result_2018$res)
+```
+
+```{r}
+#| eval: false
+
+png("data/rds/global_moran_perm_result_2018.png", width = 1600, height = 1000)
+
+# Adjust font size and scaling using par()
+par(cex = 2,       # Overall scaling for text and symbols
+    cex.axis = 1.5, # Axis text size
+    cex.lab = 2,    # Axis label size
+    cex.main = 2.5, # Main title size
+    mar = c(5, 5, 4, 2) + 0.1) # Adjust margins for more space around the plot
+
+# Extract the simulated statistics and observed statistic
+simulated_values <- global_moran_perm_result_2018$res
+
+hist(simulated_values, 
+     freq=TRUE, 
+     breaks=20, 
+     xlab="Simulated Moran's I in 2018")
+abline(v=0, 
+       col="red") 
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/global_moran_perm_result_2018.png")
+```
+
+
+## 2019 Global Moran' I
+
+### Performing Global Moran’s I permutation test (Monte Carlo)
+
+
+```{r}
+set.seed(1234)
+
+global_moran_perm_result_2019 <- global_moran_perm(wm_q_2019$total_cases,
+                                              wm_q_2019$nb,
+                                              wm_q_2019$wt,
+                                              zero.policy = TRUE,
+                                              nsim = 99)
+global_moran_perm_result_2019
+```
+
+```{r}
+summary(global_moran_perm_result_2019$res)
+```
+
+```{r}
+#| eval: false
+
+png("data/rds/global_moran_perm_result_2019.png", width = 1600, height = 1000)
+
+# Adjust font size and scaling using par()
+par(cex = 2,       # Overall scaling for text and symbols
+    cex.axis = 1.5, # Axis text size
+    cex.lab = 2,    # Axis label size
+    cex.main = 2.5, # Main title size
+    mar = c(5, 5, 4, 2) + 0.1) # Adjust margins for more space around the plot
+
+# Extract the simulated statistics and observed statistic
+simulated_values <- global_moran_perm_result_2019$res
+
+hist(simulated_values, 
+     freq=TRUE, 
+     breaks=20, 
+     xlab="Simulated Moran's I in 2019")
+abline(v=0, 
+       col="red") 
+
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/global_moran_perm_result_2019.png")
+```
+
+
+## 2020 Global Moran' I
+
+### Performing Global Moran’s I permutation test (Monte Carlo)
+
+
+```{r}
+set.seed(1234)
+
+global_moran_perm_result_2020 <- global_moran_perm(wm_q_2020$total_cases,
+                                              wm_q_2020$nb,
+                                              wm_q_2020$wt,
+                                              zero.policy = TRUE,
+                                              nsim = 99)
+global_moran_perm_result_2020
+```
+
+```{r}
+summary(global_moran_perm_result_2020$res)
+```
+
+```{r}
+#| eval: false
+
+png("data/rds/global_moran_perm_result_2020.png", width = 1600, height = 1000)
+
+# Adjust font size and scaling using par()
+par(cex = 2,       # Overall scaling for text and symbols
+    cex.axis = 1.5, # Axis text size
+    cex.lab = 2,    # Axis label size
+    cex.main = 2.5, # Main title size
+    mar = c(5, 5, 4, 2) + 0.1) # Adjust margins for more space around the plot
+
+# Extract the simulated statistics and observed statistic
+simulated_values <- global_moran_perm_result_2020$res
+
+hist(simulated_values, 
+     freq=TRUE, 
+     breaks=20, 
+     xlab="Simulated Moran's I in 2020")
+abline(v=0, 
+       col="red") 
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/global_moran_perm_result_2020.png")
+```
+
+
+## 2021 Global Moran' I
+
+### Performing Global Moran’s I permutation test (Monte Carlo)
+
+
+```{r}
+set.seed(1234)
+
+global_moran_perm_result_2021 <- global_moran_perm(wm_q_2021$total_cases,
+                                              wm_q_2021$nb,
+                                              wm_q_2021$wt,
+                                              zero.policy = TRUE,
+                                              nsim = 99)
+global_moran_perm_result_2021
+```
+
+```{r}
+summary(global_moran_perm_result_2021$res)
+```
+
+```{r}
+#| eval: false
+
+png("data/rds/global_moran_perm_result_2021.png", width = 1600, height = 1000)
+
+# Adjust font size and scaling using par()
+par(cex = 2,       # Overall scaling for text and symbols
+    cex.axis = 1.5, # Axis text size
+    cex.lab = 2,    # Axis label size
+    cex.main = 2.5, # Main title size
+    mar = c(5, 5, 4, 2) + 0.1) # Adjust margins for more space around the plot
+
+# Extract the simulated statistics and observed statistic
+simulated_values <- global_moran_perm_result_2021$res
+
+hist(simulated_values, 
+     freq=TRUE, 
+     breaks=20, 
+     xlab="Simulated Moran's I in 2021")
+abline(v=0, 
+       col="red") 
+
+# Close the graphic device
+dev.off() 
+```
+
+```{r}
+image_read("data/rds/global_moran_perm_result_2021.png")
+```
+
+
+## 2022 Global Moran' I
+
+### Performing Global Moran’s I permutation test (Monte Carlo)
+
+
+```{r}
+set.seed(1234)
+
+global_moran_perm_result_2022 <- global_moran_perm(wm_q_2022$total_cases,
+                                              wm_q_2022$nb,
+                                              wm_q_2022$wt,
+                                              zero.policy = TRUE,
+                                              nsim = 99)
+global_moran_perm_result_2022
+```
+
+```{r}
+summary(global_moran_perm_result_2022$res)
+```
+
+```{r}
+#| eval: false
+
+png("data/rds/global_moran_perm_result_2022.png", width = 1600, height = 1000)
+
+# Adjust font size and scaling using par()
+par(cex = 2,       # Overall scaling for text and symbols
+    cex.axis = 1.5, # Axis text size
+    cex.lab = 2,    # Axis label size
+    cex.main = 2.5, # Main title size
+    mar = c(5, 5, 4, 2) + 0.1) # Adjust margins for more space around the plot
+
+# Extract the simulated statistics and observed statistic
+simulated_values <- global_moran_perm_result_2022$res
+
+hist(simulated_values, 
+     freq=TRUE, 
+     breaks=20, 
+     xlab="Simulated Moran's I in 2022")
+abline(v=0, 
+       col="red") 
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/global_moran_perm_result_2022.png")
+```
+
+:::
+
+::: callout-note
+-   The results indicate a general trend of positive spatial autocorrelation from 2017 to 2022, with significant clustering observed in 2021 and 2022.
+
+-   The years 2017, 2019, 2021, and 2022 show statistically significant evidence of clustering, while 2018 and 2020 have lower evidence of spatial correlation.
+
+-   This trend suggests that the variable of interest tends to cluster in certain areas, particularly from 2021 onwards, which may warrant further investigation into the factors driving this clustering.
+:::
+
+
+```{r}
+#| eval: false
+
+# Get a list of image files in the specified directory
+global_moran_perm_result_files <- list.files("data/rds/", pattern = "\\.png$", full.names = TRUE)
+
+# Load saved images and combine them into an animated GIF
+global_moran_images <- lapply(global_moran_perm_result_files, image_read)
+
+# Create an animation from the Global Moran's images
+global_moran_animation <- image_animate(image_join(global_moran_images), fps = 1)
+
+# Save the animation as a GIF file
+image_write(global_moran_animation, path = "data/rds/global_moran_animation.gif")
+```
+
+```{r}
+image_read("data/rds/global_moran_animation.gif")
+```
+
+
+<br/><br/>
+
+# **5.0 Local Spatial Autocorrelation Analysis**
+
+## Visualising LISA Map
+
+::: panel-tabset
+## 2017
+
+### Computing Local Moran's I
+
+
+```{r}
+#| eval: false
+lisa_2017 <- wm_q_2017 %>% 
+  mutate(local_moran = local_moran(
+    total_cases, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+
+### Local Moran's I VS P-Value
+
+
+```{r}
+#| eval: false
+
+png("data/rds/local_moran_vs_pvalue_map_2017.png", width = 1600, height = 1000)
+
+tmap_mode("plot")
+local_moran_map_2017 <- tm_shape(lisa_2017) +
+  tm_fill("ii") + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8)) +
+  tm_layout(main.title = "local Moran's I of Total Cases in 2017",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+local_moran_pvalue_map_2017 <- tm_shape(lisa_2017) +
+  tm_fill("p_ii",
+          breaks = c(0, 0.001, 0.01, 0.05, 1),
+              labels = c(
+                "Highly significant (< 0.001)", 
+                "Significant (0.001 - 0.01)",
+                "Moderately significant (0.01 - 0.05)", 
+                "Not significant (> 0.05)"
+              )) + 
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "p-value of local Moran's I of Total Cases in 2017",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+tmap_arrange(local_moran_map_2017, local_moran_pvalue_map_2017, ncol = 2)
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/local_moran_vs_pvalue_map_2017.png")
+```
+
+
+### Putting together
+
+
+```{r}
+#| eval: false
+
+png("data/rds/lisa_map_2017.png", width = 1600, height = 1200)
+
+lisa_sig_2017 <- lisa_2017  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_2017) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa_sig_2017) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2017",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/lisa_map_2017.png")
+```
+
+
+## 2018
+
+### Computing Local Moran's I
+
+
+```{r}
+#| eval: false
+
+lisa_2018 <- wm_q_2018 %>% 
+  mutate(local_moran = local_moran(
+    total_cases, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+
+### Local Moran's I VS P-Value
+
+
+```{r}
+#| eval: false
+
+png("data/rds/local_moran_vs_pvalue_map_2018.png", width = 1600, height = 1000)
+
+tmap_mode("plot")
+local_moran_map_2018 <- tm_shape(lisa_2018) +
+  tm_fill("ii") + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8)) +
+  tm_layout(main.title = "local Moran's I of Total Cases in 2018",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+local_moran_pvalue_map_2018 <- tm_shape(lisa_2018) +
+  tm_fill("p_ii",
+          breaks = c(0, 0.001, 0.01, 0.05, 1),
+              labels = c(
+                "Highly significant (< 0.001)", 
+                "Significant (0.001 - 0.01)",
+                "Moderately significant (0.01 - 0.05)", 
+                "Not significant (> 0.05)"
+              )) + 
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "p-value of local Moran's I of Total Cases in 2018",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+tmap_arrange(local_moran_map_2018, local_moran_pvalue_map_2018, ncol = 2)
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/local_moran_vs_pvalue_map_2018.png")
+```
+
+
+### Putting together
+
+
+```{r}
+#| eval: false
+
+png("data/rds/lisa_map_2018.png", width = 1600, height = 1200)
+
+lisa_sig_2018 <- lisa_2018  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_2018) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa_sig_2018) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2018",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/lisa_map_2018.png")
+```
+
+
+## 2019
+
+### Computing Local Moran's I
+
+
+```{r}
+#| eval: false
+
+lisa_2019 <- wm_q_2019 %>% 
+  mutate(local_moran = local_moran(
+    total_cases, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+
+### Local Moran's I VS P-Value
+
+
+```{r}
+#| eval: false
+
+png("data/rds/local_moran_vs_pvalue_map_2019.png", width = 1600, height = 1000)
+
+tmap_mode("plot")
+local_moran_map_2019 <- tm_shape(lisa_2019) +
+  tm_fill("ii") + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8)) +
+  tm_layout(main.title = "local Moran's I of Total Cases in 2019",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+local_moran_pvalue_map_2019 <- tm_shape(lisa_2019) +
+  tm_fill("p_ii",
+          breaks = c(0, 0.001, 0.01, 0.05, 1),
+              labels = c(
+                "Highly significant (< 0.001)", 
+                "Significant (0.001 - 0.01)",
+                "Moderately significant (0.01 - 0.05)", 
+                "Not significant (> 0.05)"
+              )) + 
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "p-value of local Moran's I of Total Cases in 2019",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+tmap_arrange(local_moran_map_2019, local_moran_pvalue_map_2019, ncol = 2)
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/local_moran_vs_pvalue_map_2019.png")
+```
+
+
+### Putting together
+
+
+```{r}
+#| eval: false
+
+png("data/rds/lisa_map_2019.png", width = 1600, height = 1200)
+
+lisa_sig_2019 <- lisa_2019  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_2019) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa_sig_2019) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2019",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/lisa_map_2019.png")
+```
+
+
+## 2020
+
+### Computing Local Moran's I
+
+
+```{r}
+#| eval: false
+
+lisa_2020 <- wm_q_2020 %>% 
+  mutate(local_moran = local_moran(
+    total_cases, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+
+### Local Moran's I VS P-Value
+
+
+```{r}
+#| eval: false
+
+png("data/rds/local_moran_vs_pvalue_map_2020.png", width = 1600, height = 1000)
+
+tmap_mode("plot")
+local_moran_map_2020 <- tm_shape(lisa_2020) +
+  tm_fill("ii") + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8)) +
+  tm_layout(main.title = "local Moran's I of Total Cases in 2020",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+local_moran_pvalue_map_2020 <- tm_shape(lisa_2020) +
+  tm_fill("p_ii",
+          breaks = c(0, 0.001, 0.01, 0.05, 1),
+              labels = c(
+                "Highly significant (< 0.001)", 
+                "Significant (0.001 - 0.01)",
+                "Moderately significant (0.01 - 0.05)", 
+                "Not significant (> 0.05)"
+              )) + 
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "p-value of local Moran's I of Total Cases in 2020",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+tmap_arrange(local_moran_map_2020, local_moran_pvalue_map_2020, ncol = 2)
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/local_moran_vs_pvalue_map_2020.png")
+```
+
+
+### Putting together
+
+
+```{r}
+#| eval: false
+
+png("data/rds/lisa_map_2020.png", width = 1600, height = 1200)
+
+lisa_sig_2020 <- lisa_2020  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_2020) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa_sig_2020) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2020",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/lisa_map_2020.png")
+```
+
+
+## 2021
+
+### Computing Local Moran's I
+
+
+```{r}
+#| eval: false
+
+lisa_2021 <- wm_q_2021 %>% 
+  mutate(local_moran = local_moran(
+    total_cases, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+
+### Local Moran's I VS P-Value
+
+
+```{r}
+#| eval: false
+
+png("data/rds/local_moran_vs_pvalue_map_2021.png", width = 1600, height = 1000)
+
+tmap_mode("plot")
+local_moran_map_2021 <- tm_shape(lisa_2021) +
+  tm_fill("ii") + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8)) +
+  tm_layout(main.title = "local Moran's I of Total Cases in 2021",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+local_moran_pvalue_map_2021 <- tm_shape(lisa_2021) +
+  tm_fill("p_ii",
+          breaks = c(0, 0.001, 0.01, 0.05, 1),
+              labels = c(
+                "Highly significant (< 0.001)", 
+                "Significant (0.001 - 0.01)",
+                "Moderately significant (0.01 - 0.05)", 
+                "Not significant (> 0.05)"
+              )) + 
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "p-value of local Moran's I of Total Cases in 2021",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+tmap_arrange(local_moran_map_2021, local_moran_pvalue_map_2021, ncol = 2)
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/local_moran_vs_pvalue_map_2021.png")
+```
+
+
+### Putting together
+
+
+```{r}
+#| eval: false
+
+png("data/rds/lisa_map_2021.png", width = 1600, height = 1200)
+
+lisa_sig_2021 <- lisa_2021  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_2021) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa_sig_2021) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2021",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/lisa_map_2021.png")
+```
+
+
+## 2022
+
+### Computing Local Moran's I
+
+
+```{r}
+#| eval: false
+
+lisa_2022 <- wm_q_2022 %>% 
+  mutate(local_moran = local_moran(
+    total_cases, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+
+### Local Moran's I VS P-Value
+
+
+```{r}
+#| eval: false
+
+png("data/rds/local_moran_vs_pvalue_map_2022.png", width = 1600, height = 1000)
+
+tmap_mode("plot")
+local_moran_map_2022 <- tm_shape(lisa_2022) +
+  tm_fill("ii") + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8)) +
+  tm_layout(main.title = "local Moran's I of Total Cases in 2022",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+local_moran_pvalue_map_2022 <- tm_shape(lisa_2022) +
+  tm_fill("p_ii",
+          breaks = c(0, 0.001, 0.01, 0.05, 1),
+              labels = c(
+                "Highly significant (< 0.001)", 
+                "Significant (0.001 - 0.01)",
+                "Moderately significant (0.01 - 0.05)", 
+                "Not significant (> 0.05)"
+              )) + 
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "p-value of local Moran's I of Total Cases in 2022",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+tmap_arrange(local_moran_map_2022, local_moran_pvalue_map_2022, ncol = 2)
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/local_moran_vs_pvalue_map_2022.png")
+```
+
+
+### Putting together
+
+
+```{r}
+#| eval: false
+
+png("data/rds/lisa_map_2022.png", width = 1600, height = 1200)
+
+lisa_sig_2022 <- lisa_2022  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_2022) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa_sig_2022) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2022",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/lisa_map_2022.png")
+```
+
+:::
+
+::: callout-note
+**Computing Local Moran’s I**
+
+add new column \[local_moran\] -\> stores the calculated Local Moran's I values
+
+`zero.policy = TRUE` option allows the method to handle regions without neighbors appropriately.
+
+unnest(local_moran) -\> flatten the results, simplifying further analysis of the output.
+
+**Local Moran’s I VS P-Value Visualization**
+
+This segment creates visualizations for the Local Moran's I statistic and its associated p-values for the year 2017
+
+Local Moran's I values (color-coded) indicating spatial clustering: Ranges from -1.0 (cold spots) to 3.0 (strong hot spots). Provides insights into areas of similar or dissimilar values in case distribution.
+
+P-Value Map:
+
+Illustrates the statistical significance of Local Moran's I: Breaks defined for p-values (\< 0.001, 0.001-0.01, 0.01-0.05, \> 0.05).
+
+**Putting Together Significant LISA Results**
+
+This segment visualizes the significant clusters identified by the Local Moran's I analysis.
+
+The visualization includes both all regions and the significant clusters, with the latter highlighted based on their mean Local Moran's I values.
+
+1.  **Low-Low (LL)**
+
+-   **Definition**: Areas with low values surrounded by other low-value areas.
+
+-   **Interpretation**: Indicates regions that are underperforming or stable and may not need immediate intervention.
+
+2.  **High-Low (HL)**
+
+-   **Definition**: Areas with high values surrounded by low-value areas.
+
+-   **Interpretation**: Highlights potential hotspots that require further investigation or targeted intervention.
+
+3.  **Low-High (LH)**
+
+-   **Definition**: Areas with low values surrounded by high-value areas.
+
+-   **Interpretation**: Suggests vulnerability to spillover effects from neighboring high-value regions, requiring monitoring.
+
+4.  **High-High (HH)**
+
+-   **Definition**: Areas with high values surrounded by other high-value areas.
+
+-   **Interpretation**: Identifies significant hotspots that may need immediate attention and indicate systemic issues.
+:::
+
+## Visualising LISA map across time span (2017-2022)
+
+
+```{r}
+#| eval: false
+
+# Get a list of image files in the specified directory for LISA maps
+lisa_map_files <- list.files("data/rds/", pattern = "lisa_map_\\d{4}\\.png$", full.names = TRUE)
+
+# Load saved images and combine them into an animated GIF
+lisa_images <- lapply(lisa_map_files, image_read)
+
+# Create an animation from the LISA map images
+lisa_animation <- image_animate(image_join(lisa_images), fps = 1)
+
+# Save the animation as a GIF file
+image_write(lisa_animation, path = "data/rds/lisa_animation.gif")
+```
+
+```{r}
+image_read("data/rds/lisa_animation.gif")
+```
+
+
+## Summarize Local Moran's I values
+
+
+```{r}
+#| eval: false
+
+summarize_local_moran <- function(data) {
+  data %>%
+    summarise(
+      mean_local_moran = mean(ii, na.rm = TRUE),
+      min_local_moran = min(ii, na.rm = TRUE),
+      max_local_moran = max(ii, na.rm = TRUE),
+      sd_local_moran = sd(ii, na.rm = TRUE),
+      mean_p_value = mean(p_ii_sim, na.rm = TRUE),
+      min_p_value = min(p_ii_sim, na.rm = TRUE),
+      max_p_value = max(p_ii_sim, na.rm = TRUE),
+      count_high_high = sum(ii > 0 & p_ii_sim < 0.05),
+      count_low_low = sum(ii < 0 & p_ii_sim < 0.05),
+      count_high_low = sum(ii > 0 & p_ii_sim >= 0.05),
+      count_low_high = sum(ii < 0 & p_ii_sim >= 0.05)
+    )
+}
+
+# Apply the function to each year's dataset
+local_moran_summary_2017 <- summarize_local_moran(lisa_2017)
+local_moran_summary_2018 <- summarize_local_moran(lisa_2018)
+local_moran_summary_2019 <- summarize_local_moran(lisa_2019)
+local_moran_summary_2020 <- summarize_local_moran(lisa_2020)
+local_moran_summary_2021 <- summarize_local_moran(lisa_2021)
+local_moran_summary_2022 <- summarize_local_moran(lisa_2022)
+
+# Combine summaries into a single data frame
+local_moran_summary_all_years <- bind_rows(
+  mutate(local_moran_summary_2017, year = 2017),
+  mutate(local_moran_summary_2018, year = 2018),
+  mutate(local_moran_summary_2019, year = 2019),
+  mutate(local_moran_summary_2020, year = 2020),
+  mutate(local_moran_summary_2021, year = 2021),
+  mutate(local_moran_summary_2022, year = 2022)
+)
+
+write_rds(local_moran_summary_all_years, "data/rds/local_moran_summary_all_years.rds")
+```
+
+```{r}
+local_moran_summary_all_years <- read_rds("data/rds/local_moran_summary_all_years.rds")
+
+# Show all rows and columns
+print(local_moran_summary_all_years, n = Inf, width = Inf)
+
+```
+
+
+::: callout-note
+### Summary of Findings:
+
+1.  **Mean Local Moran's I Values**:
+
+    -   Ranged from **0.116 to 0.201**, indicating increasing clustering of values over time.
+
+2.  **Min/Max Local Moran's I**:
+
+    -   Minimum values: **-1.37 to -0.943** (low-value clusters).
+
+    -   Maximum values: **2.14 to 4.73** (significant high-value clusters).
+
+3.  **Standard Deviation**:
+
+    -   Varied from **0.384 to 0.608**, indicating differences in clustering variability across years.
+
+4.  **P-Values**:
+
+    -   Mean p-values consistent at **0.412 to 0.455**, with a minimum p-value of **0.02**, suggesting significant clustering.
+
+5.  **Cluster Counts**:
+
+    -   High-high clusters decreased from **7** in 2017 to **2** in 2019 but increased in later years.
+
+    -   Low-low clusters remained relatively low, peaking at **3** in 2022.
+
+6.  **Yearly Trends**:
+
+    -   2022 exhibited the highest mean Local Moran's I value (**0.201**), indicating stronger clustering effects.
+:::
+
+## Hot Spot & Cold Spot Area Analysis (HCSA)
+
+::: panel-tabset
+## 2017
+
+### Computing local Gi\* statistics
+
+
+```{r}
+#| eval: false
+
+HCSA_2017 <- wm_q_2017 %>% 
+  mutate(local_Gi = local_gstar_perm(
+    total_cases, nb, wts, nsim = 99),
+         .before = 1) %>%
+  unnest(local_Gi)
+```
+
+
+### Gi\* VS P-Value
+
+
+```{r}
+#| eval: false
+
+png("data/rds/gistar_vs_pvalue_map_2017.png", width = 1600, height = 1200)
+
+gi_star_2017 <- tm_shape(HCSA_2017) +
+  tm_fill("gi_star") + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8)) +
+  tm_layout(main.title = "Gi* of Total Cases in 2017",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+gi_star_pvalue_2017 <- tm_shape(HCSA_2017) +
+  tm_fill("p_value",
+          breaks = c(0, 0.001, 0.01, 0.05, 1),
+              labels = c("0.001", "0.01", "0.05", "Not sig")) + 
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "p-value of Gi* in 2017", 
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+tmap_arrange(gi_star_2017, gi_star_pvalue_2017, ncol = 2)
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/gistar_vs_pvalue_map_2017.png")
+```
+
+
+### Putting together
+
+
+```{r}
+#| eval: false
+
+png("data/rds/hcsa_map_2017.png", width = 1600, height = 1200)
+
+HCSA_sig_2017 <- HCSA_2017  %>%
+  filter(p_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(HCSA_2017) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(HCSA_sig_2017) +
+  tm_fill("cluster") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "HCSA in 2017",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/hcsa_map_2017.png")
+```
+
+
+## 2018
+
+### Computing local Gi\* statistics
+
+
+```{r}
+#| eval: false
+
+HCSA_2018 <- wm_q_2018 %>%    
+  mutate(local_Gi = local_gstar_perm(     
+    total_cases, nb, wts, nsim = 99),          
+    .before = 1) %>%   
+  unnest(local_Gi)
+```
+
+
+### Visualising Hot Spot & Cold Spot (HCSA)
+
+
+```{r}
+#| eval: false
+
+png("data/rds/gistar_vs_pvalue_map_2018.png", width = 1600, height = 1200)
+
+gi_star_2018 <- tm_shape(HCSA_2018) +
+  tm_fill("gi_star") + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8)) +
+  tm_layout(main.title = "Gi* of Total Cases in 2018",
+            main.title.size = 0.8)
+
+gi_star_pvalue_2018 <- tm_shape(HCSA_2018) +
+  tm_fill("p_value",
+          breaks = c(0, 0.001, 0.01, 0.05, 1),
+              labels = c("0.001", "0.01", "0.05", "Not sig")) + 
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "p-value of Gi* in 2018",
+            main.title.size = 0.8)
+
+tmap_arrange(gi_star_2018, gi_star_pvalue_2018, ncol = 2)
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/gistar_vs_pvalue_map_2018.png")
+```
+
+
+### Putting together
+
+
+```{r}
+#| eval: false
+
+png("data/rds/hcsa_map_2018.png", width = 1600, height = 1200)
+
+HCSA_sig_2018 <- HCSA_2018  %>%
+  filter(p_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(HCSA_2018) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(HCSA_sig_2018) +
+  tm_fill("cluster") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "HCSA in 2018",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/hcsa_map_2018.png")
+```
+
+
+## 2019
+
+### Computing local Gi\* statistics
+
+
+```{r}
+#| eval: false
+
+HCSA_2019 <- wm_q_2019 %>% 
+  mutate(local_Gi = local_gstar_perm(
+    total_cases, nb, wts, nsim = 99),
+         .before = 1) %>%
+  unnest(local_Gi)
+```
+
+
+### Gi\* VS P-Value
+
+
+```{r}
+#| eval: false
+
+png("data/rds/gistar_vs_pvalue_map_2019.png", width = 1600, height = 1200)
+
+gi_star_2019 <- tm_shape(HCSA_2019) +
+  tm_fill("gi_star") + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8)) +
+  tm_layout(main.title = "Gi* of Total Cases in 2019",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+gi_star_pvalue_2019 <- tm_shape(HCSA_2019) +
+  tm_fill("p_value",
+          breaks = c(0, 0.001, 0.01, 0.05, 1),
+              labels = c("0.001", "0.01", "0.05", "Not sig")) + 
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "p-value of Gi* in 2019", 
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+tmap_arrange(gi_star_2019, gi_star_pvalue_2019, ncol = 2)
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/gistar_vs_pvalue_map_2019.png")
+```
+
+
+### Putting together
+
+
+```{r}
+#| eval: false
+
+png("data/rds/hcsa_map_2019.png", width = 1600, height = 1200)
+
+HCSA_sig_2019 <- HCSA_2019  %>%
+  filter(p_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(HCSA_2019) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(HCSA_sig_2019) +
+  tm_fill("cluster") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "HCSA in 2019",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/hcsa_map_2019.png")
+```
+
+
+## 2020
+
+### Computing local Gi\* statistics
+
+
+```{r}
+#| eval: false
+
+HCSA_2020 <- wm_q_2020 %>% 
+  mutate(local_Gi = local_gstar_perm(
+    total_cases, nb, wts, nsim = 99),
+         .before = 1) %>%
+  unnest(local_Gi)
+```
+
+
+### Gi\* VS P-Value
+
+
+```{r}
+#| eval: false
+
+png("data/rds/gistar_vs_pvalue_map_2020.png", width = 1600, height = 1200)
+
+gi_star_2020 <- tm_shape(HCSA_2020) +
+  tm_fill("gi_star") + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8)) +
+  tm_layout(main.title = "Gi* of Total Cases in 2020",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+gi_star_pvalue_2020 <- tm_shape(HCSA_2020) +
+  tm_fill("p_value",
+          breaks = c(0, 0.001, 0.01, 0.05, 1),
+              labels = c("0.001", "0.01", "0.05", "Not sig")) + 
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "p-value of Gi* in 2020", 
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+tmap_arrange(gi_star_2020, gi_star_pvalue_2020, ncol = 2)
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/gistar_vs_pvalue_map_2020.png")
+```
+
+
+### Putting together
+
+
+```{r}
+#| eval: false
+
+png("data/rds/hcsa_map_2020.png", width = 1600, height = 1200)
+
+HCSA_sig_2020 <- HCSA_2020  %>%
+  filter(p_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(HCSA_2020) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(HCSA_sig_2020) +
+  tm_fill("cluster") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "HCSA in 2020",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/hcsa_map_2020.png")
+```
+
+
+## 2021
+
+### Computing local Gi\* statistics
+
+
+```{r}
+#| eval: false
+
+HCSA_2021 <- wm_q_2021 %>% 
+  mutate(local_Gi = local_gstar_perm(
+    total_cases, nb, wts, nsim = 99),
+         .before = 1) %>%
+  unnest(local_Gi)
+```
+
+
+### Gi\* VS P-Value
+
+
+```{r}
+#| eval: false
+
+png("data/rds/gistar_vs_pvalue_map_2021.png", width = 1600, height = 1200)
+
+gi_star_2021 <- tm_shape(HCSA_2021) +
+  tm_fill("gi_star") + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8)) +
+  tm_layout(main.title = "Gi* of Total Cases in 2021",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+gi_star_pvalue_2021 <- tm_shape(HCSA_2021) +
+  tm_fill("p_value",
+          breaks = c(0, 0.001, 0.01, 0.05, 1),
+              labels = c("0.001", "0.01", "0.05", "Not sig")) + 
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "p-value of Gi* in 2021", 
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+tmap_arrange(gi_star_2021, gi_star_pvalue_2021, ncol = 2)
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/gistar_vs_pvalue_map_2021.png")
+```
+
+
+### Putting together
+
+
+```{r}
+#| eval: false
+
+png("data/rds/hcsa_map_2021.png", width = 1600, height = 1200)
+
+HCSA_sig_2021 <- HCSA_2021  %>%
+  filter(p_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(HCSA_2021) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(HCSA_sig_2021) +
+  tm_fill("cluster") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "HCSA in 2021",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/hcsa_map_2021.png")
+```
+
+
+## 2022
+
+### Computing local Gi\* statistics
+
+
+```{r}
+#| eval: false
+
+HCSA_2022 <- wm_q_2022 %>% 
+  mutate(local_Gi = local_gstar_perm(
+    total_cases, nb, wts, nsim = 99),
+         .before = 1) %>%
+  unnest(local_Gi)
+```
+
+
+### Gi\* VS P-Value
+
+
+```{r}
+#| eval: false
+
+png("data/rds/gistar_vs_pvalue_map_2022.png", width = 1600, height = 1200)
+
+gi_star_2022 <- tm_shape(HCSA_2022) +
+  tm_fill("gi_star") + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8)) +
+  tm_layout(main.title = "Gi* of Total Cases in 2022",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+gi_star_pvalue_2022 <- tm_shape(HCSA_2022) +
+  tm_fill("p_value",
+          breaks = c(0, 0.001, 0.01, 0.05, 1),
+              labels = c("0.001", "0.01", "0.05", "Not sig")) + 
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "p-value of Gi* in 2022", 
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+tmap_arrange(gi_star_2022, gi_star_pvalue_2022, ncol = 2)
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/gistar_vs_pvalue_map_2022.png")
+```
+
+
+### Putting together
+
+
+```{r}
+#| eval: false
+
+png("data/rds/hcsa_map_2022.png", width = 1600, height = 1200)
+
+HCSA_sig_2022 <- HCSA_2022  %>%
+  filter(p_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(HCSA_2022) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(HCSA_sig_2022) +
+  tm_fill("cluster") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "HCSA in 2022",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.title.size = 2.7) 
+
+# Close the graphic device
+dev.off()
+```
+
+```{r}
+image_read("data/rds/hcsa_map_2022.png")
+```
+
+:::
+
+::: callout-note
+### Summary of Gi\* and P-Value Analysis
+
+1.  *Gi Statistic (Hot Spot & Cold Spot Analysis)*\*
+
+    -   The *Gi statistic*\* is calculated to identify **clusters of high or low values** of total cases in a given area.
+
+    -   It measures whether the number of cases in a location is significantly higher (**hot spot**) or lower (**cold spot**) than would be expected by random distribution.
+
+2.  *P-Value of Gi Statistic*\*
+
+    -   The **p-value** determines the **statistical significance** of the observed clusters (hot or cold spots).
+
+    -   A low p-value (\< 0.05) suggests that the cluster is **unlikely to have occurred by chance**, while a higher p-value indicates randomness in the observed pattern.
+
+3.  **Purpose of Both Analyses**
+
+    -   *Gi* of Total Cases\* map visually displays the clustering of total cases.
+
+    -   **P-Value of Gi**\* map helps verify whether the identified clusters are **statistically significant** or if they might be due to random variation.
+
+These two analyses together provide a clear picture of where significant hot or cold spots are and how reliable these findings are. This ensures any conclusions drawn about spatial patterns are both **visualized** and **statistically validated**.
+:::
+
+## Visualising HCSA map across time span (2017-2022)
+
+
+```{r}
+#| eval: false
+
+# Get a list of image files in the specified directory for HCSA maps
+hcsa_map_files <- list.files("data/rds/", pattern = "hcsa_map_\\d{4}\\.png$", full.names = TRUE)
+
+# Load saved images and combine them into an animated GIF
+hcsa_images <- lapply(hcsa_map_files, image_read)
+
+# Create an animation from the HCSA map images
+hcsa_animation <- image_animate(image_join(hcsa_images), fps = 1)
+
+# Save the animation as a GIF file
+image_write(hcsa_animation, path = "data/rds/hcsa_animation.gif")
+```
+
+```{r}
+image_read("data/rds/hcsa_animation.gif")
+```
+
+
+## Summary of HCSA value
+
+
+```{r}
+#| eval: false
+
+# Function to summarize HCSA values for a given year
+summarize_hcsa <- function(data) {
+  data %>%
+    summarise(
+      mean_gi_star = mean(gi_star, na.rm = TRUE),
+      min_gi_star = min(gi_star, na.rm = TRUE),
+      max_gi_star = max(gi_star, na.rm = TRUE),
+      sd_gi_star = sd(gi_star, na.rm = TRUE),
+      mean_p_value = mean(p_value, na.rm = TRUE),
+      min_p_value = min(p_value, na.rm = TRUE),
+      max_p_value = max(p_value, na.rm = TRUE),
+      count_hot_spots = sum(gi_star > 0 & p_value < 0.05),
+      count_cold_spots = sum(gi_star < 0 & p_value < 0.05),
+      count_non_significant = sum(p_value >= 0.05),
+      geometry = st_union(geometry)  # Combine geometries
+    )
+}
+
+# Summarizing HCSA for each year
+hcsa_summary_2017 <- summarize_hcsa(HCSA_2017)
+hcsa_summary_2018 <- summarize_hcsa(HCSA_2018)
+hcsa_summary_2019 <- summarize_hcsa(HCSA_2019)
+hcsa_summary_2020 <- summarize_hcsa(HCSA_2020)
+hcsa_summary_2021 <- summarize_hcsa(HCSA_2021)
+hcsa_summary_2022 <- summarize_hcsa(HCSA_2022)
+
+
+hcsa_summary_all <- bind_rows(
+  mutate(hcsa_summary_2017, year = 2017),
+  mutate(hcsa_summary_2018, year = 2018),
+  mutate(hcsa_summary_2019, year = 2019),
+  mutate(hcsa_summary_2020, year = 2020),
+  mutate(hcsa_summary_2021, year = 2021),
+  mutate(hcsa_summary_2022, year = 2022)
+)
+
+write_rds(hcsa_summary_all, "data/rds/hcsa_summary_all.rds")
+```
+
+```{r}
+hcsa_summary_all <- read_rds("data/rds/hcsa_summary_all.rds")
+
+# Show all rows and columns
+print(hcsa_summary_all, n = Inf, width = Inf)
+```
+
+
+::: callout-note
+### Summary of Findings:
+
+1.  *Mean Gi Values*\*:
+
+    -   Increased from **0.0838 (2017)** to **0.199 (2022)**, indicating more hot spots over time.
+
+2.  *Gi Range*\*:
+
+    -   Minimum values between **-2.61 to -1.47** (cold spots) and maximum values from **3.06 to 4.67** (significant hot spots).
+
+3.  **Standard Deviation**:
+
+    -   Stable variability in Gi\* scores, ranging from **1.20 to 1.36**.
+
+4.  **P-Values**:
+
+    -   Average p-values between **0.393 to 0.529**, suggesting many Gi\* values are not statistically significant.
+
+    -   Minimum p-values as low as **7.95e-13** indicate some significant hot spots.
+
+5.  **Count of Hot Spots and Cold Spots**:
+
+    -   Up to **7 hot spots in 2022**; several years reported **NA** for cold spots, indicating few or no significant cold spots.
+
+6.  **Overall Trends**:
+
+    -   An overall trend of increasing hot spot concentration from 2017 to 2022, suggesting growing areas affected by the phenomena studied (e.g., drug abuse, crime).
+
+### Conclusion
+
+The HCSA findings highlight a significant rise in hot spot areas over the years, which may require targeted interventions and further investigation into the factors influencing these changes.
+:::
+
+
+```{r}
+lisa_animation <- image_read("data/rds/lisa_animation.gif")
+hcsa_animation <- image_read("data/rds/hcsa_animation.gif")
+
+# Ensure both animations have the same number of frames by replicating frames if needed
+lisa_frames <- length(lisa_animation)
+hcsa_frames <- length(hcsa_animation)
+
+if (lisa_frames != hcsa_frames) {
+  if (lisa_frames > hcsa_frames) {
+    hcsa_animation <- image_cycle(hcsa_animation, lisa_frames)
+  } else {
+    lisa_animation <- image_cycle(lisa_animation, hcsa_frames)
+  }
+}
+
+# Convert each animation into a list of individual frames
+lisa_frames_list <- as.list(lisa_animation)
+hcsa_frames_list <- as.list(hcsa_animation)
+
+# Resize each frame to ensure no margins and same height
+lisa_frames_resized <- lapply(lisa_frames_list, function(frame) {
+  image_scale(frame, "800x")  
+})
+
+hcsa_frames_resized <- lapply(hcsa_frames_list, function(frame) {
+  image_scale(frame, "800x")  
+})
+
+# Combine corresponding frames side by side with no gaps
+side_by_side_frames <- mapply(function(lisa_frame, hcsa_frame) {
+  # Use `image_append` with `stack = FALSE` for horizontal stacking
+  image_append(c(lisa_frame, hcsa_frame), stack = FALSE)
+}, lisa_frames_resized, hcsa_frames_resized, SIMPLIFY = FALSE)
+
+# Create a new animation from the combined frames
+side_by_side_animation <- image_animate(image_join(side_by_side_frames), fps = 1)
+
+# Save the final combined animation
+image_write(side_by_side_animation, path = "data/rds/lisa_hcsa_side_by_side_animation.gif")
+
+side_by_side_animation
+```
+
+
+<br/><br/>
+
+# **6.0 Mann-Kendall Test for Trend**
+
+This will assess the trend of drug abuse in each province over multiple years. \[See if the abuse case is increasing, decreasing, or stable over time\]
+
+
+```{r}
+#| eval: false
+
+# Apply Mann-Kendall Test for each province
+trend_results <- summary_stats %>%
+  group_by(province_name) %>%
+  summarise(
+    total_cases = list(total_cases),         
+    trend = MannKendall(unlist(total_cases))$tau,  # Tau value indicates trend direction
+    p_value = MannKendall(unlist(total_cases))$sl,   # p-value for significance
+  )
+
+# Classify trends based on the Mann-Kendall results
+trend_results <- trend_results %>%
+  mutate(trend_status = case_when(
+    p_value < 0.05 & trend > 0 ~ "Increasing",
+    p_value < 0.05 & trend < 0 ~ "Decreasing",
+    p_value >= 0.05 ~ "Stable",
+    TRUE ~ "No sufficient data"
+  ))
+
+write_rds(trend_results, "data/rds/trend_results.rds")
+```
+
+
+## Provincial Trends
+
+::: panel-tabset
+## Increasing Trends
+
+
+```{r}
+#| eval: false
+
+increasing_trends <- trend_results %>%
+  filter(trend_status == "Increasing") %>%
+  pull(province_name)
+
+write_rds(increasing_trends, "data/rds/increasing_trends.rds")
+```
+
+```{r}
+increasing_trends <- read_rds("data/rds/increasing_trends.rds")
+
+# Check if increasing_trends is null or empty and set a default message
+if (is.null(increasing_trends) || length(increasing_trends) == 0) {
+  result <- "NIL"
+} else {
+  result <- paste(increasing_trends, collapse = ", ")
+}
+
+cat(result, "\n")
+```
+
+
+## Decreasing Trends
+
+
+```{r}
+#| eval: false
+
+decreasing_trends <- trend_results %>%
+  filter(trend_status == "Decreasing") %>%
+  pull(province_name)
+
+write_rds(decreasing_trends, "data/rds/decreasing_trends.rds")
+```
+
+```{r}
+decreasing_trends <- read_rds("data/rds/decreasing_trends.rds")
+
+# Check if decreasing_trends is null or empty and set a default message
+if (is.null(decreasing_trends) || length(decreasing_trends) == 0) {
+  result <- "NIL"
+} else {
+  result <- paste(decreasing_trends, collapse = ", ")
+}
+
+cat(result, "\n")
+```
+
+
+## Stable
+
+
+```{r}
+#| eval: false
+
+stable_trends <- trend_results %>%
+  filter(trend_status == "Stable") %>%
+  pull(province_name)
+
+write_rds(stable_trends, "data/rds/stable_trends.rds")
+```
+
+```{r}
+stable_trends <- read_rds("data/rds/stable_trends.rds")
+
+# Check if stable_trends is null or empty and set a default message
+if (is.null(stable_trends) || length(stable_trends) == 0) {
+  result <- "NIL"
+} else {
+  result <- paste(stable_trends, collapse = ", ")
+}
+
+cat(result, "\n")
+```
+
+:::
+
+<br/><br/>
+
+# **7.0 Predicting near future trends**
+
+By forecasting, we can enhance our strategic planning, enabling proactive policy development, targeted interventions, and more effective resource allocation. This foresight allows decision-makers to anticipate challenges and respond promptly, ultimately reducing the impact of drug abuse on communities.
+
+## Forecast Future Values
+
+
+```{r}
+library(forecast)
+
+
+arima_forecasts <- list()
+
+for (province in unique(drug_offenses_by_province$province_name)) {
+  province_data <- drug_offenses_by_province %>%
+    filter(province_name == province) %>%
+    arrange(year)
+  
+  # Create time series object for case count
+  ts_data <- ts(province_data$case_count, start = min(province_data$year), frequency = 1)
+  
+  # Fit ARIMA model
+  fit <- auto.arima(ts_data)
+  
+  # Forecast for the next 5 years (2023 to 2027)
+  forecasted_values <- forecast(fit, h = 5)
+  
+  # Store forecast results for each year
+  arima_forecasts[[province]] <- data.frame(
+    province_name = province,
+    year = 2023:2027,
+    predicted_cases = as.numeric(forecasted_values$mean)
+  )
+}
+
+# Combine forecast results for all provinces
+future_predictions <- bind_rows(arima_forecasts)
+```
+
+
+## Hot/Cold Spot Classification
+
+
+```{r}
+# Set thresholds for hot and cold spots
+hot_spot_threshold <- quantile(drug_offenses_by_province$case_count, 0.75)
+cold_spot_threshold <- quantile(drug_offenses_by_province$case_count, 0.25)
+
+# Classify hot/cold spots based on predicted cases for each year
+future_predictions <- future_predictions %>%
+  mutate(hot_cold_label = case_when(
+    predicted_cases > hot_spot_threshold ~ "Hot Spot",
+    predicted_cases < cold_spot_threshold ~ "Cold Spot",
+    TRUE ~ "Neutral"
+  ))
+
+print(future_predictions)
+```
+
+
+## Visualization of Predictions
+
+
+```{r}
+library(tmap)
+
+# Merge predictions with spatial data
+future_spatial <- province_boundaries %>%
+  left_join(future_predictions, by = "province_name")
+
+
+tm_shape(future_spatial) +
+  tm_polygons("hot_cold_label", palette = c("blue", "red", "gray"), 
+              title = "Predicted Hot/Cold Spots (2023-2027)") +
+  tm_borders() +
+  tm_layout(title = "Predicted Drug Abuse Hot/Cold Spots in Thailand (2023-2027)")
+```
+
+
+::: callout-note
+ARIMA (AutoRegressive Integrated Moving Average) model is used for our time series forecasting.
+
+Also it offers,
+
+-   **Flexibility**: in various time series patterns, suitable for non-stationary data.
+
+-   **Automatic Parameter Selection** (`auto.arima`): simplifies model fitting by automatically selecting optimal parameters.
+
+-   **Robustness**: in capturing fluctuations in historical data.
+:::
+
