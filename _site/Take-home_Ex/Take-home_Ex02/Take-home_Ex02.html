@@ -296,7 +296,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul class="collapse">
   <li><a href="#provincial-trends" id="toc-provincial-trends" class="nav-link" data-scroll-target="#provincial-trends">Provincial Trends</a></li>
   </ul></li>
-  <li><a href="#predicting-near-future-trends" id="toc-predicting-near-future-trends" class="nav-link" data-scroll-target="#predicting-near-future-trends">7.0 Predicting near future trends</a>
+  <li><a href="#predicting-near-future-trends" id="toc-predicting-near-future-trends" class="nav-link" data-scroll-target="#predicting-near-future-trends"><strong>7.0 Predicting near future trends</strong></a>
   <ul class="collapse">
   <li><a href="#forecast-future-values" id="toc-forecast-future-values" class="nav-link" data-scroll-target="#forecast-future-values">Forecast Future Values</a></li>
   <li><a href="#hotcold-spot-classification" id="toc-hotcold-spot-classification" class="nav-link" data-scroll-target="#hotcold-spot-classification">Hot/Cold Spot Classification</a></li>
@@ -3210,7 +3210,7 @@ Summary of Findings:
 </section>
 </section>
 <section id="predicting-near-future-trends" class="level1">
-<h1>7.0 Predicting near future trends</h1>
+<h1><strong>7.0 Predicting near future trends</strong></h1>
 <p>By forecasting, we can enhance our strategic planning, enabling proactive policy development, targeted interventions, and more effective resource allocation. This foresight allows decision-makers to anticipate challenges and respond promptly, ultimately reducing the impact of drug abuse on communities.</p>
 <section id="forecast-future-values" class="level2">
 <h2 class="anchored" data-anchor-id="forecast-future-values">Forecast Future Values</h2>
@@ -3218,40 +3218,38 @@ Summary of Findings:
 <div class="sourceCode cell-code" id="cb157"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb157-1"><a href="#cb157-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(forecast)</span>
 <span id="cb157-2"><a href="#cb157-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb157-3"><a href="#cb157-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb157-4"><a href="#cb157-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Forecast case counts for each province using ARIMA for the next 5 years</span></span>
-<span id="cb157-5"><a href="#cb157-5" aria-hidden="true" tabindex="-1"></a>arima_forecasts <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
-<span id="cb157-6"><a href="#cb157-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb157-7"><a href="#cb157-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (province <span class="cf">in</span> <span class="fu">unique</span>(drug_offenses_by_province<span class="sc">$</span>province_name)) {</span>
-<span id="cb157-8"><a href="#cb157-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Filter data for the province</span></span>
-<span id="cb157-9"><a href="#cb157-9" aria-hidden="true" tabindex="-1"></a>  province_data <span class="ot">&lt;-</span> drug_offenses_by_province <span class="sc">%&gt;%</span></span>
-<span id="cb157-10"><a href="#cb157-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(province_name <span class="sc">==</span> province) <span class="sc">%&gt;%</span></span>
-<span id="cb157-11"><a href="#cb157-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">arrange</span>(year)</span>
-<span id="cb157-12"><a href="#cb157-12" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb157-13"><a href="#cb157-13" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Create time series object for case count</span></span>
-<span id="cb157-14"><a href="#cb157-14" aria-hidden="true" tabindex="-1"></a>  ts_data <span class="ot">&lt;-</span> <span class="fu">ts</span>(province_data<span class="sc">$</span>case_count, <span class="at">start =</span> <span class="fu">min</span>(province_data<span class="sc">$</span>year), <span class="at">frequency =</span> <span class="dv">1</span>)</span>
-<span id="cb157-15"><a href="#cb157-15" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb157-16"><a href="#cb157-16" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Fit ARIMA model</span></span>
-<span id="cb157-17"><a href="#cb157-17" aria-hidden="true" tabindex="-1"></a>  fit <span class="ot">&lt;-</span> <span class="fu">auto.arima</span>(ts_data)</span>
-<span id="cb157-18"><a href="#cb157-18" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb157-19"><a href="#cb157-19" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Forecast for the next 5 years (2023 to 2027)</span></span>
-<span id="cb157-20"><a href="#cb157-20" aria-hidden="true" tabindex="-1"></a>  forecasted_values <span class="ot">&lt;-</span> <span class="fu">forecast</span>(fit, <span class="at">h =</span> <span class="dv">5</span>)</span>
-<span id="cb157-21"><a href="#cb157-21" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb157-22"><a href="#cb157-22" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Store forecast results for each year</span></span>
-<span id="cb157-23"><a href="#cb157-23" aria-hidden="true" tabindex="-1"></a>  arima_forecasts[[province]] <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb157-24"><a href="#cb157-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">province_name =</span> province,</span>
-<span id="cb157-25"><a href="#cb157-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">year =</span> <span class="dv">2023</span><span class="sc">:</span><span class="dv">2027</span>,</span>
-<span id="cb157-26"><a href="#cb157-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">predicted_cases =</span> <span class="fu">as.numeric</span>(forecasted_values<span class="sc">$</span>mean)</span>
-<span id="cb157-27"><a href="#cb157-27" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb157-28"><a href="#cb157-28" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb157-29"><a href="#cb157-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb157-30"><a href="#cb157-30" aria-hidden="true" tabindex="-1"></a><span class="co"># Combine forecast results for all provinces</span></span>
-<span id="cb157-31"><a href="#cb157-31" aria-hidden="true" tabindex="-1"></a>future_predictions <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(arima_forecasts)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb157-4"><a href="#cb157-4" aria-hidden="true" tabindex="-1"></a>arima_forecasts <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb157-5"><a href="#cb157-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb157-6"><a href="#cb157-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (province <span class="cf">in</span> <span class="fu">unique</span>(drug_offenses_by_province<span class="sc">$</span>province_name)) {</span>
+<span id="cb157-7"><a href="#cb157-7" aria-hidden="true" tabindex="-1"></a>  province_data <span class="ot">&lt;-</span> drug_offenses_by_province <span class="sc">%&gt;%</span></span>
+<span id="cb157-8"><a href="#cb157-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(province_name <span class="sc">==</span> province) <span class="sc">%&gt;%</span></span>
+<span id="cb157-9"><a href="#cb157-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">arrange</span>(year)</span>
+<span id="cb157-10"><a href="#cb157-10" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb157-11"><a href="#cb157-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Create time series object for case count</span></span>
+<span id="cb157-12"><a href="#cb157-12" aria-hidden="true" tabindex="-1"></a>  ts_data <span class="ot">&lt;-</span> <span class="fu">ts</span>(province_data<span class="sc">$</span>case_count, <span class="at">start =</span> <span class="fu">min</span>(province_data<span class="sc">$</span>year), <span class="at">frequency =</span> <span class="dv">1</span>)</span>
+<span id="cb157-13"><a href="#cb157-13" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb157-14"><a href="#cb157-14" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Fit ARIMA model</span></span>
+<span id="cb157-15"><a href="#cb157-15" aria-hidden="true" tabindex="-1"></a>  fit <span class="ot">&lt;-</span> <span class="fu">auto.arima</span>(ts_data)</span>
+<span id="cb157-16"><a href="#cb157-16" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb157-17"><a href="#cb157-17" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Forecast for the next 5 years (2023 to 2027)</span></span>
+<span id="cb157-18"><a href="#cb157-18" aria-hidden="true" tabindex="-1"></a>  forecasted_values <span class="ot">&lt;-</span> <span class="fu">forecast</span>(fit, <span class="at">h =</span> <span class="dv">5</span>)</span>
+<span id="cb157-19"><a href="#cb157-19" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb157-20"><a href="#cb157-20" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Store forecast results for each year</span></span>
+<span id="cb157-21"><a href="#cb157-21" aria-hidden="true" tabindex="-1"></a>  arima_forecasts[[province]] <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb157-22"><a href="#cb157-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">province_name =</span> province,</span>
+<span id="cb157-23"><a href="#cb157-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">year =</span> <span class="dv">2023</span><span class="sc">:</span><span class="dv">2027</span>,</span>
+<span id="cb157-24"><a href="#cb157-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">predicted_cases =</span> <span class="fu">as.numeric</span>(forecasted_values<span class="sc">$</span>mean)</span>
+<span id="cb157-25"><a href="#cb157-25" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb157-26"><a href="#cb157-26" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb157-27"><a href="#cb157-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb157-28"><a href="#cb157-28" aria-hidden="true" tabindex="-1"></a><span class="co"># Combine forecast results for all provinces</span></span>
+<span id="cb157-29"><a href="#cb157-29" aria-hidden="true" tabindex="-1"></a>future_predictions <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(arima_forecasts)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="hotcold-spot-classification" class="level2">
 <h2 class="anchored" data-anchor-id="hotcold-spot-classification">Hot/Cold Spot Classification</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb158"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb158-1"><a href="#cb158-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Set thresholds for hot and cold spots (adjust based on your data)</span></span>
+<div class="sourceCode cell-code" id="cb158"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb158-1"><a href="#cb158-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Set thresholds for hot and cold spots</span></span>
 <span id="cb158-2"><a href="#cb158-2" aria-hidden="true" tabindex="-1"></a>hot_spot_threshold <span class="ot">&lt;-</span> <span class="fu">quantile</span>(drug_offenses_by_province<span class="sc">$</span>case_count, <span class="fl">0.75</span>)</span>
 <span id="cb158-3"><a href="#cb158-3" aria-hidden="true" tabindex="-1"></a>cold_spot_threshold <span class="ot">&lt;-</span> <span class="fu">quantile</span>(drug_offenses_by_province<span class="sc">$</span>case_count, <span class="fl">0.25</span>)</span>
 <span id="cb158-4"><a href="#cb158-4" aria-hidden="true" tabindex="-1"></a></span>
@@ -3263,8 +3261,7 @@ Summary of Findings:
 <span id="cb158-10"><a href="#cb158-10" aria-hidden="true" tabindex="-1"></a>    <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"Neutral"</span></span>
 <span id="cb158-11"><a href="#cb158-11" aria-hidden="true" tabindex="-1"></a>  ))</span>
 <span id="cb158-12"><a href="#cb158-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb158-13"><a href="#cb158-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Preview classified hot/cold spots</span></span>
-<span id="cb158-14"><a href="#cb158-14" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(future_predictions)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb158-13"><a href="#cb158-13" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(future_predictions)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>               province_name year predicted_cases hot_cold_label
 1                    Bangkok 2023         0.00000      Cold Spot
@@ -3664,7 +3661,7 @@ Summary of Findings:
 <span id="cb160-4"><a href="#cb160-4" aria-hidden="true" tabindex="-1"></a>future_spatial <span class="ot">&lt;-</span> province_boundaries <span class="sc">%&gt;%</span></span>
 <span id="cb160-5"><a href="#cb160-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(future_predictions, <span class="at">by =</span> <span class="st">"province_name"</span>)</span>
 <span id="cb160-6"><a href="#cb160-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb160-7"><a href="#cb160-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualize predicted hot/cold spots for 2023-2027</span></span>
+<span id="cb160-7"><a href="#cb160-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb160-8"><a href="#cb160-8" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(future_spatial) <span class="sc">+</span></span>
 <span id="cb160-9"><a href="#cb160-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(<span class="st">"hot_cold_label"</span>, <span class="at">palette =</span> <span class="fu">c</span>(<span class="st">"blue"</span>, <span class="st">"red"</span>, <span class="st">"gray"</span>), </span>
 <span id="cb160-10"><a href="#cb160-10" aria-hidden="true" tabindex="-1"></a>              <span class="at">title =</span> <span class="st">"Predicted Hot/Cold Spots (2023-2027)"</span>) <span class="sc">+</span></span>
