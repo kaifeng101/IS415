@@ -19,13 +19,11 @@ pacman::p_load(spdep, sp, tmap, sf, ClustGeo, cluster, factoextra, NbClust, tidy
 
 ### 1.2 Importing Shan data
 
-::: panel-tabset
 ```{r}
 shan_sf <- read_rds("data/rds/shan_sf.rds")
 shan_ict <- read_rds("data/rds/shan_ict.rds")
 shan_sf_cluster <- read_rds("data/rds/shan_sf_cluster.rds")
 ```
-:::
 
 <br/><br/>
 

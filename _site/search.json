@@ -263,7 +263,7 @@
     "href": "In-class_Ex/In-class_Ex09/In-class_Ex09.html",
     "title": "In-class Exercise 9",
     "section": "",
-    "text": "pacman::p_load(spdep, sp, tmap, sf, ClustGeo, cluster, factoextra, NbClust, tidyverse, GGally)"
+    "text": "pacman::p_load(spdep, sp, tmap, sf, ClustGeo, cluster, factoextra, NbClust, tidyverse, GGally)\n\n\n\n\n\nshan_sf &lt;- read_rds(\"data/rds/shan_sf.rds\")\nshan_ict &lt;- read_rds(\"data/rds/shan_ict.rds\")\nshan_sf_cluster &lt;- read_rds(\"data/rds/shan_sf_cluster.rds\")"
   },
   {
     "objectID": "In-class_Ex/In-class_Ex09/In-class_Ex09.html#spatially-constrained-clustering-skater-method",
