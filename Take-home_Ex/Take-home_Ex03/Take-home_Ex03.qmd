@@ -268,6 +268,34 @@ agri_sector <- pci_combined %>%
   select(province_en, year, weighted_score, geometry)
 
 write_rds(agri_sector, "data/rds/agri_sector.rds")
+
+
+industry_construction_sector <- pci_combined %>% 
+  left_join(provincial_boundaries, by = "province_en") %>% 
+  mutate(
+    weighted_score = `Labor Policy` * 0.30 + 
+                     `Land Access` * 0.25 + 
+                     `Entry Costs` * 0.20 + 
+                     `Business Support Policy` * 0.15 + 
+                     Transparency * 0.10
+  ) %>%
+  select(province_en, year, weighted_score, geometry)
+
+write_rds(industry_construction_sector, "data/rds/industry_construction_sector.rds")
+
+services_sector <- pci_combined %>% 
+  left_join(provincial_boundaries, by = "province_en") %>% 
+  mutate(
+    weighted_score = Transparency * 0.30 + 
+                     `Business Support Policy` * 0.25 + 
+                     `Labor Policy` * 0.20 + 
+                     `Entry Costs` * 0.15 + 
+                     Proactivity * 0.10
+  ) %>%
+  select(province_en, year, weighted_score, geometry)
+
+write_rds(services_sector, "data/rds/services_sector.rds")
+
 ```
 
 ::: callout-note
@@ -289,6 +317,10 @@ economy_pie <- read_xlsx("data/economy_pie.xlsx")
 pci_combined <- read_xlsx("data/rds/combined_pci.xlsx")
 
 agri_sector <- read_rds("data/rds/agri_sector.rds")
+
+industry_construction_sector <- read_rds("data/rds/industry_construction_sector.rds")
+
+services_sector <- read_rds("data/rds/services_sector.rds")
 ```
 
 <br/><br/>
@@ -1468,6 +1500,1079 @@ We will initially utilize an importance scorecard to identify the key factors th
 | Transparency            | 10        | Reduces corruption, enhancing long-term industrial growth and foreign investment.                                                         |
 +-------------------------+-----------+-------------------------------------------------------------------------------------------------------------------------------------------+
 
+<br>
+
+## Local Indicator of Spatial Association (LISA)
+
+The application of Local Indicators of Spatial Association (LISA) in this analysis is intended to investigate the spatial dynamics of the industry and construction sector across multiple years.
+
+By conducting LISA for each individual year, this analysis seeks to identify local patterns of correlation that reveal significant clusters of high and low industry and construction performance over time.
+
+Such a year-by-year assessment provides critical insights into the fluctuations of industry and construction metrics across different provinces, allowing for a thorough evaluation of the spatial relationships inherent in the sector.
+
+::: panel-tabset
+## 2012
+
+```{r}
+image_read("data/rds/industry_construction_sector/lisa_map_2012.png")
+```
+
+### **Deriving Queen’s Contiguity weights: sfdep methods**
+
+```{r}
+#| eval: false
+
+industry_construction_sector_2012 <- industry_construction_sector %>% 
+  filter(year == 2012)
+  
+
+industry_construction_sector_2012 <- st_as_sf(industry_construction_sector_2012)
+nb <- st_contiguity(industry_construction_sector_2012$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+industry_construction_sector_2012 <- industry_construction_sector_2012 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+```
+
+### **Computing Local Moran’s I**
+
+```{r}
+#| eval: false
+
+lisa_industry_construction_sector_2012 <- industry_construction_sector_2012 %>% 
+  mutate(local_moran = local_moran(
+    weighted_score, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### LISA Analysis
+
+```{r}
+#| eval: false
+
+png("data/rds/industry_construction_sector/lisa_map_2012.png", width = 1600, height = 1200)
+
+lisa__industry_construction_sector_sig_2012 <- lisa_industry_construction_sector_2012  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_industry_construction_sector_2012) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa__industry_construction_sector_sig_2012) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2012",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+## 2013
+
+```{r}
+image_read("data/rds/industry_construction_sector/lisa_map_2013.png")
+```
+
+### **Deriving Queen’s Contiguity weights: sfdep methods**
+
+```{r}
+#| eval: false
+
+industry_construction_sector_2013 <- industry_construction_sector %>% 
+  filter(year == 2013)
+  
+
+industry_construction_sector_2013 <- st_as_sf(industry_construction_sector_2013)
+nb <- st_contiguity(industry_construction_sector_2013$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+industry_construction_sector_2013 <- industry_construction_sector_2013 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+```
+
+### **Computing Local Moran’s I**
+
+```{r}
+#| eval: false
+
+lisa_industry_construction_sector_2013 <- industry_construction_sector_2013 %>% 
+  mutate(local_moran = local_moran(
+    weighted_score, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### LISA Analysis
+
+```{r}
+#| eval: false
+
+png("data/rds/industry_construction_sector/lisa_map_2013.png", width = 1600, height = 1200)
+
+lisa__industry_construction_sector_sig_2013 <- lisa_industry_construction_sector_2013  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_industry_construction_sector_2013) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa__industry_construction_sector_sig_2013) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2013",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+## 2014
+
+```{r}
+image_read("data/rds/industry_construction_sector/lisa_map_2014.png")
+```
+
+### **Deriving Queen’s Contiguity weights: sfdep methods**
+
+```{r}
+#| eval: false
+
+industry_construction_sector_2014 <- industry_construction_sector %>% 
+  filter(year == 2014) 
+  
+
+industry_construction_sector_2014 <- st_as_sf(industry_construction_sector_2014)
+nb <- st_contiguity(industry_construction_sector_2014$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+industry_construction_sector_2014 <- industry_construction_sector_2014 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+```
+
+### **Computing Local Moran’s I**
+
+```{r}
+#| eval: false
+
+lisa_industry_construction_sector_2014 <- industry_construction_sector_2014 %>% 
+  mutate(local_moran = local_moran(
+    weighted_score, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### LISA Analysis
+
+```{r}
+#| eval: false
+
+png("data/rds/industry_construction_sector/lisa_map_2014.png", width = 1600, height = 1200)
+
+lisa__industry_construction_sector_sig_2014 <- lisa_industry_construction_sector_2014  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_industry_construction_sector_2014) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa__industry_construction_sector_sig_2014) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2014",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+## 2015
+
+```{r}
+image_read("data/rds/industry_construction_sector/lisa_map_2015.png")
+```
+
+### **Deriving Queen’s Contiguity weights: sfdep methods**
+
+```{r}
+#| eval: false
+
+industry_construction_sector_2015 <- industry_construction_sector %>% 
+  filter(year == 2015) 
+  
+
+industry_construction_sector_2015 <- st_as_sf(industry_construction_sector_2015)
+nb <- st_contiguity(industry_construction_sector_2015$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+industry_construction_sector_2015 <- industry_construction_sector_2015 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+```
+
+### **Computing Local Moran’s I**
+
+```{r}
+#| eval: false
+
+lisa_industry_construction_sector_2015 <- industry_construction_sector_2015 %>% 
+  mutate(local_moran = local_moran(
+    weighted_score, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### LISA Analysis
+
+```{r}
+#| eval: false
+
+png("data/rds/industry_construction_sector/lisa_map_2015.png", width = 1600, height = 1200)
+
+lisa__industry_construction_sector_sig_2015 <- lisa_industry_construction_sector_2015  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_industry_construction_sector_2015) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa__industry_construction_sector_sig_2015) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2015",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+## 2016
+
+```{r}
+image_read("data/rds/industry_construction_sector/lisa_map_2016.png")
+```
+
+### **Deriving Queen’s Contiguity weights: sfdep methods**
+
+```{r}
+#| eval: false
+
+industry_construction_sector_2016 <- industry_construction_sector %>% 
+  filter(year == 2016) 
+  
+
+industry_construction_sector_2016 <- st_as_sf(industry_construction_sector_2016)
+nb <- st_contiguity(industry_construction_sector_2016$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+industry_construction_sector_2016 <- industry_construction_sector_2016 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+```
+
+### **Computing Local Moran’s I**
+
+```{r}
+#| eval: false
+
+lisa_industry_construction_sector_2016 <- industry_construction_sector_2016 %>% 
+  mutate(local_moran = local_moran(
+    weighted_score, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### LISA Analysis
+
+```{r}
+#| eval: false
+
+png("data/rds/industry_construction_sector/lisa_map_2016.png", width = 1600, height = 1200)
+
+lisa__industry_construction_sector_sig_2016 <- lisa_industry_construction_sector_2016  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_industry_construction_sector_2016) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa__industry_construction_sector_sig_2016) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2016",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+## 2017
+
+```{r}
+image_read("data/rds/industry_construction_sector/lisa_map_2017.png")
+```
+
+### **Deriving Queen’s Contiguity weights: sfdep methods**
+
+```{r}
+#| eval: false
+
+industry_construction_sector_2017 <- industry_construction_sector %>% 
+  filter(year == 2017) 
+  
+
+industry_construction_sector_2017 <- st_as_sf(industry_construction_sector_2017)
+nb <- st_contiguity(industry_construction_sector_2017$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+industry_construction_sector_2017 <- industry_construction_sector_2017 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+```
+
+### **Computing Local Moran’s I**
+
+```{r}
+#| eval: false
+
+lisa_industry_construction_sector_2017 <- industry_construction_sector_2017 %>% 
+  mutate(local_moran = local_moran(
+    weighted_score, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### LISA Analysis
+
+```{r}
+#| eval: false
+
+png("data/rds/industry_construction_sector/lisa_map_2017.png", width = 1600, height = 1200)
+
+lisa__industry_construction_sector_sig_2017 <- lisa_industry_construction_sector_2017  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_industry_construction_sector_2017) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa__industry_construction_sector_sig_2017) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2017",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+## 2018
+
+```{r}
+image_read("data/rds/industry_construction_sector/lisa_map_2018.png")
+```
+
+### **Deriving Queen’s Contiguity weights: sfdep methods**
+
+```{r}
+#| eval: false
+
+industry_construction_sector_2018 <- industry_construction_sector %>% 
+  filter(year == 2018) 
+  
+
+industry_construction_sector_2018 <- st_as_sf(industry_construction_sector_2018)
+nb <- st_contiguity(industry_construction_sector_2018$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+industry_construction_sector_2018 <- industry_construction_sector_2018 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+```
+
+### **Computing Local Moran’s I**
+
+```{r}
+#| eval: false
+
+lisa_industry_construction_sector_2018 <- industry_construction_sector_2018 %>% 
+  mutate(local_moran = local_moran(
+    weighted_score, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### LISA Analysis
+
+```{r}
+#| eval: false
+
+png("data/rds/industry_construction_sector/lisa_map_2018.png", width = 1600, height = 1200)
+
+lisa__industry_construction_sector_sig_2018 <- lisa_industry_construction_sector_2018  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_industry_construction_sector_2018) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa__industry_construction_sector_sig_2018) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2018",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+## 2019
+
+```{r}
+image_read("data/rds/industry_construction_sector/lisa_map_2019.png")
+```
+
+### **Deriving Queen’s Contiguity weights: sfdep methods**
+
+```{r}
+#| eval: false
+
+industry_construction_sector_2019 <- industry_construction_sector %>% 
+  filter(year == 2019) 
+  
+
+industry_construction_sector_2019 <- st_as_sf(industry_construction_sector_2019)
+nb <- st_contiguity(industry_construction_sector_2019$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+industry_construction_sector_2019 <- industry_construction_sector_2019 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+```
+
+### **Computing Local Moran’s I**
+
+```{r}
+#| eval: false
+
+lisa_industry_construction_sector_2019 <- industry_construction_sector_2019 %>% 
+  mutate(local_moran = local_moran(
+    weighted_score, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### LISA Analysis
+
+```{r}
+#| eval: false
+
+png("data/rds/industry_construction_sector/lisa_map_2019.png", width = 1600, height = 1200)
+
+lisa__industry_construction_sector_sig_2019 <- lisa_industry_construction_sector_2019  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_industry_construction_sector_2019) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa__industry_construction_sector_sig_2019) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2019",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+## 2020
+
+```{r}
+image_read("data/rds/industry_construction_sector/lisa_map_2020.png")
+```
+
+### **Deriving Queen’s Contiguity weights: sfdep methods**
+
+```{r}
+#| eval: false
+
+industry_construction_sector_2020 <- industry_construction_sector %>% 
+  filter(year == 2020) 
+  
+
+industry_construction_sector_2020 <- st_as_sf(industry_construction_sector_2020)
+nb <- st_contiguity(industry_construction_sector_2020$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+industry_construction_sector_2020 <- industry_construction_sector_2020 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+```
+
+### **Computing Local Moran’s I**
+
+```{r}
+#| eval: false
+
+lisa_industry_construction_sector_2020 <- industry_construction_sector_2020 %>% 
+  mutate(local_moran = local_moran(
+    weighted_score, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### LISA Analysis
+
+```{r}
+#| eval: false
+
+png("data/rds/industry_construction_sector/lisa_map_2020.png", width = 1600, height = 1200)
+
+lisa__industry_construction_sector_sig_2020 <- lisa_industry_construction_sector_2020  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_industry_construction_sector_2020) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa__industry_construction_sector_sig_2020) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2020",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+## 2021
+
+```{r}
+image_read("data/rds/industry_construction_sector/lisa_map_2021.png")
+```
+
+### **Deriving Queen’s Contiguity weights: sfdep methods**
+
+```{r}
+#| eval: false
+
+industry_construction_sector_2021 <- industry_construction_sector %>% 
+  filter(year == 2021) 
+  
+
+industry_construction_sector_2021 <- st_as_sf(industry_construction_sector_2021)
+nb <- st_contiguity(industry_construction_sector_2021$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+industry_construction_sector_2021 <- industry_construction_sector_2021 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+```
+
+### **Computing Local Moran’s I**
+
+```{r}
+#| eval: false
+
+lisa_industry_construction_sector_2021 <- industry_construction_sector_2021 %>% 
+  mutate(local_moran = local_moran(
+    weighted_score, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### LISA Analysis
+
+```{r}
+#| eval: false
+
+png("data/rds/industry_construction_sector/lisa_map_2021.png", width = 1600, height = 1200)
+
+lisa__industry_construction_sector_sig_2021 <- lisa_industry_construction_sector_2021  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_industry_construction_sector_2021) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa__industry_construction_sector_sig_2021) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2021",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+## 2022
+
+```{r}
+image_read("data/rds/industry_construction_sector/lisa_map_2022.png")
+```
+
+### **Deriving Queen’s Contiguity weights: sfdep methods**
+
+```{r}
+#| eval: false
+
+industry_construction_sector_2022 <- industry_construction_sector %>% 
+  filter(year == 2022) 
+  
+
+industry_construction_sector_2022 <- st_as_sf(industry_construction_sector_2022)
+nb <- st_contiguity(industry_construction_sector_2022$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+industry_construction_sector_2022 <- industry_construction_sector_2022 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+```
+
+### **Computing Local Moran’s I**
+
+```{r}
+#| eval: false
+
+lisa_industry_construction_sector_2022 <- industry_construction_sector_2022 %>% 
+  mutate(local_moran = local_moran(
+    weighted_score, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### LISA Analysis
+
+```{r}
+#| eval: false
+
+png("data/rds/industry_construction_sector/lisa_map_2022.png", width = 1600, height = 1200)
+
+lisa__industry_construction_sector_sig_2022 <- lisa_industry_construction_sector_2022  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_industry_construction_sector_2022) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa__industry_construction_sector_sig_2022) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2022",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+:::
+
+<br/>
+
+## Hot Spot & Cold Spot Area Analysis (HCSA)
+
+Subsequent to the LISA analysis, a Hotspot and Coldspot Analysis (HCSA) will be conducted to evaluate the temporal trends in industry and construction performance over the same time frame.
+
+HCSA is instrumental in identifying areas that have exhibited consistent patterns of improvement or decline over the years. Through the assessment of the evolution of hot and cold spots, this analysis will highlight emerging investment opportunities while also identifying regions that require targeted interventions.
+
+```{r}
+image_read("data/rds/industry_construction_sector/hcsa_map.png")
+```
+
+::: panel-tabset
+## Computing local Gi\* statistics
+
+```{r}
+#| eval: false
+
+industry_construction_sector <- st_as_sf(industry_construction_sector)
+nb <- st_contiguity(industry_construction_sector$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+industry_construction_sector <- industry_construction_sector %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+
+
+hcsa <- industry_construction_sector %>% 
+  mutate(local_Gi = local_gstar_perm(
+    weighted_score, nb, wts, nsim = 99),
+         .before = 1) %>%
+  unnest(local_Gi)
+```
+
+## Visualising Hot Spot & Cold Spot
+
+```{r}
+#| eval: false
+
+png("data/rds/industry_construction_sector/hcsa_map.png", width = 1600, height = 1200)
+
+HCSA_sig <- hcsa  %>%
+  filter(p_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(hcsa) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(HCSA_sig) +
+  tm_fill("cluster") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "HCSA",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.position = c("right", "bottom"), 
+            legend.title.size = 2.7) 
+
+# Close the graphic device
+dev.off()
+```
+
+## HCSA Summary
+
+```{r}
+hcsa_summary <- read_rds("data/rds/industry_construction_sector/hcsa_summary.rds")
+# Show all rows and columns
+print(hcsa_summary, n = Inf, width = Inf)
+```
+
+```{r}
+#| eval: false
+
+# Function to summarize HCSA values
+summarize_hcsa <- function(data) {
+  data %>%
+    summarise(
+      mean_gi_star = mean(gi_star, na.rm = TRUE),
+      min_gi_star = min(gi_star, na.rm = TRUE),
+      max_gi_star = max(gi_star, na.rm = TRUE),
+      sd_gi_star = sd(gi_star, na.rm = TRUE),
+      mean_p_value = mean(p_value, na.rm = TRUE),
+      min_p_value = min(p_value, na.rm = TRUE),
+      max_p_value = max(p_value, na.rm = TRUE),
+      count_hot_spots = sum(gi_star > 0 & p_value < 0.05),
+      count_cold_spots = sum(gi_star < 0 & p_value < 0.05),
+      count_non_significant = sum(p_value >= 0.05),
+      geometry = st_union(geometry)  # Combine geometries
+    )
+}
+
+
+hcsa_summary <- summarize_hcsa(hcsa)
+write_rds(hcsa_summary, "data/rds/industry_construction_sector/hcsa_summary.rds")
+```
+:::
+
+::: callout-note
+## HCSA Summary Interpretation
+
+### **Mean `gi_star`:**
+
+-   
+
+### **Standard Deviation (`sd_gi_star`):**
+
+-   
+
+### **Mean `p_value`:**
+
+-   
+:::
+
+<br/>
+
+## Mann-Kendall Test for trend
+
+This will evaluate the competitiveness trends of the industry and construction sectors across each province over multiple years.
+
+The goal is to identify provinces that are becoming more competitive as well as those that are experiencing a decline in competitiveness.
+
+```{r}
+trend_results <- read_rds("data/rds/industry_construction_sector/trend_results.rds")
+```
+
+::: panel-tabset
+## Increasing Trends
+
+```{r}
+increasing_trends <- trend_results %>%
+  filter(trend_status == "Increasing") %>%
+  pull(province_en)
+
+# Check if increasing_trends is null or empty and set a default message
+if (is.null(increasing_trends) || length(increasing_trends) == 0) {
+  result <- "NIL"
+} else {
+  result <- paste(increasing_trends, collapse = ", ")
+}
+
+cat(result, "\n")
+
+```
+
+## Decreasing Trends
+
+```{r}
+decreasing_trends <- trend_results %>%
+  filter(trend_status == "Decreasing") %>%
+  pull(province_en)
+
+# Check if decreasing_trends is null or empty and set a default message
+if (is.null(decreasing_trends) || length(decreasing_trends) == 0) {
+  result <- "NIL"
+} else {
+  result <- paste(decreasing_trends, collapse = ", ")
+}
+
+cat(result, "\n")
+
+```
+
+## Stable
+
+```{r}
+stable_trends <- trend_results %>%
+  filter(trend_status == "Stable") %>%
+  pull(province_en)
+
+# Check if stable_trends is null or empty and set a default message
+if (is.null(stable_trends) || length(stable_trends) == 0) {
+  result <- "NIL"
+} else {
+  result <- paste(stable_trends, collapse = ", ")
+}
+
+cat(result, "\n")
+
+```
+:::
+
+::: callout-note
+TBD
+:::
+
+```{r}
+#| eval: false
+
+# Apply Mann-Kendall Test for each province
+trend_results <- industry_construction_sector %>%
+  group_by(province_en) %>%
+  summarise(
+    weighted_score = list(weighted_score),         
+    trend = MannKendall(unlist(weighted_score))$tau,  # Tau value indicates trend direction
+    p_value = MannKendall(unlist(weighted_score))$sl,   # p-value for significance
+  )
+
+# Classify trends based on the Mann-Kendall results
+trend_results <- trend_results %>%
+  mutate(trend_status = case_when(
+    p_value < 0.05 & trend > 0 ~ "Increasing",
+    p_value < 0.05 & trend < 0 ~ "Decreasing",
+    p_value >= 0.05 ~ "Stable",
+    TRUE ~ "No sufficient data"
+  ))
+
+write_rds(trend_results, "data/rds/industry_construction_sector/trend_results.rds")
+```
+
+<br/>
+
+## Dendrogram Analysis to Identify Competitiveness Clusters
+
+It visually clusters provinces with similar trends in weighted scores across years. By grouping provinces based on competitiveness factors, it highlights regions with shared strengths or challenges, allowing stakeholders to identify investment-friendly clusters or regions needing targeted support.
+
+```{r}
+average_scores <- industry_construction_sector %>%
+  group_by(province_en) %>%
+  summarise(avg_weighted_score = mean(weighted_score, na.rm = TRUE)) %>%
+  ungroup()
+
+# Convert province_en to row names
+average_scores_rownames <- average_scores %>%
+  column_to_rownames(var = "province_en")
+
+proxmat <- dist(average_scores_rownames, method = 'euclidean')
+hclust_ward <- hclust(proxmat, method = 'ward.D')
+groups <- as.factor(cutree(hclust_ward, k=6))
+```
+
+```{r}
+#| fig-width: 10
+#| fig-height: 6
+
+plot(hclust_ward, cex=0.6)
+rect.hclust(hclust_ward, k=6, border=2.5)
+```
+
+```{r}
+
+```
+
+<br/>
+
+## Forecasting Near-Term Provincial Competitiveness
+
+This foresight enables investors and decision-makers to proactively anticipate challenges and seize opportunities, allowing them to respond swiftly and effectively.
+
+```{r}
+image_read("data/rds/industry_construction_sector/prediction_hcsa_map.png")
+```
+
+```{r}
+#| eval: false
+
+arima_forecasts <- list()
+
+for (province in unique(industry_construction_sector$province_en)) {
+  province_data <- industry_construction_sector %>%
+    filter(province_en == province) %>%
+    arrange(year)
+  
+  # Create time series object for weighted score
+  ts_data <- ts(province_data$weighted_score, start = min(province_data$year), frequency = 1)
+  
+  # Fit ARIMA model
+  fit <- auto.arima(ts_data)
+  
+  # Forecast for the next 5 years (2023 to 2027)
+  forecasted_values <- forecast(fit, h = 5)
+  
+  # Store forecast results for each year
+  arima_forecasts[[province]] <- data.frame(
+    province_en = province,
+    year = 2023:2027,
+    predicted_weighted_score = as.numeric(forecasted_values$mean)
+  )
+}
+
+# Combine forecast results for all provinces
+future_predictions <- bind_rows(arima_forecasts)
+```
+
+```{r}
+#| eval: false
+
+# Set thresholds for hot and cold spots
+hot_spot_threshold <- quantile(future_predictions$predicted_weighted_score, 0.75)
+cold_spot_threshold <- quantile(future_predictions$predicted_weighted_score, 0.25)
+
+# Classify hot/cold spots based on predicted cases for each year
+future_predictions <- future_predictions %>%
+  mutate(hot_cold_label = case_when(
+    predicted_weighted_score > hot_spot_threshold ~ "Hot Spot",
+    predicted_weighted_score < cold_spot_threshold ~ "Cold Spot",
+    TRUE ~ "Neutral"
+  ))
+```
+
+```{r}
+#| eval: false
+
+png("data/rds/industry_construction_sector/prediction_hcsa_map.png", width = 1600, height = 1200)
+
+# Merge predictions with spatial data
+future_spatial <- provincial_boundaries %>%
+  left_join(future_predictions, by = "province_en")
+
+
+tm_shape(future_spatial) +
+  tm_polygons("hot_cold_label", palette = c("blue", "red", "gray")) +
+  tm_borders() +
+  tm_layout(main.title = "HCSA",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.position = c("right", "bottom"), 
+            legend.title.size = 2.7) 
+
+# Close the graphic device
+dev.off()
+```
+
 <br/><br/>
 
 # **6.0 Provinces suitable for Services sector**
@@ -1489,6 +2594,1077 @@ We will initially utilize an importance scorecard to identify the key factors th
 +-------------------------+-----------+--------------------------------------------------------------------------------------------------------------------------+
 | Proactivity             | 10        | A proactive approach by the government in supporting the services sector can lead to more robust growth and innovation.  |
 +-------------------------+-----------+--------------------------------------------------------------------------------------------------------------------------+
+
+## Local Indicator of Spatial Association (LISA)
+
+The application of Local Indicators of Spatial Association (LISA) in this analysis is intended to investigate the spatial dynamics of the services sector across multiple years.
+
+By conducting LISA for each individual year, this analysis seeks to identify local patterns of correlation that reveal significant clusters of high and low services performance over time.
+
+Such a year-by-year assessment provides critical insights into the fluctuations of services metrics across different provinces, allowing for a thorough evaluation of the spatial relationships inherent in the sector.
+
+::: panel-tabset
+## 2012
+
+```{r}
+image_read("data/rds/services_sector/lisa_map_2012.png")
+```
+
+### **Deriving Queen’s Contiguity weights: sfdep methods**
+
+```{r}
+#| eval: false
+
+services_sector_2012 <- services_sector %>% 
+  filter(year == 2012)
+  
+
+services_sector_2012 <- st_as_sf(services_sector_2012)
+nb <- st_contiguity(services_sector_2012$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+services_sector_2012 <- services_sector_2012 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+```
+
+### **Computing Local Moran’s I**
+
+```{r}
+#| eval: false
+
+lisa_services_sector_2012 <- services_sector_2012 %>% 
+  mutate(local_moran = local_moran(
+    weighted_score, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### LISA Analysis
+
+```{r}
+#| eval: false
+
+png("data/rds/services_sector/lisa_map_2012.png", width = 1600, height = 1200)
+
+lisa__services_sector_sig_2012 <- lisa_services_sector_2012  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_services_sector_2012) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa__services_sector_sig_2012) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2012",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+## 2013
+
+```{r}
+image_read("data/rds/services_sector/lisa_map_2013.png")
+```
+
+### **Deriving Queen’s Contiguity weights: sfdep methods**
+
+```{r}
+#| eval: false
+
+services_sector_2013 <- services_sector %>% 
+  filter(year == 2013)
+  
+
+services_sector_2013 <- st_as_sf(services_sector_2013)
+nb <- st_contiguity(services_sector_2013$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+services_sector_2013 <- services_sector_2013 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+```
+
+### **Computing Local Moran’s I**
+
+```{r}
+#| eval: false
+
+lisa_services_sector_2013 <- services_sector_2013 %>% 
+  mutate(local_moran = local_moran(
+    weighted_score, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### LISA Analysis
+
+```{r}
+#| eval: false
+
+png("data/rds/services_sector/lisa_map_2013.png", width = 1600, height = 1200)
+
+lisa__services_sector_sig_2013 <- lisa_services_sector_2013  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_services_sector_2013) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa__services_sector_sig_2013) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2013",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+## 2014
+
+```{r}
+image_read("data/rds/services_sector/lisa_map_2014.png")
+```
+
+### **Deriving Queen’s Contiguity weights: sfdep methods**
+
+```{r}
+#| eval: false
+
+services_sector_2014 <- services_sector %>% 
+  filter(year == 2014) 
+  
+
+services_sector_2014 <- st_as_sf(services_sector_2014)
+nb <- st_contiguity(services_sector_2014$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+services_sector_2014 <- services_sector_2014 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+```
+
+### **Computing Local Moran’s I**
+
+```{r}
+#| eval: false
+
+lisa_services_sector_2014 <- services_sector_2014 %>% 
+  mutate(local_moran = local_moran(
+    weighted_score, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### LISA Analysis
+
+```{r}
+#| eval: false
+
+png("data/rds/services_sector/lisa_map_2014.png", width = 1600, height = 1200)
+
+lisa__services_sector_sig_2014 <- lisa_services_sector_2014  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_services_sector_2014) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa__services_sector_sig_2014) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2014",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+## 2015
+
+```{r}
+image_read("data/rds/services_sector/lisa_map_2015.png")
+```
+
+### **Deriving Queen’s Contiguity weights: sfdep methods**
+
+```{r}
+#| eval: false
+
+services_sector_2015 <- services_sector %>% 
+  filter(year == 2015) 
+  
+
+services_sector_2015 <- st_as_sf(services_sector_2015)
+nb <- st_contiguity(services_sector_2015$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+services_sector_2015 <- services_sector_2015 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+```
+
+### **Computing Local Moran’s I**
+
+```{r}
+#| eval: false
+
+lisa_services_sector_2015 <- services_sector_2015 %>% 
+  mutate(local_moran = local_moran(
+    weighted_score, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### LISA Analysis
+
+```{r}
+#| eval: false
+
+png("data/rds/services_sector/lisa_map_2015.png", width = 1600, height = 1200)
+
+lisa__services_sector_sig_2015 <- lisa_services_sector_2015  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_services_sector_2015) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa__services_sector_sig_2015) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2015",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+## 2016
+
+```{r}
+image_read("data/rds/services_sector/lisa_map_2016.png")
+```
+
+### **Deriving Queen’s Contiguity weights: sfdep methods**
+
+```{r}
+#| eval: false
+
+services_sector_2016 <- services_sector %>% 
+  filter(year == 2016) 
+  
+
+services_sector_2016 <- st_as_sf(services_sector_2016)
+nb <- st_contiguity(services_sector_2016$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+services_sector_2016 <- services_sector_2016 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+```
+
+### **Computing Local Moran’s I**
+
+```{r}
+#| eval: false
+
+lisa_services_sector_2016 <- services_sector_2016 %>% 
+  mutate(local_moran = local_moran(
+    weighted_score, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### LISA Analysis
+
+```{r}
+#| eval: false
+
+png("data/rds/services_sector/lisa_map_2016.png", width = 1600, height = 1200)
+
+lisa__services_sector_sig_2016 <- lisa_services_sector_2016  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_services_sector_2016) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa__services_sector_sig_2016) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2016",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+## 2017
+
+```{r}
+image_read("data/rds/services_sector/lisa_map_2017.png")
+```
+
+### **Deriving Queen’s Contiguity weights: sfdep methods**
+
+```{r}
+#| eval: false
+
+services_sector_2017 <- services_sector %>% 
+  filter(year == 2017) 
+  
+
+services_sector_2017 <- st_as_sf(services_sector_2017)
+nb <- st_contiguity(services_sector_2017$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+services_sector_2017 <- services_sector_2017 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+```
+
+### **Computing Local Moran’s I**
+
+```{r}
+#| eval: false
+
+lisa_services_sector_2017 <- services_sector_2017 %>% 
+  mutate(local_moran = local_moran(
+    weighted_score, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### LISA Analysis
+
+```{r}
+#| eval: false
+
+png("data/rds/services_sector/lisa_map_2017.png", width = 1600, height = 1200)
+
+lisa__services_sector_sig_2017 <- lisa_services_sector_2017  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_services_sector_2017) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa__services_sector_sig_2017) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2017",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+## 2018
+
+```{r}
+image_read("data/rds/services_sector/lisa_map_2018.png")
+```
+
+### **Deriving Queen’s Contiguity weights: sfdep methods**
+
+```{r}
+#| eval: false
+
+services_sector_2018 <- services_sector %>% 
+  filter(year == 2018) 
+  
+
+services_sector_2018 <- st_as_sf(services_sector_2018)
+nb <- st_contiguity(services_sector_2018$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+services_sector_2018 <- services_sector_2018 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+```
+
+### **Computing Local Moran’s I**
+
+```{r}
+#| eval: false
+
+lisa_services_sector_2018 <- services_sector_2018 %>% 
+  mutate(local_moran = local_moran(
+    weighted_score, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### LISA Analysis
+
+```{r}
+#| eval: false
+
+png("data/rds/services_sector/lisa_map_2018.png", width = 1600, height = 1200)
+
+lisa__services_sector_sig_2018 <- lisa_services_sector_2018  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_services_sector_2018) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa__services_sector_sig_2018) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2018",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+## 2019
+
+```{r}
+image_read("data/rds/services_sector/lisa_map_2019.png")
+```
+
+### **Deriving Queen’s Contiguity weights: sfdep methods**
+
+```{r}
+#| eval: false
+
+services_sector_2019 <- services_sector %>% 
+  filter(year == 2019) 
+  
+
+services_sector_2019 <- st_as_sf(services_sector_2019)
+nb <- st_contiguity(services_sector_2019$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+services_sector_2019 <- services_sector_2019 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+```
+
+### **Computing Local Moran’s I**
+
+```{r}
+#| eval: false
+
+lisa_services_sector_2019 <- services_sector_2019 %>% 
+  mutate(local_moran = local_moran(
+    weighted_score, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### LISA Analysis
+
+```{r}
+#| eval: false
+
+png("data/rds/services_sector/lisa_map_2019.png", width = 1600, height = 1200)
+
+lisa__services_sector_sig_2019 <- lisa_services_sector_2019  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_services_sector_2019) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa__services_sector_sig_2019) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2019",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+## 2020
+
+```{r}
+image_read("data/rds/services_sector/lisa_map_2020.png")
+```
+
+### **Deriving Queen’s Contiguity weights: sfdep methods**
+
+```{r}
+#| eval: false
+
+services_sector_2020 <- services_sector %>% 
+  filter(year == 2020) 
+  
+
+services_sector_2020 <- st_as_sf(services_sector_2020)
+nb <- st_contiguity(services_sector_2020$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+services_sector_2020 <- services_sector_2020 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+```
+
+### **Computing Local Moran’s I**
+
+```{r}
+#| eval: false
+
+lisa_services_sector_2020 <- services_sector_2020 %>% 
+  mutate(local_moran = local_moran(
+    weighted_score, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### LISA Analysis
+
+```{r}
+#| eval: false
+
+png("data/rds/services_sector/lisa_map_2020.png", width = 1600, height = 1200)
+
+lisa__services_sector_sig_2020 <- lisa_services_sector_2020  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_services_sector_2020) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa__services_sector_sig_2020) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2020",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+## 2021
+
+```{r}
+image_read("data/rds/services_sector/lisa_map_2021.png")
+```
+
+### **Deriving Queen’s Contiguity weights: sfdep methods**
+
+```{r}
+#| eval: false
+
+services_sector_2021 <- services_sector %>% 
+  filter(year == 2021) 
+  
+
+services_sector_2021 <- st_as_sf(services_sector_2021)
+nb <- st_contiguity(services_sector_2021$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+services_sector_2021 <- services_sector_2021 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+```
+
+### **Computing Local Moran’s I**
+
+```{r}
+#| eval: false
+
+lisa_services_sector_2021 <- services_sector_2021 %>% 
+  mutate(local_moran = local_moran(
+    weighted_score, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### LISA Analysis
+
+```{r}
+#| eval: false
+
+png("data/rds/services_sector/lisa_map_2021.png", width = 1600, height = 1200)
+
+lisa__services_sector_sig_2021 <- lisa_services_sector_2021  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_services_sector_2021) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa__services_sector_sig_2021) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2021",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+
+## 2022
+
+```{r}
+image_read("data/rds/services_sector/lisa_map_2022.png")
+```
+
+### **Deriving Queen’s Contiguity weights: sfdep methods**
+
+```{r}
+#| eval: false
+
+services_sector_2022 <- services_sector %>% 
+  filter(year == 2022) 
+  
+
+services_sector_2022 <- st_as_sf(services_sector_2022)
+nb <- st_contiguity(services_sector_2022$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+services_sector_2022 <- services_sector_2022 %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+```
+
+### **Computing Local Moran’s I**
+
+```{r}
+#| eval: false
+
+lisa_services_sector_2022 <- services_sector_2022 %>% 
+  mutate(local_moran = local_moran(
+    weighted_score, nb, wt, nsim = 99, zero.policy = TRUE),
+    .before = 1) %>% 
+  unnest(local_moran)
+```
+
+### LISA Analysis
+
+```{r}
+#| eval: false
+
+png("data/rds/services_sector/lisa_map_2022.png", width = 1600, height = 1200)
+
+lisa__services_sector_sig_2022 <- lisa_services_sector_2022  %>%
+  filter(p_ii_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(lisa_services_sector_2022) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(lisa__services_sector_sig_2022) +
+  tm_fill("mean") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "LISA Map 2022",   
+            main.title.size = 2.5,              
+            legend.text.size = 2.0,           
+            legend.title.size = 2.7,         
+            legend.position = c("right", "bottom"), 
+            frame = TRUE)  # Add a frame around the map
+
+# Close the graphic device
+dev.off()
+```
+:::
+
+<br/>
+
+## Hot Spot & Cold Spot Area Analysis (HCSA)
+
+Subsequent to the LISA analysis, a Hotspot and Coldspot Analysis (HCSA) will be conducted to evaluate the temporal trends in industry and construction performance over the same time frame.
+
+HCSA is instrumental in identifying areas that have exhibited consistent patterns of improvement or decline over the years. Through the assessment of the evolution of hot and cold spots, this analysis will highlight emerging investment opportunities while also identifying regions that require targeted interventions.
+
+```{r}
+image_read("data/rds/services_sector/hcsa_map.png")
+```
+
+::: panel-tabset
+## Computing local Gi\* statistics
+
+```{r}
+#| eval: false
+
+services_sector <- st_as_sf(services_sector)
+nb <- st_contiguity(services_sector$geometry)
+wt <- st_weights(nb, style = "W", allow_zero = TRUE)
+
+services_sector <- services_sector %>% 
+  mutate(
+    nb = nb,
+    wt = wt,
+    .before = 1
+  )
+
+
+hcsa <- services_sector %>% 
+  mutate(local_Gi = local_gstar_perm(
+    weighted_score, nb, wts, nsim = 99),
+         .before = 1) %>%
+  unnest(local_Gi)
+```
+
+## Visualising Hot Spot & Cold Spot
+
+```{r}
+#| eval: false
+
+png("data/rds/services_sector/hcsa_map.png", width = 1600, height = 1200)
+
+HCSA_sig <- hcsa  %>%
+  filter(p_sim < 0.05)
+tmap_mode("plot")
+
+tm_shape(hcsa) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+tm_shape(HCSA_sig) +
+  tm_fill("cluster") + 
+  tm_borders(alpha = 0.4) +
+  tm_layout(main.title = "HCSA",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.position = c("right", "bottom"), 
+            legend.title.size = 2.7) 
+
+# Close the graphic device
+dev.off()
+```
+
+## HCSA Summary
+
+```{r}
+hcsa_summary <- read_rds("data/rds/services_sector/hcsa_summary.rds")
+# Show all rows and columns
+print(hcsa_summary, n = Inf, width = Inf)
+```
+
+```{r}
+#| eval: false
+
+# Function to summarize HCSA values
+summarize_hcsa <- function(data) {
+  data %>%
+    summarise(
+      mean_gi_star = mean(gi_star, na.rm = TRUE),
+      min_gi_star = min(gi_star, na.rm = TRUE),
+      max_gi_star = max(gi_star, na.rm = TRUE),
+      sd_gi_star = sd(gi_star, na.rm = TRUE),
+      mean_p_value = mean(p_value, na.rm = TRUE),
+      min_p_value = min(p_value, na.rm = TRUE),
+      max_p_value = max(p_value, na.rm = TRUE),
+      count_hot_spots = sum(gi_star > 0 & p_value < 0.05),
+      count_cold_spots = sum(gi_star < 0 & p_value < 0.05),
+      count_non_significant = sum(p_value >= 0.05),
+      geometry = st_union(geometry)  # Combine geometries
+    )
+}
+
+
+hcsa_summary <- summarize_hcsa(hcsa)
+write_rds(hcsa_summary, "data/rds/services_sector/hcsa_summary.rds")
+```
+:::
+
+::: callout-note
+## HCSA Summary Interpretation
+
+### **Mean `gi_star`:**
+
+-   
+
+### **Standard Deviation (`sd_gi_star`):**
+
+-   
+
+### **Mean `p_value`:**
+
+-   
+:::
+
+<br/>
+
+## Mann-Kendall Test for trend
+
+This will evaluate the competitiveness trends of the industry and construction sectors across each province over multiple years.
+
+The goal is to identify provinces that are becoming more competitive as well as those that are experiencing a decline in competitiveness.
+
+```{r}
+trend_results <- read_rds("data/rds/services_sector/trend_results.rds")
+```
+
+::: panel-tabset
+## Increasing Trends
+
+```{r}
+increasing_trends <- trend_results %>%
+  filter(trend_status == "Increasing") %>%
+  pull(province_en)
+
+# Check if increasing_trends is null or empty and set a default message
+if (is.null(increasing_trends) || length(increasing_trends) == 0) {
+  result <- "NIL"
+} else {
+  result <- paste(increasing_trends, collapse = ", ")
+}
+
+cat(result, "\n")
+
+```
+
+## Decreasing Trends
+
+```{r}
+decreasing_trends <- trend_results %>%
+  filter(trend_status == "Decreasing") %>%
+  pull(province_en)
+
+# Check if decreasing_trends is null or empty and set a default message
+if (is.null(decreasing_trends) || length(decreasing_trends) == 0) {
+  result <- "NIL"
+} else {
+  result <- paste(decreasing_trends, collapse = ", ")
+}
+
+cat(result, "\n")
+
+```
+
+## Stable
+
+```{r}
+stable_trends <- trend_results %>%
+  filter(trend_status == "Stable") %>%
+  pull(province_en)
+
+# Check if stable_trends is null or empty and set a default message
+if (is.null(stable_trends) || length(stable_trends) == 0) {
+  result <- "NIL"
+} else {
+  result <- paste(stable_trends, collapse = ", ")
+}
+
+cat(result, "\n")
+
+```
+:::
+
+::: callout-note
+TBD
+:::
+
+```{r}
+#| eval: false
+
+# Apply Mann-Kendall Test for each province
+trend_results <- services_sector %>%
+  group_by(province_en) %>%
+  summarise(
+    weighted_score = list(weighted_score),         
+    trend = MannKendall(unlist(weighted_score))$tau,  # Tau value indicates trend direction
+    p_value = MannKendall(unlist(weighted_score))$sl,   # p-value for significance
+  )
+
+# Classify trends based on the Mann-Kendall results
+trend_results <- trend_results %>%
+  mutate(trend_status = case_when(
+    p_value < 0.05 & trend > 0 ~ "Increasing",
+    p_value < 0.05 & trend < 0 ~ "Decreasing",
+    p_value >= 0.05 ~ "Stable",
+    TRUE ~ "No sufficient data"
+  ))
+
+write_rds(trend_results, "data/rds/services_sector/trend_results.rds")
+```
+
+<br/>
+
+## Dendrogram Analysis to Identify Competitiveness Clusters
+
+It visually clusters provinces with similar trends in weighted scores across years. By grouping provinces based on competitiveness factors, it highlights regions with shared strengths or challenges, allowing stakeholders to identify investment-friendly clusters or regions needing targeted support.
+
+```{r}
+average_scores <- services_sector %>%
+  group_by(province_en) %>%
+  summarise(avg_weighted_score = mean(weighted_score, na.rm = TRUE)) %>%
+  ungroup()
+
+# Convert province_en to row names
+average_scores_rownames <- average_scores %>%
+  column_to_rownames(var = "province_en")
+
+proxmat <- dist(average_scores_rownames, method = 'euclidean')
+hclust_ward <- hclust(proxmat, method = 'ward.D')
+groups <- as.factor(cutree(hclust_ward, k=6))
+```
+
+```{r}
+#| fig-width: 10
+#| fig-height: 6
+
+plot(hclust_ward, cex=0.6)
+rect.hclust(hclust_ward, k=6, border=2.5)
+```
+
+```{r}
+
+```
+
+<br/>
+
+## Forecasting Near-Term Provincial Competitiveness
+
+This foresight enables investors and decision-makers to proactively anticipate challenges and seize opportunities, allowing them to respond swiftly and effectively.
+
+```{r}
+image_read("data/rds/services_sector/prediction_hcsa_map.png")
+```
+
+```{r}
+#| eval: false
+
+arima_forecasts <- list()
+
+for (province in unique(services_sector$province_en)) {
+  province_data <- services_sector %>%
+    filter(province_en == province) %>%
+    arrange(year)
+  
+  # Create time series object for weighted score
+  ts_data <- ts(province_data$weighted_score, start = min(province_data$year), frequency = 1)
+  
+  # Fit ARIMA model
+  fit <- auto.arima(ts_data)
+  
+  # Forecast for the next 5 years (2023 to 2027)
+  forecasted_values <- forecast(fit, h = 5)
+  
+  # Store forecast results for each year
+  arima_forecasts[[province]] <- data.frame(
+    province_en = province,
+    year = 2023:2027,
+    predicted_weighted_score = as.numeric(forecasted_values$mean)
+  )
+}
+
+# Combine forecast results for all provinces
+future_predictions <- bind_rows(arima_forecasts)
+```
+
+```{r}
+#| eval: false
+
+# Set thresholds for hot and cold spots
+hot_spot_threshold <- quantile(future_predictions$predicted_weighted_score, 0.75)
+cold_spot_threshold <- quantile(future_predictions$predicted_weighted_score, 0.25)
+
+# Classify hot/cold spots based on predicted cases for each year
+future_predictions <- future_predictions %>%
+  mutate(hot_cold_label = case_when(
+    predicted_weighted_score > hot_spot_threshold ~ "Hot Spot",
+    predicted_weighted_score < cold_spot_threshold ~ "Cold Spot",
+    TRUE ~ "Neutral"
+  ))
+```
+
+```{r}
+#| eval: false
+
+png("data/rds/services_sector/prediction_hcsa_map.png", width = 1600, height = 1200)
+
+# Merge predictions with spatial data
+future_spatial <- provincial_boundaries %>%
+  left_join(future_predictions, by = "province_en")
+
+
+tm_shape(future_spatial) +
+  tm_polygons("hot_cold_label", palette = c("blue", "red", "gray")) +
+  tm_borders() +
+  tm_layout(main.title = "HCSA",
+            main.title.size = 2.5,   
+            legend.text.size = 2.0, 
+            legend.position = c("right", "bottom"), 
+            legend.title.size = 2.7) 
+
+# Close the graphic device
+dev.off()
+```
 
 <br/><br/>
 
