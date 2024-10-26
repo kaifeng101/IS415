@@ -1381,17 +1381,6 @@ image_read("data/rds/agri_sector/prediction_hcsa_map.png")
 
 arima_forecasts <- list()
 
-agri_sector <- pci_combined %>% 
-  left_join(provincial_boundaries, by = "province_en") %>% 
-  mutate(
-    weighted_score = `Land Access` * 0.30 + 
-                     `Law & Order` * 0.25 + 
-                     `Labor Policy` * 0.20 + 
-                     `Business Support Policy` * 0.15 + 
-                     `Entry Costs` * 0.10
-  ) %>%
-  select(province_en, year, weighted_score, geometry)
-
 for (province in unique(agri_sector$province_en)) {
   province_data <- agri_sector %>%
     filter(province_en == province) %>%
@@ -1465,13 +1454,19 @@ dev.off()
 
 We will initially utilize an importance scorecard to identify the key factors that facilitate investment in the Industry and Construction sector. Each factor will be assigned a weight based on its significance in influencing investment decisions.
 
++-------------------------+-----------+-------------------------------------------------------------------------------------------------------------------------------------------+
 | Factors                 | Weightage | Remarks                                                                                                                                   |
-|-------------------------|-----------|-------------------------------------------------------------------------------------------------------------------------------------------|
++=========================+===========+===========================================================================================================================================+
 | Labor Policy            | 30        | A critical component in ensuring workforce efficiency, stability, and productivity, essential for sustaining long-term industrial growth. |
++-------------------------+-----------+-------------------------------------------------------------------------------------------------------------------------------------------+
 | Land Access             | 25        | Vital for industrial expansion and construction projects, especially in rapidly growing urban and industrial zones.                       |
++-------------------------+-----------+-------------------------------------------------------------------------------------------------------------------------------------------+
 | Entry Costs             | 20        | Key consideration for small-to-medium-scale industrial ventures, influencing the ease of market entry and startup scalability.            |
++-------------------------+-----------+-------------------------------------------------------------------------------------------------------------------------------------------+
 | Business Support Policy | 15        | Drives investor confidence and facilitates smoother business operations, making it a key driver of economic competitiveness.              |
++-------------------------+-----------+-------------------------------------------------------------------------------------------------------------------------------------------+
 | Transparency            | 10        | Reduces corruption, enhancing long-term industrial growth and foreign investment.                                                         |
++-------------------------+-----------+-------------------------------------------------------------------------------------------------------------------------------------------+
 
 <br/><br/>
 
@@ -1481,13 +1476,19 @@ We will initially utilize an importance scorecard to identify the key factors th
 
 We will initially utilize an importance scorecard to identify the key factors that facilitate investment in the Services sector. Each factor will be assigned a weight based on its significance in influencing investment decisions.
 
++-------------------------+-----------+--------------------------------------------------------------------------------------------------------------------------+
 | Factors                 | Weightage | Remarks                                                                                                                  |
-|-------------------------|-----------|--------------------------------------------------------------------------------------------------------------------------|
++=========================+===========+==========================================================================================================================+
 | Transparency            | 30        | Essential for building trust with consumers and investors, transparency reduces corruption and enhances service quality. |
++-------------------------+-----------+--------------------------------------------------------------------------------------------------------------------------+
 | Business Support Policy | 25        | Vital for creating a conducive environment for service providers and fostering innovation in the sector.                 |
++-------------------------+-----------+--------------------------------------------------------------------------------------------------------------------------+
 | Labor Policy            | 20        | Important for ensuring a skilled and adaptable workforce, particularly in sectors like IT, tourism, and finance.         |
++-------------------------+-----------+--------------------------------------------------------------------------------------------------------------------------+
 | Entry Costs             | 15        | Influences the ability of new businesses to enter the market, particularly in competitive service industries.            |
++-------------------------+-----------+--------------------------------------------------------------------------------------------------------------------------+
 | Proactivity             | 10        | A proactive approach by the government in supporting the services sector can lead to more robust growth and innovation.  |
++-------------------------+-----------+--------------------------------------------------------------------------------------------------------------------------+
 
 <br/><br/>
 

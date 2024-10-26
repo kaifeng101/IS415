@@ -192,6 +192,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <a class="dropdown-item" href="../../Hands-on_Ex/Hands-on_Ex08/Hands-on_EX08.html">
  <span class="dropdown-text">Hands-on Exercise 8</span></a>
   </li>  
+        <li>
+    <a class="dropdown-item" href="../../Hands-on_Ex/Hands-on_Ex09/Hands-on_EX09.html">
+ <span class="dropdown-text">Hands-on Exercise 9</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item dropdown ">
@@ -348,7 +352,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Modified</div>
     <div class="quarto-title-meta-contents">
-      <p class="date-modified">October 25, 2024</p>
+      <p class="date-modified">October 26, 2024</p>
     </div>
   </div>
     
@@ -1824,41 +1828,30 @@ Note
 <div class="cell">
 <div class="sourceCode cell-code" id="cb69"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a>arima_forecasts <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
 <span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb69-3"><a href="#cb69-3" aria-hidden="true" tabindex="-1"></a>agri_sector <span class="ot">&lt;-</span> pci_combined <span class="sc">%&gt;%</span> </span>
-<span id="cb69-4"><a href="#cb69-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(provincial_boundaries, <span class="at">by =</span> <span class="st">"province_en"</span>) <span class="sc">%&gt;%</span> </span>
-<span id="cb69-5"><a href="#cb69-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb69-6"><a href="#cb69-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">weighted_score =</span> <span class="st">`</span><span class="at">Land Access</span><span class="st">`</span> <span class="sc">*</span> <span class="fl">0.30</span> <span class="sc">+</span> </span>
-<span id="cb69-7"><a href="#cb69-7" aria-hidden="true" tabindex="-1"></a>                     <span class="st">`</span><span class="at">Law &amp; Order</span><span class="st">`</span> <span class="sc">*</span> <span class="fl">0.25</span> <span class="sc">+</span> </span>
-<span id="cb69-8"><a href="#cb69-8" aria-hidden="true" tabindex="-1"></a>                     <span class="st">`</span><span class="at">Labor Policy</span><span class="st">`</span> <span class="sc">*</span> <span class="fl">0.20</span> <span class="sc">+</span> </span>
-<span id="cb69-9"><a href="#cb69-9" aria-hidden="true" tabindex="-1"></a>                     <span class="st">`</span><span class="at">Business Support Policy</span><span class="st">`</span> <span class="sc">*</span> <span class="fl">0.15</span> <span class="sc">+</span> </span>
-<span id="cb69-10"><a href="#cb69-10" aria-hidden="true" tabindex="-1"></a>                     <span class="st">`</span><span class="at">Entry Costs</span><span class="st">`</span> <span class="sc">*</span> <span class="fl">0.10</span></span>
-<span id="cb69-11"><a href="#cb69-11" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb69-12"><a href="#cb69-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(province_en, year, weighted_score, geometry)</span>
-<span id="cb69-13"><a href="#cb69-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb69-14"><a href="#cb69-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (province <span class="cf">in</span> <span class="fu">unique</span>(agri_sector<span class="sc">$</span>province_en)) {</span>
-<span id="cb69-15"><a href="#cb69-15" aria-hidden="true" tabindex="-1"></a>  province_data <span class="ot">&lt;-</span> agri_sector <span class="sc">%&gt;%</span></span>
-<span id="cb69-16"><a href="#cb69-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(province_en <span class="sc">==</span> province) <span class="sc">%&gt;%</span></span>
-<span id="cb69-17"><a href="#cb69-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">arrange</span>(year)</span>
-<span id="cb69-18"><a href="#cb69-18" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb69-19"><a href="#cb69-19" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Create time series object for weighted score</span></span>
-<span id="cb69-20"><a href="#cb69-20" aria-hidden="true" tabindex="-1"></a>  ts_data <span class="ot">&lt;-</span> <span class="fu">ts</span>(province_data<span class="sc">$</span>weighted_score, <span class="at">start =</span> <span class="fu">min</span>(province_data<span class="sc">$</span>year), <span class="at">frequency =</span> <span class="dv">1</span>)</span>
-<span id="cb69-21"><a href="#cb69-21" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb69-22"><a href="#cb69-22" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Fit ARIMA model</span></span>
-<span id="cb69-23"><a href="#cb69-23" aria-hidden="true" tabindex="-1"></a>  fit <span class="ot">&lt;-</span> <span class="fu">auto.arima</span>(ts_data)</span>
-<span id="cb69-24"><a href="#cb69-24" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb69-25"><a href="#cb69-25" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Forecast for the next 5 years (2023 to 2027)</span></span>
-<span id="cb69-26"><a href="#cb69-26" aria-hidden="true" tabindex="-1"></a>  forecasted_values <span class="ot">&lt;-</span> <span class="fu">forecast</span>(fit, <span class="at">h =</span> <span class="dv">5</span>)</span>
-<span id="cb69-27"><a href="#cb69-27" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb69-28"><a href="#cb69-28" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Store forecast results for each year</span></span>
-<span id="cb69-29"><a href="#cb69-29" aria-hidden="true" tabindex="-1"></a>  arima_forecasts[[province]] <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb69-30"><a href="#cb69-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">province_en =</span> province,</span>
-<span id="cb69-31"><a href="#cb69-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">year =</span> <span class="dv">2023</span><span class="sc">:</span><span class="dv">2027</span>,</span>
-<span id="cb69-32"><a href="#cb69-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">predicted_weighted_score =</span> <span class="fu">as.numeric</span>(forecasted_values<span class="sc">$</span>mean)</span>
-<span id="cb69-33"><a href="#cb69-33" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb69-34"><a href="#cb69-34" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb69-35"><a href="#cb69-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb69-36"><a href="#cb69-36" aria-hidden="true" tabindex="-1"></a><span class="co"># Combine forecast results for all provinces</span></span>
-<span id="cb69-37"><a href="#cb69-37" aria-hidden="true" tabindex="-1"></a>future_predictions <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(arima_forecasts)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb69-3"><a href="#cb69-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (province <span class="cf">in</span> <span class="fu">unique</span>(agri_sector<span class="sc">$</span>province_en)) {</span>
+<span id="cb69-4"><a href="#cb69-4" aria-hidden="true" tabindex="-1"></a>  province_data <span class="ot">&lt;-</span> agri_sector <span class="sc">%&gt;%</span></span>
+<span id="cb69-5"><a href="#cb69-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(province_en <span class="sc">==</span> province) <span class="sc">%&gt;%</span></span>
+<span id="cb69-6"><a href="#cb69-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">arrange</span>(year)</span>
+<span id="cb69-7"><a href="#cb69-7" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb69-8"><a href="#cb69-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Create time series object for weighted score</span></span>
+<span id="cb69-9"><a href="#cb69-9" aria-hidden="true" tabindex="-1"></a>  ts_data <span class="ot">&lt;-</span> <span class="fu">ts</span>(province_data<span class="sc">$</span>weighted_score, <span class="at">start =</span> <span class="fu">min</span>(province_data<span class="sc">$</span>year), <span class="at">frequency =</span> <span class="dv">1</span>)</span>
+<span id="cb69-10"><a href="#cb69-10" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb69-11"><a href="#cb69-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Fit ARIMA model</span></span>
+<span id="cb69-12"><a href="#cb69-12" aria-hidden="true" tabindex="-1"></a>  fit <span class="ot">&lt;-</span> <span class="fu">auto.arima</span>(ts_data)</span>
+<span id="cb69-13"><a href="#cb69-13" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb69-14"><a href="#cb69-14" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Forecast for the next 5 years (2023 to 2027)</span></span>
+<span id="cb69-15"><a href="#cb69-15" aria-hidden="true" tabindex="-1"></a>  forecasted_values <span class="ot">&lt;-</span> <span class="fu">forecast</span>(fit, <span class="at">h =</span> <span class="dv">5</span>)</span>
+<span id="cb69-16"><a href="#cb69-16" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb69-17"><a href="#cb69-17" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Store forecast results for each year</span></span>
+<span id="cb69-18"><a href="#cb69-18" aria-hidden="true" tabindex="-1"></a>  arima_forecasts[[province]] <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb69-19"><a href="#cb69-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">province_en =</span> province,</span>
+<span id="cb69-20"><a href="#cb69-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">year =</span> <span class="dv">2023</span><span class="sc">:</span><span class="dv">2027</span>,</span>
+<span id="cb69-21"><a href="#cb69-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">predicted_weighted_score =</span> <span class="fu">as.numeric</span>(forecasted_values<span class="sc">$</span>mean)</span>
+<span id="cb69-22"><a href="#cb69-22" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb69-23"><a href="#cb69-23" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb69-24"><a href="#cb69-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb69-25"><a href="#cb69-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Combine forecast results for all provinces</span></span>
+<span id="cb69-26"><a href="#cb69-26" aria-hidden="true" tabindex="-1"></a>future_predictions <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(arima_forecasts)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Set thresholds for hot and cold spots</span></span>
@@ -1905,7 +1898,7 @@ Note
 <colgroup>
 <col style="width: 14%">
 <col style="width: 6%">
-<col style="width: 79%">
+<col style="width: 78%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -1952,9 +1945,9 @@ Note
 <p>We will initially utilize an importance scorecard to identify the key factors that facilitate investment in the Services sector. Each factor will be assigned a weight based on its significance in influencing investment decisions.</p>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 15%">
-<col style="width: 6%">
-<col style="width: 77%">
+<col style="width: 16%">
+<col style="width: 7%">
+<col style="width: 75%">
 </colgroup>
 <thead>
 <tr class="header">
