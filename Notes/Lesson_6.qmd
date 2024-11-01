@@ -1,0 +1,349 @@
+---
+title: "Notes 6"
+subtitle: "Global and Local Measures of Spatial Autocorrelation"
+author: "Kai Feng"
+date: "Sept 24, 2024"
+date-modified: "last-modified"
+execute:
+  eval: true
+  echo: true
+  freeze: true
+---
+
+<br/><br/>
+
+## **Tobler's First Law of Geography**
+
+`“Everything is related to everything else, but near things are more related than distant things.”`
+
+## **Spatial Dependency**
+
+-   refers to the way that the value of a variable at one location is influenced by values at neighboring locations
+
+-   highlights the interconnectedness of spatial data
+
+-   Similar values are likely to cluster than randomly distributed
+
+## **Types of Autocorrelation**
+
+-   **Positive Autocorrelation**:high rainfall areas likely to be near other high rainfall areas
+
+-   **Negative Autocorrleation:** eg. a region where high property values are next to areas of low property values.
+
+<br/><br/>
+
+## **Local VS Global Measures**
+
+Global
+
+-   Summary for entire area. Eg, Overall, are crime rates clumped together or not
+
+Local
+
+-   Zoom on specific area. Eg. Where exactly are clusters or unusal spots in this area
+
+<br/><br/>
+
+# **Global Spatial Autocorrelation**
+
+## Measures of Global Spatial Autocorrelation
+
+::: callout-note
+\* Can use both together -\> if Moran’s I shows clustering + Geary’s C indicate low differences between neighbors = strengthen the conclusion that there’s a strong spatial pattern
+
+The 2 measures are inversely related -\> High C correspond to Low I
+:::
+
+::: panel-tabset
+## Moran’s I
+
+broad view of overall spatial patterns—are similar values clustered or dispersed?
+
+-   Negative (I \<0) -\> Dissimilar values, eg. High value next to low value
+
+-   Positive (I\>0) -\> Lots of similar values nearby, eg high temp areas near each other
+
+-   Close to 0 -\> No real pattern
+
+## Geary’s c
+
+local differences between neighbors—how similar or different are individual locations from their immediate surroundings?
+
+-   Small c (\<1) -\> neighbours are similar -**Clustered**
+
+-   (C = 1) -\> observations are arranged randomly over space
+
+-   Large c (\> 1) -\> neighbours are very different from u **-Dispersed**
+:::
+
+::: panel-tabset
+## Z-Score
+
+-   See how far away a value is from the avg(mean) in S.D.
+
+-   High score = value is much higher than avg
+
+## P-value
+
+-   Help to  decide if result are significant or due to chance
+
+-   Low p = unlikely to happen by chance, so reject null hypo
+
+-   Fail to reject null hypo if p-value \> alpha value (0.05)**\[95% confidence\]**
+
+## Spatial Randomness (Null Hypo)
+
+-   Assumes the value at 1 place doesn’t depend on any value nearby
+
+-   So, moving values around won’t change the overall info
+:::
+
+::: callout-note
+## If your Data violates assumptions
+
+If Moran’s I and Geary’s C aren’t true, can use Monte Carlo simulation
+
+-   Simulate Moran’s I many times with the assumption that there’s no pattern
+
+-   Assigning all regions the mean value
+
+-   Calculate Moran’s I
+
+-   Compare it with Actual Moran’s I value to get a p-value
+:::
+
+<br/>
+
+## Measures of Global High/Low Clustering: Getis-Ord Global G
+
+-   measures how clustered/spread out high & low values are among neighbouring areas.
+
+-   The variables must contain only positive
+
+-   If **P-Value Not Significant (High P-value)**: can’t reject the null hypothesis. The pattern could just be random.
+
+-   If **P-Value Significant (Low P-value):** can reject null hypo
+
+    -   \+ Z score -\> High values are more clustered together than expected by chance.
+
+    -   \- Z score -\> Low values are more clustered together than expected by chance.
+
+<br/><br/>
+
+# **Local Spatial Autocorrelation**
+
+## Local Spatial Autocorrelation Statistics
+
+-   to understand the distribution patterns.
+
+-   Uses methods focusing on identifying **how attribute values** (eg. crime rates, disease incidence) **are spatially related** to each other **across different locations**, **revealing spatial clusters/anomalies**
+
+-   Common methods:
+
+    ::: panel-tabset
+    ## Local Moran’s I
+
+    -   Identifies clusters of similar values (high-high or low-low) or spatial outliers (high-low or low-high).
+
+    -   Indicates if a location has attribute values similar to its neighbors
+
+    <br/>
+
+    **Interpretation of Local Moran**
+
+    -   **Outlier:** if it has low values while surrounding have high values
+
+    -   **Cluster:** You and surrounding areas have high values
+
+    -   **P-value** need to be **small** enough for cluster/outlier to be considered **Statistically Significant**
+
+    -   alpha-values are 0.1(90%), 0.05 (95%), 0.01 (99%), 0.001 (99.9%) confidence intervals
+
+    ## Local Geary’s c
+
+    -   Similar to Local Moran's I but focuses more on differences between adjacent locations
+
+    -   Used to detect local spatial heterogeneity
+
+    ## Getis-Ord Gi\*
+
+    -   Identifies hot spots, cold spots Area Analysis **(HCSA)**
+
+    -   Useful to detect areas with significantly high or low attribute values
+
+    <br/>
+
+    ![](https://is415-ay2024-25t1.netlify.app/lesson/lesson06/img/image7-18.jpg){width="288"}
+
+    ::: callout-note
+    With \* consider observation itself
+    :::
+    :::
+
+-   Use case: Detect clusters/outliers, hot spot or cold spot, patterns in data that don't change over distance
+
+<br/>
+
+## Local Indicator of Spatial Association (LISA)
+
+-   help to find clusters/unusual areas in a specific area & ensure it align with the overall trend of the entire area -\> When you add up all the LISA values, it should reflect overall pattern of the entire area
+
+-   Detecting Spatial Clusters & Outliers:
+
+    -   calculate local statistic value, a Z-score, a P-value, a code representing cluster type for each statistically significance of the computed index values
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson06/img/image7-10.jpg){fig-align="center"}
+
+<br/>
+
+## Fixed VS Adaptive Weighting Scheme
+
+::: panel-tabset
+## Fixed Weighting Scheme
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson06/img/image7-20.jpg)
+
+-   Uses a set distance to determine neighbors for each feature.
+
+-   **Considerations:**
+
+    -   Every feature should have at least one neighbor within this distance.
+
+    -   No feature should have *all* other features as neighbors (the distance shouldn’t be too large).
+
+    -   Ideally, each feature should have around 8 neighbors to get reliable results.
+
+        **Issues:**
+
+        -   In areas with few data points, estimates can be unreliable.
+
+        -   In dense areas, this scheme might miss small local patterns.
+
+        -   In very sparse areas, it might not work at all because there aren't enough neighbors to analyze properly.
+
+## Adaptive Weighting Scheme
+
+![](https://is415-ay2024-25t1.netlify.app/lesson/lesson06/img/image7-21.jpg)
+
+-   Adjusts the distance based on data density.
+
+-   **Features:**
+
+    -   In dense areas, the "neighborhood" is smaller to capture local variations.
+
+    -   In sparse areas, the "neighborhood" is larger to include enough neighbors.
+
+    -   Often, this scheme uses the nearest number of neighbors instead of a fixed distance. This makes it more flexible and accurate in varied data densities.
+:::
+
+## Best Practice Guidelines
+
+::: panel-tabset
+## To get Reliable Results
+
+-   Ensure your dataset has at least 30 features.
+
+-   Use continuous numeric data (e.g., counts, rates). Avoid categorical data.
+
+## Choosing a Spatial Weighting Method
+
+-   **Polygon Contiguity:**
+
+    -   Good for similar-sized polygons.
+
+    -   Works when spatial interaction is stronger between neighboring polygons.
+
+    -   Use “row standardization” to balance the influence of polygons with different numbers of neighbors.
+
+-   **Fixed Distance:**
+
+    -   Ideal for point data or polygons with varying sizes.
+
+    -   Ensures consistent analysis by maintaining the same distance for all points.
+
+<!-- -->
+
+-   **Inverse Distance:**
+
+    -   Suitable for continuous data or processes where closer features interact more.
+
+    -   Can be computationally heavy because every feature can be a neighbor to every other feature.
+
+-   **K-Nearest Neighbors:**
+
+    -   Guarantees a minimum number of neighbors for each feature.
+
+    -   Useful when data values are skewed, ensuring context with at least eight neighbors.
+
+    -   Adjusts for varying feature distribution, adapting to sparse or dense areas.
+
+    -   Focuses on the number of neighbors, not fixed distance.
+
+## Choosing a Fixed-Distance Band
+
+-   Select a distance based on the spatial scale of the phenomenon you’re studying.
+
+-   Ensure all features have at least one neighbor within this distance.
+
+-   Don't worry about finding a single "correct" distance—multiple processes can influence clustering.
+
+-   Avoid making every feature a neighbor to all others.
+
+-   For skewed data, aim for each feature to have about eight neighbors.
+:::
+
+<br/><br/>
+
+# **Emerging Hot Spot Analysis (EHSA)**
+
+Combines both **Hot Spot Analysis + Mann-Kendall Test**
+
+## Mann-Kendall Test for Trend
+
+-   **Purpose**: Determines if a set of values is increasing, decreasing, or stable over time.
+
+-   **Non-Parametric**: Works for any data distribution (doesn’t need to be normal).
+
+-   **No Serial Correlation**: Your data points should not be influenced by previous values in the series.
+
+-   **Hypotheses:**
+
+    -   **Null Hypothesis**: No trend exists (values are stable over time).
+
+    -   **Alternative Hypothesis**: A trend exists (values are consistently increasing or decreasing).
+
+-   **Limitations:**
+
+    -   It detects the direction of the trend but not how big the change is.
+
+    -   Needs at least 8-10 data points for reliable results. Fewer points increase the risk of missing real trends.
+
+-   Data Requirements for Mann-Kendall Test:
+
+    1.  **No Seasonal Data**: Avoid data that has regular fluctuations (e.g., only collected in summer and winter).
+
+    2.  **No Covariates**: Other factors shouldn’t influence your data. The test should only assess the trend of the specific variable you’re interested in.
+
+    3.  **One Data Point per Time Period**: If you have multiple data points for the same time, use the median value.
+
+## EHSA Patterns
+
+-   No pattern, New hot spot, Intensifying hot spot, Diminishing hot spot, Historical hot spot, Persistent hot spot
+
+-   Consecutive hot spot -\> A place that recently became a hot spot with consecutive periods showing significant hot spot activity
+
+-   Sporadic hot spot -\> A location that is a significant hot spot in the most recent time period but has had a mixed history of being a hot spot in the past. (on & off)
+
+-   Oscillating hot spot -\> A location that is a significant hot spot in the most recent time period but has previously been a significant cold spot.
+
+## Spacetime Cube
+
+-   a structure where every location has a value for every point in time, meaning each location has a complete time series of data.
+
+-   **Key Terms**:
+
+    -   **Bin**: The basic unit of a spacetime cube, representing a specific combination of a location and a time point.
+
+    -   **Time Slice**: The collection of all bins (locations) for a specific time point.
+
+    -   **Bin Time-Series**: The collection of all bins at a particular location across different time points.

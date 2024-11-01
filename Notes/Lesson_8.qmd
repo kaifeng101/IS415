@@ -1,0 +1,75 @@
+---
+title: "Notes 8"
+subtitle: "Geographical Segmentation with Spatially Constrained Clustering Techniques"
+author: "Kai Feng"
+date: "Oct 14, 2024"
+date-modified: "last-modified"
+execute:
+  eval: true
+  echo: true
+  freeze: true
+---
+
+<br/><br/>
+
+## **\* Data preparation -\> eg. There could be cases where we can't just apply analysis from pure data**
+
+For example, if we want to calculate the penetration rate of a technology (e.g., mobile phones or internet), we need to account for variations in the number of households across townships.
+
+-   Some townships could have more households = more numbers of devices \[potentially distorting to seem like they have higher adoption rates\]
+
+(Could / by no. of household) -\> (x/Total households \* 1000) \[can be 100/1000/10k dependings\]
+
+**Without modification to the data:**
+
+![](https://isss-608-ay2024-23t1.netlify.app/hands-on_ex/hands-on_ex07/Hands-on_Ex07_files/figure-html/unnamed-chunk-13-1.png)
+
+**By using penetration rate instead:**
+
+![](https://isss-608-ay2024-23t1.netlify.app/hands-on_ex/hands-on_ex07/Hands-on_Ex07_files/figure-html/unnamed-chunk-14-1.png)
+
+# **Correlation Analysis \[corrplot.mixed()\]**
+
+![](https://isss-608-ay2024-23t1.netlify.app/hands-on_ex/hands-on_ex07/Hands-on_Ex07_files/figure-html/unnamed-chunk-15-1.png){width="269"}
+
+![](images/clipboard-1134371851.png){width="246"}
+
+find out which two are the most correlated (higher = more correlated)
+
+::: callout-note
+COMPUTER_PR and INTERNET_PR are highly correlated
+
+This suggest that only one of them should be used in the cluster analysis instead of both
+:::
+
+## **Computing proximity matrix (between distance)**
+
+![](images/clipboard-712270199.png)
+
+<br/>
+
+## **To know which clustering** **algo is the best**
+
+![](images/clipboard-3279547127.png)
+
+<br/>
+
+## **Computing** **hierarchical clustering**
+
+![](images/clipboard-2425485641.png){width="366"}
+
+::: callout-note
+This group up similar locations. Those in the same line group have more similarity.
+
+EG. Left 1st and 2nd have more similarity \> 3rd and 4th
+:::
+
+## **Cluster Dendrogram**
+
+![](images/clipboard-2809133191.png)
+
+<br/>
+
+## **Map the cluster**
+
+![](images/clipboard-3402096509.png)
