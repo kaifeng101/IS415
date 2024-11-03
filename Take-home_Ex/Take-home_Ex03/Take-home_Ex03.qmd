@@ -21,18 +21,6 @@ execute:
 
 **Objectives:** This analysis aims to evaluate PCI dimensions through linear regression, examining their correlation with FDI projects and FDI registered capital inflow to identify combinations that drive investment.
 
-**Goals:**
-
--   **Identify Key Factors:** Determine which PCI dimensions most influence FDI total projects and FDI total registered capital.
-
--   **Province-Specific Insights:** Highlight PCI factors lacking in specific provinces to guide policymaking.
-
--   **Actionable Recommendations:** Provide targeted suggestions for enhancing PCI dimensions to improve the investment climate.
-
-### Significance
-
-This project will analyze how PCI dimensions affect Vietnam's economic landscape, offering actionable insights to help policymakers enhance regional competitiveness and stimulate sustainable development.
-
 <br/><br/>
 
 # **1.0 Setup**
@@ -579,7 +567,7 @@ global_moran_perm_result_registered_capital
 ::: callout-note
 **Moran's I Test**
 
-The positive Moran's I statistic (0.3977) suggests a tendency for projects to cluster spatially.
+The positive Moran's I statistic (0.3977) suggests a tendency for total registered capital to cluster spatially.
 
 Since p-value of 3.004e-07 \< 0.05, there's strong statistical evidence against the null hypothesis no of spatial autocorrelation
 
@@ -596,7 +584,7 @@ Therefore, we conclude that the clustering observed in total registered capital 
 :::
 
 ::: callout-note
-The analysis reveals significant spatial clustering for **Total Registered Capital**, suggesting that regions with high registered capital are often near other high-value areas. (Vice versa)
+The analysis reveals significant spatial clustering for **Total Registered Capital**, suggesting that regions with high registered capital are often near other high-value areas.
 
 In contrast, while the **Total Projects** analysis suggests some spatial clustering, the results from the Monte Carlo simulation do not show statistical significance. This indicates that the clustering observed for total projects may not be robust enough to inform strategic decisions.
 :::
