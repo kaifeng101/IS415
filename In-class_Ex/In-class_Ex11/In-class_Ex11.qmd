@@ -1,0 +1,122 @@
+---
+title: "In-class Exercise 11 -Calibrating Hedonic Pricing Model for Private Highrise Property with GWR Method"
+author: "kai feng"
+date: "Nov 11, 2024"
+date-modified: "last-modified"
+execute:
+  eval: true
+  echo: true
+  freeze: true
+---
+
+# 1.0 Setup
+
+### 1.1 Installing R-Packages
+
+```{r}
+pacman::p_load(tidyverse, sf, tmap, httr, performance)
+```
+
+### 1.2 Importing data
+
+This code chunks import multiple csv files in a specified folder and append them into a single tibble data frame.
+
+::: panel-tabset
+```{r}
+folder_path <- "data/aspatial"
+
+file_list <- list.files(path = folder_path,
+                        pattern = "^realis.*\\.csv$",
+                        full.names = TRUE)
+
+realis_data <- file_list %>% 
+  map_dfr(read_csv)
+```
+:::
+
+### 1.3 Data Wrangling
+
+```{r}
+condo_resale <- realis_data %>% 
+  mutate(`Sale Date` = dmy(`Sale Date`)) %>% 
+  filter(`Type of Sale` == "Resale" &
+           `Property Type` == "Condominium")
+```
+
+### 1.4 Geocoding
+
+```{r}
+#| eval: false
+
+postcode <-unique(condo_resale$`Postal Code`)
+
+url <- "https://onemap.gov.sg/api/common/elastic/search"
+found <- data.frame()
+not_found <- data.frame()
+
+for (postcode in postcode) {
+  query <- list('searchVal'=postcode, 'returnGeom'='Y',
+                'getAddrDetails'='Y', 'pageNum'='1')
+  res <- GET(url, query=query)
+  
+  if ((content(res)$found) != 0) {
+    found <- rbind(found, data.frame(content(res))[4:13])
+  }
+  else {
+    not_found = data.frame(postcode)
+  }
+}
+
+write_rds(found, "data/rds/found.rds")
+
+```
+
+### 1.5 Tidying field names
+
+```{r}
+found <- read_rds("data/rds/found.rds")
+
+found1 <- found %>% 
+  select(c(6:8)) %>% 
+  rename(POSTAL = `results.POSTAL`,
+         XCOORD = `results.X`,
+         YCOORD = `results.Y`)
+```
+
+### 1.6 Converting
+
+```{r}
+# Joining table
+condo_resale_geocoded = left_join(
+  condo_resale, found1,
+  by = c("Postal Code" = 'POSTAL')
+)
+
+# Convert to sf
+condo_resale_sf <- st_as_sf(condo_resale_geocoded,
+                            coords = c('XCOORD', # must start with this first
+                                       'YCOORD'),
+                            crs = 3414)
+```
+
+### 1.7 Cleaning Spatial Data
+
+::: panel-tabset
+## Checking for overlapping point features
+
+```{r}
+overlapping_points <- condo_resale_sf %>% 
+  mutate(overlap = lengths(st_equals(., .)) > 1)
+```
+
+## Spatial jittering
+
+If there is overlapping, will use Spatial jittering to move point features by 5m to avoid overlapping point features
+
+```{r}
+condo_resale_sf <- condo_resale_sf %>% 
+  st_jitter(amount = 2)
+```
+:::
+
+<br/><br/>
