@@ -21,6 +21,18 @@ execute:
 
 **Objectives:** This analysis aims to evaluate PCI dimensions through linear regression, examining their correlation with FDI projects and FDI registered capital inflow to identify combinations that drive investment.
 
+**Goals:**
+
+-   **Identify Key Factors:** Determine which PCI dimensions most influence FDI total projects and FDI total registered capital.
+
+-   **Province-Specific Insights:** Highlight PCI factors lacking in specific provinces to guide policymaking.
+
+-   **Actionable Recommendations:** Provide targeted suggestions for enhancing PCI dimensions to improve the investment climate.
+
+### Significance
+
+This project will analyze how PCI dimensions affect Vietnam's economic landscape, offering actionable insights to help policymakers enhance regional competitiveness and stimulate sustainable development.
+
 <br/><br/>
 
 # **1.0 Setup**
@@ -46,7 +58,7 @@ execute:
 
 ## *Styling*
 
--   ``` knitr, kabelExtra,``gtsummary ```: For styling table
+-   `knitr, gtsummary`: For styling table
 
 ## *Displaying Maps*
 
@@ -63,10 +75,14 @@ execute:
 -   `ggstatsplot`: to visualize relationships with statistical details
 -   `olsrr`: R package for building OLS and performing diagnostics test
 -   `performance`: to visually compare between models
+
+## *Local Analysis*
+
+-   GWmodel
 :::
 
 ```{r}
-pacman::p_load(tidyverse, sf, readr, tmap, dplyr, knitr, kableExtra, animation, png, magick, openxlsx, readxl, sfdep, ggstatsplot, olsrr, performance, gtsummary)
+pacman::p_load(tidyverse, sf, readr, tmap, dplyr, knitr, animation, png, magick, openxlsx, readxl, sfdep, ggstatsplot, olsrr, performance, gtsummary, GWmodel)
 ```
 
 <br/>
@@ -86,8 +102,6 @@ We will be using these dataset:
 -   **Source:** [[Vietnam Statistics Office]{.underline}](https://www.gso.gov.vn/en/homepage/) , [Provincial Competitiveness Index](https://pcivietnam.vn/en)
 
 -   **Provincial Competitiveness Index (PCI):** To evaluate the competitive environment of each province, identifying strengths and weaknesses that influence investment potential.
-
--   **Economy by sector:** To provide a comprehensive measure of economic performance, allowing insights into sectoral contributions, regional comparisons, and informed investment decisions.
 
 -   **Foreign Direct Investment (FDI):** To assess the attractiveness of provinces for foreign investors and identify trends in investment across different sectors.
 :::
@@ -378,8 +392,6 @@ For economy_pie dataset, we have also performed simple data reformatting shown i
 ```{r}
 provincial_boundaries <- read_rds("data/rds/provincial_boundaries.rds")
 
-economy_pie <- read_xlsx("data/economy_pie.xlsx")
-
 pci_2021 <- read_xlsx("data/rds/pci_2021.xlsx")
 
 fdi <- read_rds("data/rds/fdi.rds")
@@ -387,413 +399,9 @@ fdi <- read_rds("data/rds/fdi.rds")
 
 <br/><br/>
 
-# **3.0 Exploratory Data Analysis**
+# **3.0 Prioritization Analysis for Provincial Development: Identifying Key Predictors**
 
-## 3.1 Key backbone industries Performance
-
-```{r}
-#| fig-width: 10
-
-# Clean and ensure the percentage columns are numeric
-data <- economy_pie %>%
-  mutate(
-    agriculture_forestry_fishing = as.numeric(gsub("[^0-9.]", "", `Agriculture, forestry and fishing (%)`)),
-    industry_construction = as.numeric(gsub("[^0-9.]", "", `Industry and construction (%)`)),
-    service = as.numeric(gsub("[^0-9.]", "", `Service (%)`)),
-  )
-
-# Convert wide format to long format for easier analysis
-data_long <- data %>%
-  pivot_longer(cols = c(agriculture_forestry_fishing, industry_construction, service), 
-               names_to = "industry", 
-               values_to = "percent")
-
-# Calculate yearly percentage change for each sector
-data_long <- data_long %>%
-  group_by(industry) %>%
-  arrange(year) %>%
-  mutate(percent_change = (percent - lag(percent)) / lag(percent) * 100) %>%
-  ungroup()
-
-# Identify the sector with the highest average growth
-upcoming_sector <- data_long %>%
-  group_by(industry) %>%
-  summarise(avg_percent_change = mean(percent_change, na.rm = TRUE)) %>%
-  arrange(desc(avg_percent_change))
-```
-
-### 3.1.1 Sector Performance Summary
-
-```{r}
-upcoming_sector <- upcoming_sector %>% 
-  mutate(avg_percent_change = sprintf("%.2f%%", avg_percent_change)) %>% 
-  rename("Industry" = industry,
-         "Avg Percentage Change" = avg_percent_change)
-
-# Create a table with formatted values, borders, and centered second column
-kable(upcoming_sector, align = 'c') %>%  # Center all columns
-  kable_styling(full_width = FALSE, position = "left") %>%
-  add_header_above(c(" " = ncol(upcoming_sector)), border_left = TRUE, border_right = TRUE) %>%
-  row_spec(0, bold = TRUE, color = "white", background = "gray") # header styling
-```
-
-### 3.1.2 Sector Trend
-
-```{r}
-#| fig-width: 12
-
-ggplot(data_long, aes(x = year, y = percent, color = industry, group = industry)) +
-  geom_line() +
-  geom_point() +
-  labs(title = "Sector Percentage Contribution Over Time",
-       x = "Year", y = "Percentage (%)") +
-  theme_minimal() +
-  theme(
-    plot.title = element_text(size = 16, face = "bold"),
-    legend.text = element_text(size = 14), 
-    legend.title = element_text(size = 16), 
-    legend.key.size = unit(1.5, "cm") 
-  )
-```
-
-::: callout-note
-The agriculture, forestry, and fishing sector is experiencing a downward trend, with a -2.88% change. In contrast, the industry, construction, and service sectors are on the rise, with increases of 0.64% and 0.56%, respectively.
-
-It's important to carefully consider your investment choices, as the industry, construction, and service sectors are emerging as promising areas for growth.
-:::
-
-<br>
-
-## 3.2 FDI Global Moran' I Analysis
-
-This test is conducted to determine the presence of spatial autocorrelation for total projects and registered capital attracted.
-
-### 3.2.1 Prepare the neighbours and weight (Queen's Contiguity weights)
-
-```{r}
-nb <- st_contiguity(fdi$geometry)
-wt <- st_weights(nb, style = "W", allow_zero = TRUE)
-
-wm_q <- fdi %>% 
-  mutate(
-    nb = nb,
-    wt = wt,
-    .before = 1
-  )
-
-# Convert column into numeric
-wm_q$total_project_count <- 
-  as.numeric(wm_q$total_project_count)
-
-wm_q$total_registered_capital <- 
-  as.numeric(wm_q$total_registered_capital)
-```
-
-### 3.2.2 Test
-
-::: panel-tabset
-## Number of Projects
-
-```{r}
-# Perform Global Moran's I test
-global_moran_test(wm_q$total_project_count,
-                  wm_q$nb,
-                  wm_q$wt,
-                  zero.policy = TRUE)
-
-# Performing Global Moran’s I permutation test (Monte Carlo)
-set.seed(1234)
-global_moran_perm_result_project_count <- 
-  global_moran_perm(wm_q$total_project_count,
-                    wm_q$nb,
-                    wm_q$wt,
-                    zero.policy = TRUE,
-                    nsim = 99)
-
-global_moran_perm_result_project_count
-
-
-###### Increasing Simulation
-# Performing Global Moran’s I permutation test (Monte Carlo)
-set.seed(1234)
-global_moran_perm_result_project_count <- 
-  global_moran_perm(wm_q$total_project_count,
-                    wm_q$nb,
-                    wm_q$wt,
-                    zero.policy = TRUE,
-                    nsim = 999)
-
-global_moran_perm_result_project_count
-```
-
-::: callout-note
-**Moran's I Test**
-
-The positive Moran's I statistic (0.169) suggests a tendency for projects to cluster spatially.
-
-Since p-value of 0.002187 \< 0.05, there's strong statistical evidence against the null hypothesis no of spatial autocorrelation.
-
-This means we can conclude there's significant positive spatial clustering in our data -areas with high values are near other areas with high values
-
-**Monte Carlo Simulation**
-
-Since p-value of 0.1 \> 0.05, this suggests that while the result is suggestive of spatial clustering, it is not statistically significant
-
-After increasing the number of simulations, the result is still around 0.05.
-
-Thus, we conclude that while there is a suggestive pattern of clustering, the results do not provide sufficient statistical evidence for significant spatial autocorrelation in the Monte Carlo analysis.
-:::
-
-## Total Registered Capital
-
-```{r}
-# Perform Global Moran's I test
-global_moran_test(wm_q$total_registered_capital,
-                  wm_q$nb,
-                  wm_q$wt,
-                  zero.policy = TRUE)
-
-# Performing Global Moran’s I permutation test (Monte Carlo)
-set.seed(1234)
-global_moran_perm_result_registered_capital <- global_moran_perm(wm_q$total_registered_capital,
-                                              wm_q$nb,
-                                              wm_q$wt,
-                                              zero.policy = TRUE,
-                                              nsim = 99)
-
-global_moran_perm_result_registered_capital
-```
-
-::: callout-note
-**Moran's I Test**
-
-The positive Moran's I statistic (0.3977) suggests a tendency for total registered capital to cluster spatially.
-
-Since p-value of 3.004e-07 \< 0.05, there's strong statistical evidence against the null hypothesis no of spatial autocorrelation
-
-This means we can conclude there's significant positive spatial clustering in our data -areas with high values are near other areas with high values
-
-**Monte Carlo Simulation**
-
-Since p-value of 2.2e-16 \< 0.05, there's strong statistical evidence against the null hypothesis no of spatial autocorrelation
-
-This p-value, being far below 0.05, reinforces the conclusion of significant spatial autocorrelation.
-
-Therefore, we conclude that the clustering observed in total registered capital is statistically significant, indicating a robust spatial pattern in the data.
-:::
-:::
-
-::: callout-note
-The analysis reveals significant spatial clustering for **Total Registered Capital**, suggesting that regions with high registered capital are often near other high-value areas.
-
-In contrast, while the **Total Projects** analysis suggests some spatial clustering, the results from the Monte Carlo simulation do not show statistical significance. This indicates that the clustering observed for total projects may not be robust enough to inform strategic decisions.
-:::
-
-<br>
-
-## 3.3 FDI Local Indicator of Spatial Association (LISA) Analysis
-
-LISA analysis allows us to drill down further to identify specific locations of clustering or spatial outliers within the dataset.
-
-LISA identifies the particular provinces or regions that contribute most to the observed clustering patterns.
-
-::: panel-tabset
-## Number of Projects
-
-```{r}
-image_read("data/rds/total_projects_lisa_map.png")
-```
-
-```{r}
-#| eval: false
-
-png("data/rds/total_projects_lisa_map.png", width = 1600, height = 1200)
-
-# Perform Local Moran's I test
-lisa <- wm_q %>% 
-  mutate(local_moran = local_moran(
-    total_project_count, 
-    nb, 
-    wt, 
-    nsim = 99, 
-    zero.policy = TRUE),
-    .before = 1) %>% 
-  unnest(local_moran)
-
-lisa <- st_as_sf(lisa)
-
-
-lisa_sig <- lisa  %>%
-  filter(p_ii_sim < 0.05)
-tmap_mode("plot")
-
-# Visualize Lisa
-tm_shape(lisa) +
-  tm_polygons() +
-  tm_borders(alpha = 0.5) +
-tm_shape(lisa_sig) +
-  tm_fill("mean") + 
-  tm_borders(alpha = 0.4) +
-  tm_layout(main.title = "LISA Map",   
-            main.title.size = 3.0,              
-            legend.text.size = 2.0,           
-            legend.title.size = 3.0,         
-            legend.position = c("right", "bottom"), 
-            frame = TRUE)  # Add a frame around the map
-
-# Close the graphic device
-dev.off()
-```
-
-## Total Registered Capital
-
-```{r}
-image_read("data/rds/registered_capital_lisa_map.png")
-```
-
-```{r}
-#| eval: false
-
-png("data/rds/registered_capital_lisa_map.png", width = 1600, height = 1200)
-
-# Perform Local Moran's I test
-lisa <- wm_q %>% 
-  mutate(local_moran = local_moran(
-    total_registered_capital, 
-    nb, 
-    wt, 
-    nsim = 99, 
-    zero.policy = TRUE),
-    .before = 1) %>% 
-  unnest(local_moran)
-
-lisa <- st_as_sf(lisa)
-
-
-lisa_sig <- lisa  %>%
-  filter(p_ii_sim < 0.05)
-tmap_mode("plot")
-
-# Visualize Lisa
-tm_shape(lisa) +
-  tm_polygons() +
-  tm_borders(alpha = 0.5) +
-tm_shape(lisa_sig) +
-  tm_fill("mean") + 
-  tm_borders(alpha = 0.4) +
-  tm_layout(main.title = "LISA Map",   
-            main.title.size = 3.0,              
-            legend.text.size = 2.0,           
-            legend.title.size = 3.0,         
-            legend.position = c("right", "bottom"), 
-            frame = TRUE)  # Add a frame around the map
-
-# Close the graphic device
-dev.off()
-```
-:::
-
-<br>
-
-## 3.4 FDI Hot Spot & Cold Spot Area Analysis (HCSA)
-
-Following the Global and Local Moran's I analyses, the Hot Spot and Cold Spot Area Analysis further refines our understanding of spatial patterns by highlighting areas with consistently high or low values relative to their surroundings.
-
-Using Hot Spot and Cold Spot analysis, we identify regions with statistically significant clustering of high values (hot spots) and low values (cold spots).
-
-::: panel-tabset
-## Number of Projects
-
-```{r}
-image_read("data/rds/total_project_hcsa_map.png")
-```
-
-```{r}
-#| eval: false
-
-png("data/rds/total_project_hcsa_map.png", width = 1600, height = 1200)
-
-## Computing local Gi\* statistics
-hcsa_project_count <- wm_q %>% 
-  mutate(local_Gi = local_gstar_perm(
-    total_project_count, nb, wts, nsim = 99),
-         .before = 1) %>%
-  unnest(local_Gi)
-
-hcsa_project_count <- st_as_sf(hcsa_project_count)
-
-
-HCSA_sig <- hcsa_project_count  %>%
-  filter(p_sim < 0.05)
-tmap_mode("plot")
-
-# Visualize HCSA
-tm_shape(hcsa_project_count) +
-  tm_polygons() +
-  tm_borders(alpha = 0.5) +
-tm_shape(HCSA_sig) +
-  tm_fill("cluster") + 
-  tm_borders(alpha = 0.4) +
-  tm_layout(main.title = "HCSA",
-            main.title.size = 3.0,              
-            legend.text.size = 2.0,           
-            legend.title.size = 3.0,   
-            legend.position = c("right", "bottom"), 
-            frame = TRUE) 
-
-# Close the graphic device
-dev.off()
-```
-
-## Total Registered Capital
-
-```{r}
-image_read("data/rds/registered_capital_hcsa_map.png")
-```
-
-```{r}
-#| eval: false
-
-png("data/rds/registered_capital_hcsa_map.png", width = 1600, height = 1200)
-
-## Computing local Gi\* statistics
-hcsa_registered_capital <- wm_q %>% 
-  mutate(local_Gi = local_gstar_perm(
-    total_registered_capital, nb, wts, nsim = 99),
-         .before = 1) %>%
-  unnest(local_Gi)
-
-hcsa_registered_capital <- st_as_sf(hcsa_registered_capital)
-
-
-HCSA_sig <- hcsa_registered_capital  %>%
-  filter(p_sim < 0.05)
-tmap_mode("plot")
-
-# Visualize HCSA
-tm_shape(hcsa_registered_capital) +
-  tm_polygons() +
-  tm_borders(alpha = 0.5) +
-tm_shape(HCSA_sig) +
-  tm_fill("cluster") + 
-  tm_borders(alpha = 0.4) +
-  tm_layout(main.title = "HCSA",
-            main.title.size = 3.0,              
-            legend.text.size = 2.0,           
-            legend.title.size = 3.0,   
-            legend.position = c("right", "bottom"), 
-            frame = TRUE) 
-
-# Close the graphic device
-dev.off()
-```
-:::
-
-<br/><br/>
-
-# **4.0 Prioritization Analysis for Provincial Development: Identifying Key Predictors**
-
-## 4.1 Correlation Matrix
+## 3.1 Correlation Matrix
 
 The PCI consists of nine dimensions, each serving as an independent variable with varying degrees of influence on FDI data.
 
@@ -813,12 +421,12 @@ ggcorrmat(pci_2021[,4:13])
 
 If any \> 0.8 = highly correlated.
 
-We found there isn't any pair that is highly correlated. We will later reconfirm with the check for [4.6 Checking for multicollinearity].
+We found there isn't any pair that is highly correlated. We will later reconfirm with the check for \[4.6 Checking for multicollinearity\].
 :::
 
 <br>
 
-## 4.2 Conduct Linear Regression
+## 3.2 Conduct Linear Regression
 
 To explore the influence of each PCI dimension on FDI, we begin with a linear regression model. This initial model will help us determine the relationship between each independent variable (PCI dimensions) and FDI.
 
@@ -913,13 +521,13 @@ In contrast, the model for **total registered capital** has a higher **Adjusted 
 
 <br>
 
-## 4.3 Run model to Select Independent variable
+## 3.3 Run model to Select Independent variable
 
 I will now run different stepwise regression models to further investigate the specific positive and negative impacts of the independent variables on FDI.
 
 This analysis will allow us to quantify how much a **1-unit increase** in each independent variable is expected to influence FDI, providing clearer insights into their contributions to both the total number of projects and total registered capital.
 
-All of the model will be making use of the base model formulated from [4.2 Conduct Linear Regression]
+All of the model will be making use of the base model formulated from \[4.2 Conduct Linear Regression\]
 
 ::: panel-tabset
 ## Total Number of Projects
@@ -1023,7 +631,7 @@ plot(pci_capital_sb_mlr)
 
 <br>
 
-## 4.4 Model Selection
+## 3.4 Model Selection
 
 Next, we will utilize a radar chart to visualize the performance of the different models.
 
@@ -1067,7 +675,7 @@ In contrast, for predicting total registered capital, the best-performing model 
 
 <br>
 
-## 4.5 Visualize model parameters
+## 3.5 Visualize model parameters
 
 We will now utilize the best-performing model to quantify the exact positive or negative impact (in numerical terms) that a one-unit change in the independent variables will have.
 
@@ -1105,7 +713,7 @@ Focusing on these two policy areas will significantly bolster efforts to attract
 
 <br>
 
-## 4.6 Checking for multicollinearity
+## 3.6 Checking for multicollinearity
 
 We will now confirm our Correlation Matrix by looking at the **Variance Inflation Factor (VIF)**
 
@@ -1149,7 +757,7 @@ There is no Multicollinearity found in both the model used for Total Number of p
 
 <br>
 
-## 4.7 Linearity Assumption Test
+## 3.7 Linearity Assumption Test
 
 ::: panel-tabset
 ## Total Number of Projects
@@ -1171,7 +779,7 @@ capital_out[[2]]
 
 <br>
 
-## 4.8 Normality Assumption Test
+## 3.8 Normality Assumption Test
 
 ::: panel-tabset
 ## Total Number of Projects
@@ -1189,7 +797,7 @@ plot(check_normality(pci_capital_sb_mlr$model))
 
 <br>
 
-## 4.9 Checking of outliers
+## 3.9 Checking of outliers
 
 ::: panel-tabset
 ## Total Number of Projects
@@ -1223,7 +831,7 @@ After conducting the tests, I can conclude that both the models used for the Tot
 
 <br><br>
 
-# **5.0 Spatial Non-Stationary Assumption**
+# **4.0 Spatial Non-Stationary Assumption**
 
 ::: panel-tabset
 ## Total Number of Projects
@@ -1327,41 +935,342 @@ global_moran_perm(capital_fdi_sf$MLR_RES,
 Based on the results of the Moran's I tests, I can conclude that there is no evidence of significant spatial autocorrelation in the data for either model. This suggests that the distribution of variable does not show systematic clustering or dispersion across the studied area.
 :::
 
+<br/><br/>
+
+# **5.0 Local**
+
+### Preparing the data
+
+```{r}
+pci_2021 <- pci_2021 %>% 
+  left_join(provincial_boundaries %>% 
+              select(province_code, geometry), 
+            by = "province_code") %>% 
+  st_as_sf()
+```
+
+### Fixed VS Adaptive Bandwidth
+
+::: panel-tabset
+## Total Number of Projects
+
+::: panel-tabset
+## Fixed Bandwidth
+
+```{r}
+bw.fixed_project <- bw.gwr(formula = total_project_count ~ 
+                             `Entry Costs` + `Land Access` + Transparency + 
+                             `Time Costs` + `Informal charges` + Proactivity + 
+                             `Business Support Policy` + `Labor Policy` +
+                             `Law & Order`,
+                           data=pci_2021,
+                           approach="CV", 
+                           kernel="boxcar", 
+                           adaptive=FALSE, 
+                           longlat=FALSE)
+
+gwr.fixed_project <- gwr.basic(formula = total_project_count ~ 
+                                 `Entry Costs` +  `Land Access` + Transparency + 
+                                 `Time Costs` + `Informal charges` + Proactivity + 
+                                 `Business Support Policy` + `Labor Policy` +
+                                 `Law & Order`,
+                               data=pci_2021,
+                               bw=bw.fixed_project, 
+                               kernel = 'boxcar', 
+                               longlat = FALSE)
+
+gwr.fixed_project
+```
+
+## Adaptive Bandwidth
+
+```{r}
+bw.adaptive_project <- bw.gwr(formula = total_project_count ~ 
+                                `Entry Costs` + `Land Access` + Transparency + 
+                                `Time Costs` + `Informal charges` + Proactivity +
+                                `Business Support Policy` + `Labor Policy` +
+                                `Law & Order`,
+                              data=pci_2021,
+                              approach="CV", 
+                              kernel="boxcar", 
+                              adaptive=TRUE, 
+                              longlat=FALSE)
+
+gwr.adaptive_project <- gwr.basic(formula = total_project_count ~ 
+                                    `Entry Costs` + `Land Access` + Transparency +
+                                    `Time Costs` + `Informal charges` + Proactivity + 
+                                    `Business Support Policy` + `Labor Policy` +
+                                    `Law & Order`,
+                                  data=pci_2021,
+                                  bw=bw.adaptive_project,
+                                  kernel = 'boxcar',
+                                  adaptive=TRUE, 
+                                  longlat = FALSE)
+
+gwr.adaptive_project
+```
+:::
+
+## Total Registered Capital
+
+::: panel-tabset
+## Fixed Bandwidth
+
+```{r}
+bw.fixed_capital <- bw.gwr(formula = total_registered_capital ~ 
+                             `Entry Costs` + `Land Access` + Transparency + 
+                             `Time Costs` + `Informal charges` + Proactivity + 
+                             `Business Support Policy` + `Labor Policy` +
+                             `Law & Order`,
+                           data=pci_2021,
+                           approach="CV", 
+                           kernel="bisquare", 
+                           adaptive=FALSE, 
+                           longlat=FALSE)
+
+gwr.fixed_capital <- gwr.basic(formula = total_registered_capital ~ 
+                                 `Entry Costs` + `Land Access` + Transparency + 
+                                 `Time Costs` + `Informal charges` + Proactivity + 
+                                 `Business Support Policy` + `Labor Policy` +
+                                 `Law & Order`,
+                               data=pci_2021,
+                               bw=bw.fixed_capital, 
+                               kernel = 'bisquare', 
+                               longlat = FALSE)
+
+gwr.fixed_capital
+```
+
+## Adaptive Bandwidth
+
+```{r}
+bw.adaptive_capital <- bw.gwr(formula = total_registered_capital ~ 
+                                `Entry Costs` + `Land Access` + Transparency + 
+                                `Time Costs` + `Informal charges` + Proactivity +
+                                `Business Support Policy` + `Labor Policy` +
+                                `Law & Order`,
+                              data=pci_2021,
+                              approach="CV", 
+                              kernel="bisquare", 
+                              adaptive=TRUE, 
+                              longlat=FALSE)
+
+gwr.adaptive_capital <- gwr.basic(formula = total_registered_capital ~ 
+                                    `Entry Costs` + `Land Access` + Transparency + 
+                                    `Time Costs` + `Informal charges` + Proactivity + 
+                                    `Business Support Policy` + `Labor Policy` +
+                                    `Law & Order`,
+                                  data=pci_2021,
+                                  bw=bw.adaptive_capital, 
+                                  kernel = 'bisquare',
+                                  adaptive=TRUE, 
+                                  longlat = FALSE)
+
+gwr.adaptive_capital
+```
+:::
+:::
+
+<br/>
+
+### Visualising Local R2
+
+::: panel-tabset
+## Total Number of Projects
+
+```{r}
+# Converting SDF into sf data.frame
+pci_2021 <- st_as_sf(gwr.fixed_project$SDF) %>%
+  st_transform(crs=3405)
+
+
+gwr.fixed.output_project <- as.data.frame(gwr.fixed_project$SDF)
+pci_2021.fixed_project <- cbind(pci_2021, as.matrix(gwr.fixed.output_project))
+
+glimpse(pci_2021.fixed_project)
+```
+
+```{r}
+# Set tmap options to check and fix any invalid polygons
+tmap_options(check.and.fix = TRUE)
+
+tmap_mode("view")
+
+str(pci_2021.fixed_project$Local_R2)
+pci_2021.fixed_project$Local_R2 <- unlist(pci_2021.fixed_project$Local_R2)
+
+
+tm_shape(provincial_boundaries)+
+  tm_polygons(alpha = 0.1) +
+tm_shape(pci_2021.fixed_project) +  
+  tm_polygons(col = "Local_R2",
+          border.col = "gray60",
+          border.lwd = 1) +
+  tm_view(set.zoom.limits = c(5,8))
+```
+
+## Total Registered Capital
+
+```{r}
+# Converting SDF into sf data.frame
+pci_2021 <- st_as_sf(gwr.adaptive_capital$SDF) %>%
+  st_transform(crs=3405)
+
+
+gwr.adaptive.output_capital <- as.data.frame(gwr.adaptive_capital$SDF)
+pci_2021.adaptive_capital <- cbind(pci_2021, as.matrix(gwr.adaptive.output_capital))
+
+glimpse(pci_2021.adaptive_capital)
+```
+
+```{r}
+# Set tmap options to check and fix any invalid polygons
+tmap_options(check.and.fix = TRUE)
+
+tmap_mode("view")
+
+str(pci_2021.adaptive_capital$Local_R2)
+pci_2021.adaptive_capital$Local_R2 <- unlist(pci_2021.adaptive_capital$Local_R2)
+
+
+tm_shape(provincial_boundaries)+
+  tm_polygons(alpha = 0.1) +
+tm_shape(pci_2021.adaptive_capital) +  
+  tm_polygons(col = "Local_R2",
+          border.col = "gray60",
+          border.lwd = 1) +
+  tm_view(set.zoom.limits = c(5,8))
+```
+:::
+
+<br>
+
+### Visualising coefficient estimates
+
+::: panel-tabset
+## Total Number of Projects
+
+```{r}
+tmap_mode("view")
+
+AREA_SQM_SE <- tm_shape(provincial_boundaries)+
+  tm_polygons(alpha = 0.1) +
+tm_shape(pci_2021.fixed_project) +  
+  tm_polygons(col = "Transparency_SE",
+          border.col = "gray60",
+          border.lwd = 1) +
+  tm_view(set.zoom.limits = c(5,8))
+
+AREA_SQM_TV <- tm_shape(provincial_boundaries)+
+  tm_polygons(alpha = 0.1) +
+tm_shape(pci_2021.adaptive_capital) +  
+  tm_polygons(col = "Transparency_TV",
+          border.col = "gray60",
+          border.lwd = 1) +
+  tm_view(set.zoom.limits = c(5,8))
+
+tmap_arrange(AREA_SQM_SE, AREA_SQM_TV, 
+             asp=1, ncol=2,
+             sync = TRUE)
+```
+
+## Total Registered Capital
+
+```{r}
+
+```
+:::
+
 <br><br>
 
 # **6.0 Shiny Storyboard**
 
-## 6.1 Global Moran' I
+## 6.1 Global Explanatory Model
 
-The Global Moran's I tool helps users identify patterns of spatial autocorrelation in two key variables: Total Number of Projects and Total Registered Capital.
+### 6.1.1 Multiple Linear Regression (MLR)
 
-By exploring spatial relationships within the data, users can assess whether areas with high or low values of these variables are clustered or dispersed across provinces.
+Multiple Linear Regression (MLR) provides a baseline model to predict an outcome using multiple predictor variables. It assumes a consistent, global relationship across all data points, offering a broad understanding of how these variables influence the dependent variable overall.
 
-![](images/Global%20Moran'%20I.jpg)
+Users have the flexibility to select specific combinations of predictor variables (e.g., PCI factors) to explore different modeling outcomes and compare how these combinations affect results.
 
-<br>
+**Interpretation**: A higher Adjusted R2 indicates that the model more effectively explains the variation in the outcome. Additionally, p-value reflects the statistical significance of the model, with lower values indicating stronger confidence in the predictors’ influence.
 
-## 6.2 LISA
-
-The Local Indicators of Spatial Association (LISA) tool provides an in-depth look at spatial patterns within specific regions, allowing users to detect localized clustering and identify "hot" or "cold" spots in the data. This tool is particularly useful for analyzing spatial variability across provinces for **Total Number of Projects** and **Total Registered Capital**, helping uncover nuanced insights that the Global Moran's I analysis might not reveal.
-
-![](images/Lisa.jpg)
+![](images/clipboard-1002269832.png)
 
 <br>
 
-## 6.3 HCSA
+### 6.1.2 Stepwise Model Selection
 
-The Hot and Cold Spot Analysis (HCSA) tool identifies regions of significant clustering based on the **Total Number of Projects** and **Total Registered Capital**. This tool offers insights into geographic areas that exhibit high or low concentrations, allowing users to determine the intensity of activity across Vietnam’s provinces.
+**Stepwise Model Selection** allows users to refine the Multiple Linear Regression model by adding or removing predictor variables in a systematic way.
 
-![](images/HCSA.jpg)
+Users can select from 3 approaches:
+
+-   **forward selection** (starting with no predictors and adding them),
+
+-   **backward elimination** (starting with all predictors and removing them),
+
+-   or **both** (a combination of adding and removing).
+
+Users also have control over the **confidence level** (e.g., 0.95 or 0.99), adjusting the stringency for including predictors based on statistical significance.
+
+**Interpretation and Visualization**: A radar chart provides a visual comparison of different models, allowing users to select and view how models perform across chosen predictors and confidence levels. This helps in identifying the most effective model based on the desired balance of predictors and statistical robustness.
+
+![](images/clipboard-1995167839.png)
 
 <br>
 
-## 6.4 Stepwise Model
+### 6.1.3 Visualise Model Parameters
 
-The Stepwise Regression Models tool is designed to fine-tune our understanding of which Provincial Competitiveness Index (PCI) dimensions most effectively predict **Total Number of Projects** and **Total Registered Capital**. By running multiple models, this tool identifies the key predictors and assesses their positive or negative influence on FDI at a province level.
+**Visualize Model Parameters** offers users an interactive way to examine and compare the effects of predictor variables across different stepwise models. Users can select their preferred model from the stepwise selection results and sort parameter values in ascending or descending order for easier comparison.
 
-![](images/Stepwise%20model.jpg)
+**Interpretation and Customization**: This visualization provides a clear view of each predictor’s influence on the outcome variable within the selected model, helping users assess the relative importance of predictors. By sorting the parameters, users can quickly identify the most impactful variables or spot subtle differences across models, aiding in deeper analysis and model refinement.
+
+![](images/clipboard-1084091748.png)
+
+<br>
+
+## 6.2 Local Explanatory Model
+
+### 6.2.1 Bandwidth Selection
+
+**Bandwidth Selection** in Geographically Weighted Regression (GWR) allows users to fine-tune the model’s spatial sensitivity by choosing between **fixed** and **adaptive** bandwidth options.
+
+-   **Side-by-Side Comparison**:\
+    Users can compare the effects of **fixed** vs. **adaptive** bandwidths side-by-side. This comparison highlights how each bandwidth type influences the spatial scale of the analysis:
+
+    -   **Fixed bandwidth** applies a constant spatial radius for all data points, which is ideal for evenly spaced data.
+
+    -   **Adaptive bandwidth** adjusts based on data density, using a larger bandwidth in sparse areas and a smaller one in dense areas, enhancing accuracy in regions with varying data distributions.
+
+-   **Selection Options for Each Bandwidth Type**:
+
+    -   **Approach**: Users can choose from **cross-validation** or **A/C corrected** methods to optimize the bandwidth.
+
+    -   **Kernel Method**: Users can select the **kernel type** (e.g., Gaussian, bisquare, or tricube) to define the shape and weighting of spatial influence around each data point, tailoring the model to the spatial structure of the data.
+
+**Purpose**:\
+This flexible bandwidth selection process allows users to determine the optimal balance of local vs. global influence, enhancing model accuracy and providing insights into spatial patterns at different scales.
+
+![](images/clipboard-4235001143.png)
+
+<br>
+
+### 6.2.2 Visualise Local R2
+
+**Visualizing Local** **R2** provides an in-depth look at how well the Geographically Weighted Regression (GWR) model explains variations in the outcome across different areas. This visualization highlights spatial differences in model performance, making it easier to identify regions where predictors more effectively capture local patterns.
+
+-   **Customization Options**:
+
+    -   **Bandwidth Type**: Choose between **fixed** or **adaptive** bandwidth to control the scale of spatial influence.
+
+    -   **Bandwidth Optimization Approach**: Select **cross-validation** or **A/C corrected** to determine the optimal bandwidth, allowing a focus on either predictive accuracy or model simplicity.
+
+    -   **Kernel Method**: Choose the kernel type (e.g., Gaussian, bisquare, or tricube) to set the shape and weighting of spatial influence, refining how local R2 values are calculated across locations.
+
+\
+This flexible visualization helps users assess where the model has strong or weak explanatory power across the study area, offering insights into local model fit. By adjusting bandwidth, approach, and kernel, users can explore how these choices impact model performance, identifying areas with robust predictions and areas needing further investigation.
+
+![](images/clipboard-2012200626.png)
 
 <br>
 

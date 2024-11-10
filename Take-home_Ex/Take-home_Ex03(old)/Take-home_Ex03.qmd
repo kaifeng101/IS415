@@ -1,0 +1,1253 @@
+---
+title: "Take-home Exercise 3: Provincial Competitiveness Index influence on FDI in Vietnam"
+author: "kai feng"
+date: "Oct 15, 2024"
+date-modified: "last-modified"
+execute:
+  eval: true
+  echo: true
+  freeze: true
+---
+
+# **Introduction**
+
+## Provincial Competitiveness Index in Vietnam
+
+**Context:** Vietnam's provinces vary significantly in competitiveness, as captured by the Provincial Competitiveness Index (PCI). This index evaluates key dimensions such as entry costs, land access, transparency, and labor policies, which influence the investment climate and economic potential of each region.
+
+**Challenges:** Provinces aiming to attract investment face challenges related to regional disparities and governance effectiveness. Understanding PCI dimensions is essential for identifying strengths and areas for improvement.
+
+### Analysis Focus
+
+**Objectives:** This analysis aims to evaluate PCI dimensions through linear regression, examining their correlation with FDI projects and FDI registered capital inflow to identify combinations that drive investment.
+
+**Goals:**
+
+-   **Identify Key Factors:** Determine which PCI dimensions most influence FDI total projects and FDI total registered capital.
+
+-   **Province-Specific Insights:** Highlight PCI factors lacking in specific provinces to guide policymaking.
+
+-   **Actionable Recommendations:** Provide targeted suggestions for enhancing PCI dimensions to improve the investment climate.
+
+### Significance
+
+This project will analyze how PCI dimensions affect Vietnam's economic landscape, offering actionable insights to help policymakers enhance regional competitiveness and stimulate sustainable development.
+
+<br/><br/>
+
+# **1.0 Setup**
+
+## 1.1 Installing R-Packages
+
+::: panel-tabset
+## *Importing and Transforming Data*
+
+-   `sf`:
+
+    -   For handling spatial vector data and transforming it into simple features (`sf`) objects.
+
+    -   Functions like `st_read()` for importing spatial data and `st_transform()` for coordinate reference system transformations.
+
+-   `tidyverse`: For data manipulation and transformation, including functions for working with `tibble` data frames.
+
+-   `readr`: For reading in CSV or other text-based data files.
+
+-   `openxlsx, readxl`: For reading or exporting in XLSX
+
+-   `dplyr`: provide data manipulation capabilities (eg. to group and summarize the relationships between these columns)
+
+## *Styling*
+
+-   `knitr, gtsummary`: For styling table
+
+## *Displaying Maps*
+
+-   `tmap`: For creating thematic maps
+
+-   `animation, png, magick`: For animation work
+
+## *Spatial Autocorrelation*
+
+-   `sfdep`: For performing both local and global spatial autocorrelation analysis
+
+## *Explanatory Analysis*
+
+-   `ggstatsplot`: to visualize relationships with statistical details
+-   `olsrr`: R package for building OLS and performing diagnostics test
+-   `performance`: to visually compare between models
+
+## *Local Analysis*
+
+-   GWmodel
+:::
+
+```{r}
+pacman::p_load(tidyverse, sf, readr, tmap, dplyr, knitr, animation, png, magick, openxlsx, readxl, sfdep, ggstatsplot, olsrr, performance, gtsummary, GWmodel)
+```
+
+<br/>
+
+## 1.2 Data Acquisition
+
+We will be using these dataset:
+
+::: panel-tabset
+## Administrative Boundaries
+
+-   **Source:** [Vietnam - Subnational Administrative Boundaries](https://data.humdata.org/dataset/cod-ab-vnm?) at HDX.
+-   **Province Boundaries**: To map scores from various analyses onto geographic boundaries, enabling visualization of regional competitiveness patterns across the country
+
+## General Data
+
+-   **Source:** [[Vietnam Statistics Office]{.underline}](https://www.gso.gov.vn/en/homepage/) , [Provincial Competitiveness Index](https://pcivietnam.vn/en)
+
+-   **Provincial Competitiveness Index (PCI):** To evaluate the competitive environment of each province, identifying strengths and weaknesses that influence investment potential.
+
+-   **Foreign Direct Investment (FDI):** To assess the attractiveness of provinces for foreign investors and identify trends in investment across different sectors.
+:::
+
+<br/>
+
+## 1.3 Data Preparation and Wrangling
+
+::: panel-tabset
+## Administrative Boundaries
+
+```{r}
+#| eval: false
+
+provincial_boundaries <- st_read(dsn = "data/boundaries/provincial", layer="geoBoundaries-VNM-ADM1")
+class(provincial_boundaries)
+st_crs(provincial_boundaries)
+
+provincial_boundaries <- provincial_boundaries %>%
+  st_transform(crs = 3405) # Transform coordinate
+
+# Drop & Rename column
+provincial_boundaries <- provincial_boundaries %>% 
+  select(shapeName, shapeISO, shapeGroup, geometry) %>% 
+  rename(
+    province_vn = shapeName,
+    province_code = shapeISO,
+    country_code = shapeGroup
+  )
+
+# Create a new column 'province_en' based on 'province_code'
+provincial_boundaries <- provincial_boundaries %>%
+  mutate(province_en = case_when(
+    province_code == "VN-44" ~ "An Giang",
+    province_code == "VN-43" ~ "BRVT",
+    province_code == "VN-54" ~ "Bac Giang",
+    province_code == "VN-53" ~ "Bac Kan",
+    province_code == "VN-55" ~ "Bac Lieu",
+    province_code == "VN-56" ~ "Bac Ninh",
+    province_code == "VN-50" ~ "Ben Tre",
+    province_code == "VN-31" ~ "Binh Dinh",
+    province_code == "VN-57" ~ "Binh Duong",
+    province_code == "VN-58" ~ "Binh Phuoc",
+    province_code == "VN-40" ~ "Binh Thuan",
+    province_code == "VN-59" ~ "Ca Mau",
+    province_code == "VN-CT" ~ "Can Tho",
+    province_code == "VN-04" ~ "Cao Bang",
+    province_code == "VN-DN" ~ "Da Nang",
+    province_code == "VN-33" ~ "Dak Lak",
+    province_code == "VN-72" ~ "Dak Nong",
+    province_code == "VN-71" ~ "Dien Bien",
+    province_code == "VN-39" ~ "Dong Nai",
+    province_code == "VN-45" ~ "Dong Thap",
+    province_code == "VN-30" ~ "Gia Lai",
+    province_code == "VN-SG" ~ "HCMC",
+    province_code == "VN-03" ~ "Ha Giang",
+    province_code == "VN-63" ~ "Ha Nam",
+    province_code == "VN-HN" ~ "Ha Noi",
+    province_code == "VN-23" ~ "Ha Tinh",
+    province_code == "VN-61" ~ "Hai Duong",
+    province_code == "VN-HP" ~ "Hai Phong",
+    province_code == "VN-73" ~ "Hau Giang",
+    province_code == "VN-14" ~ "Hoa Binh",
+    province_code == "VN-66" ~ "Hung Yen",
+    province_code == "VN-34" ~ "Khanh Hoa",
+    province_code == "VN-47" ~ "Kien Giang",
+    province_code == "VN-28" ~ "Kon Tum",
+    province_code == "VN-01" ~ "Lai Chau",
+    province_code == "VN-35" ~ "Lam Dong",
+    province_code == "VN-09" ~ "Lang Son",
+    province_code == "VN-02" ~ "Lao Cai",
+    province_code == "VN-41" ~ "Long An",
+    province_code == "VN-67" ~ "Nam Dinh",
+    province_code == "VN-22" ~ "Nghe An",
+    province_code == "VN-18" ~ "Ninh Binh",
+    province_code == "VN-36" ~ "Ninh Thuan",
+    province_code == "VN-68" ~ "Phu Tho",
+    province_code == "VN-32" ~ "Phu Yen",
+    province_code == "VN-24" ~ "Quang Binh",
+    province_code == "VN-27" ~ "Quang Nam",
+    province_code == "VN-29" ~ "Quang Ngai",
+    province_code == "VN-13" ~ "Quang Ninh",
+    province_code == "VN-25" ~ "Quang Tri",
+    province_code == "VN-52" ~ "Soc Trang",
+    province_code == "VN-05" ~ "Son La",
+    province_code == "VN-26" ~ "TT-Hue",
+    province_code == "VN-37" ~ "Tay Ninh",
+    province_code == "VN-20" ~ "Thai Binh",
+    province_code == "VN-69" ~ "Thai Nguyen",
+    province_code == "VN-21" ~ "Thanh Hoa",
+    province_code == "VN-46" ~ "Tien Giang",
+    province_code == "VN-51" ~ "Tra Vinh",
+    province_code == "VN-07" ~ "Tuyen Quang",
+    province_code == "VN-49" ~ "Vinh Long",
+    province_code == "VN-70" ~ "Vinh Phuc",
+    province_code == "VN-06" ~ "Yen Bai"
+  )) %>% 
+  select (province_en, everything())
+
+write_rds(provincial_boundaries, "data/rds/provincial_boundaries.rds")
+```
+
+::: callout-note
+Since Coordinate Reference System of **provincial_boundaries**
+
+is in 4326 (unit of measurement = degree), we have to transform it
+
+Also, we need to have an english name for each province to allow us to map the province boundary with other dataset
+:::
+
+## General Data
+
+```{r}
+#| eval: false
+pci_2021 <- read_xlsx("data/provincial_competitiveness_index/2021.xlsx")
+
+pci_2021 <- pci_2021 %>%
+  mutate(
+    province_code = case_when(
+      province_en == "An Giang" ~ "VN-44",
+      province_en == "BRVT" ~ "VN-43",
+      province_en == "Bac Giang" ~ "VN-54",
+      province_en == "Bac Kan" ~ "VN-53",
+      province_en == "Bac Lieu" ~ "VN-55",
+      province_en == "Bac Ninh" ~ "VN-56",
+      province_en == "Ben Tre" ~ "VN-50",
+      province_en == "Binh Dinh" ~ "VN-31",
+      province_en == "Binh Duong" ~ "VN-57",
+      province_en == "Binh Phuoc" ~ "VN-58",
+      province_en == "Binh Thuan" ~ "VN-40",
+      province_en == "Ca Mau" ~ "VN-59",
+      province_en == "Can Tho" ~ "VN-CT",
+      province_en == "Cao Bang" ~ "VN-04",
+      province_en == "Da Nang" ~ "VN-DN",
+      province_en == "Dak Lak" ~ "VN-33",
+      province_en == "Dak Nong" ~ "VN-72",
+      province_en == "Dien Bien" ~ "VN-71",
+      province_en == "Dong Nai" ~ "VN-39",
+      province_en == "Dong Thap" ~ "VN-45",
+      province_en == "Gia Lai" ~ "VN-30",
+      province_en == "HCMC" ~ "VN-SG",
+      province_en == "Ha Giang" ~ "VN-03",
+      province_en == "Ha Nam" ~ "VN-63",
+      province_en == "Ha Noi" ~ "VN-HN",
+      province_en == "Ha Tinh" ~ "VN-23",
+      province_en == "Hai Duong" ~ "VN-61",
+      province_en == "Hai Phong" ~ "VN-HP",
+      province_en == "Hau Giang" ~ "VN-73",
+      province_en == "Hoa Binh" ~ "VN-14",
+      province_en == "Hung Yen" ~ "VN-66",
+      province_en == "Khanh Hoa" ~ "VN-34",
+      province_en == "Kien Giang" ~ "VN-47",
+      province_en == "Kon Tum" ~ "VN-28",
+      province_en == "Lai Chau" ~ "VN-01",
+      province_en == "Lam Dong" ~ "VN-35",
+      province_en == "Lang Son" ~ "VN-09",
+      province_en == "Lao Cai" ~ "VN-02",
+      province_en == "Long An" ~ "VN-41",
+      province_en == "Nam Dinh" ~ "VN-67",
+      province_en == "Nghe An" ~ "VN-22",
+      province_en == "Ninh Binh" ~ "VN-18",
+      province_en == "Ninh Thuan" ~ "VN-36",
+      province_en == "Phu Tho" ~ "VN-68",
+      province_en == "Phu Yen" ~ "VN-32",
+      province_en == "Quang Binh" ~ "VN-24",
+      province_en == "Quang Nam" ~ "VN-27",
+      province_en == "Quang Ngai" ~ "VN-29",
+      province_en == "Quang Ninh" ~ "VN-13",
+      province_en == "Quang Tri" ~ "VN-25",
+      province_en == "Soc Trang" ~ "VN-52",
+      province_en == "Son La" ~ "VN-05",
+      province_en == "TT-Hue" ~ "VN-26",
+      province_en == "Tay Ninh" ~ "VN-37",
+      province_en == "Thai Binh" ~ "VN-20",
+      province_en == "Thai Nguyen" ~ "VN-69",
+      province_en == "Thanh Hoa" ~ "VN-21",
+      province_en == "Tien Giang" ~ "VN-46",
+      province_en == "Tra Vinh" ~ "VN-51",
+      province_en == "Tuyen Quang" ~ "VN-07",
+      province_en == "Vinh Long" ~ "VN-49",
+      province_en == "Vinh Phuc" ~ "VN-70",
+      province_en == "Yen Bai" ~ "VN-06",
+    )
+  ) %>%
+  select(province_en, province_code, everything())
+
+write.xlsx(pci_2021, "data/rds/pci_2021.xlsx")
+
+
+
+
+fdi <- read_xlsx("data/fdi.xlsx")
+# Rename columns
+colnames(fdi) <- c("province_en", "total_project_count", 
+                   "total_registered_capital")
+# Remove the first row
+fdi <- fdi[-c(1, 2), ]
+
+fdi <- fdi %>%
+  mutate(
+    province_code = case_when(
+      province_en == "An Giang" ~ "VN-44",
+      province_en == "Ba Ria - Vung Tau" ~ "VN-43",
+      province_en == "Bac Giang" ~ "VN-54",
+      province_en == "Bac Kan" ~ "VN-53",
+      province_en == "Bac Lieu" ~ "VN-55",
+      province_en == "Bac Ninh" ~ "VN-56",
+      province_en == "Ben Tre" ~ "VN-50",
+      province_en == "Binh Dinh" ~ "VN-31",
+      province_en == "Binh  Duong" ~ "VN-57",
+      province_en == "Binh Phuoc" ~ "VN-58",
+      province_en == "Binh Thuan" ~ "VN-40",
+      province_en == "Ca Mau" ~ "VN-59",
+      province_en == "Can Tho" ~ "VN-CT",
+      province_en == "Cao Bang" ~ "VN-04",
+      province_en == "Da Nang" ~ "VN-DN",
+      province_en == "Dak Lak" ~ "VN-33",
+      province_en == "Dak Nong" ~ "VN-72",
+      province_en == "Dien Bien" ~ "VN-71",
+      province_en == "Dong Nai" ~ "VN-39",
+      province_en == "Dong Thap" ~ "VN-45",
+      province_en == "Gia Lai" ~ "VN-30",
+      province_en == "Ho Chi Minh city" ~ "VN-SG",
+      province_en == "Ha Giang" ~ "VN-03",
+      province_en == "Ha Nam" ~ "VN-63",
+      province_en == "Ha Noi" ~ "VN-HN",
+      province_en == "Ha Tinh" ~ "VN-23",
+      province_en == "Hai Duong" ~ "VN-61",
+      province_en == "Hai Phong" ~ "VN-HP",
+      province_en == "Hau Giang" ~ "VN-73",
+      province_en == "Hoa Binh" ~ "VN-14",
+      province_en == "Hung Yen" ~ "VN-66",
+      province_en == "Khanh  Hoa" ~ "VN-34",
+      province_en == "Kien  Giang" ~ "VN-47",
+      province_en == "Kon Tum" ~ "VN-28",
+      province_en == "Lai Chau" ~ "VN-01",
+      province_en == "Lam Dong" ~ "VN-35",
+      province_en == "Lang Son" ~ "VN-09",
+      province_en == "Lao Cai" ~ "VN-02",
+      province_en == "Long An" ~ "VN-41",
+      province_en == "Nam Dinh" ~ "VN-67",
+      province_en == "Nghe An" ~ "VN-22",
+      province_en == "Ninh Binh" ~ "VN-18",
+      province_en == "Ninh  Thuan" ~ "VN-36",
+      province_en == "Phu Tho" ~ "VN-68",
+      province_en == "Phu Yen" ~ "VN-32",
+      province_en == "Quang Binh" ~ "VN-24",
+      province_en == "Quang  Nam" ~ "VN-27",
+      province_en == "Quang  Ngai" ~ "VN-29",
+      province_en == "Quang Ninh" ~ "VN-13",
+      province_en == "Quang Tri" ~ "VN-25",
+      province_en == "Soc Trang" ~ "VN-52",
+      province_en == "Son La" ~ "VN-05",
+      province_en == "Thua Thien-Hue" ~ "VN-26",
+      province_en == "Tay Ninh" ~ "VN-37",
+      province_en == "Thai Binh" ~ "VN-20",
+      province_en == "Thai  Nguyen" ~ "VN-69",
+      province_en == "Thanh Hoa" ~ "VN-21",
+      province_en == "Tien Giang" ~ "VN-46",
+      province_en == "Tra Vinh" ~ "VN-51",
+      province_en == "Tuyen Quang" ~ "VN-07",
+      province_en == "Vinh Long" ~ "VN-49",
+      province_en == "Vinh Phuc" ~ "VN-70",
+      province_en == "Yen Bai" ~ "VN-06",
+    )
+  ) %>%
+  select(province_en, province_code, everything())
+
+fdi <- fdi %>% 
+  left_join(provincial_boundaries, by = "province_code") %>% 
+  select(province_en.x, province_code, total_project_count, total_registered_capital, geometry) %>% 
+  rename(province_en = province_en.x)
+
+write_rds(fdi, "data/rds/fdi.rds")
+```
+
+::: callout-note
+PCI_2021 datasets were inconsistent, so I created a new sheet called 'summary' and renamed the old one to 'summary - old'. The new sheet uses the XLOOKUP function for quick data population from the old sheet, which is much faster compared to handling it in R. In R, different sets of code would be required to manage various data types, making the process more time-consuming.
+
+For economy_pie dataset, we have also performed simple data reformatting shown in 'Summary' sheet from 'Summary -old' sheet
+:::
+:::
+
+<br/><br/>
+
+# **2.0 Importing the clean set of data**
+
+```{r}
+provincial_boundaries <- read_rds("data/rds/provincial_boundaries.rds")
+
+pci_2021 <- read_xlsx("data/rds/pci_2021.xlsx")
+
+fdi <- read_rds("data/rds/fdi.rds")
+```
+
+<br/><br/>
+
+# **3.0 Prioritization Analysis for Provincial Development: Identifying Key Predictors**
+
+## 3.1 Correlation Matrix
+
+The PCI consists of nine dimensions, each serving as an independent variable with varying degrees of influence on FDI data.
+
+Given that some dimensions may exhibit high correlation with one another, it is essential to identify these correlated pairs and select only one variable from each pair for analysis.
+
+To achieve this, we conduct a correlation matrix to assess the relationships between the dimensions.
+
+```{r}
+#| fig-width: 12
+#| fig-height: 10
+
+ggcorrmat(pci_2021[,4:13])
+```
+
+::: callout-note
+**Interpretation**
+
+If any \> 0.8 = highly correlated.
+
+We found there isn't any pair that is highly correlated. We will later reconfirm with the check for \[4.6 Checking for multicollinearity\].
+:::
+
+<br>
+
+## 3.2 Conduct Linear Regression
+
+To explore the influence of each PCI dimension on FDI, we begin with a linear regression model. This initial model will help us determine the relationship between each independent variable (PCI dimensions) and FDI.
+
+By examining the direction and size of each coefficient, we can start to understand the general influence of each dimension. This setup provides a foundation for refining our analysis and identifying key predictors in subsequent steps
+
+```{r}
+pci_2021 <- pci_2021 %>% 
+  left_join(fdi %>% 
+              select(province_code, total_project_count, total_registered_capital), 
+            by = "province_code")
+
+pci_2021$total_registered_capital <- as.numeric(as.character(pci_2021$total_registered_capital))
+
+pci_2021$total_project_count <- as.numeric(as.character(pci_2021$total_project_count))
+```
+
+::: panel-tabset
+## Number of Projects
+
+```{r}
+pci_project_mlr <- lm(formula = total_project_count ~ `Entry Costs` + 
+                  `Land Access` + Transparency + 
+                  `Time Costs` + `Informal charges` + Proactivity + 
+                  `Business Support Policy` + `Labor Policy` +
+                `Law & Order`,
+                data=pci_2021)
+
+ols_regress(pci_project_mlr)
+
+tbl_regression(pci_project_mlr, 
+               intercept = TRUE) %>% 
+  add_glance_source_note(
+    label = list(sigma ~ "\U03C3"),
+    include = c(r.squared, adj.r.squared, 
+                AIC, statistic,
+                p.value, sigma))
+
+```
+
+::: callout-note
+**Model Summary**
+
+R-Squared of 0.319, indicating that approximately 31.9% of the variation in FDI total number of projects can be accounted for by the independent variables, adjusting for the number of predictors in the model.
+
+**ANOVA -Analysis of Variance (F test)**
+
+F-ratio of 4.276 -\> is significant at p \< 0.001. Hence, our regression model is statistically significant, suggesting that at least some fo the PCI dimensions meaningfully contribute to predicting FDI total number of projects
+
+The model summary and ANOVA results reveal that while the overall model has a moderate level of predictive power, with some independent variables (such as `Business Support Policy` and `Labor Policy`) showing significant contributions, others (like `Entry Costs` and `Transparency`) did not demonstrate strong effects.
+:::
+
+## Total Registered Capital
+
+```{r}
+pci_capital_mlr <- lm(formula = total_registered_capital ~ `Entry Costs` + 
+                  `Land Access` + Transparency + 
+                  `Time Costs` + `Informal charges` + Proactivity + 
+                  `Business Support Policy` + `Labor Policy` +
+                `Law & Order`,
+                data=pci_2021)
+
+ols_regress(pci_capital_mlr)
+
+tbl_regression(pci_capital_mlr, 
+               intercept = TRUE) %>% 
+  add_glance_source_note(
+    label = list(sigma ~ "\U03C3"),
+    include = c(r.squared, adj.r.squared, 
+                AIC, statistic,
+                p.value, sigma))
+
+```
+
+::: callout-note
+**Model Summary**\
+Adjusted R-Squared of 0.470, indicating that approximately 47.0% of the variation in FDI total registered capital can be accounted for by the independent variables, adjusting for the number of predictors in the model.
+
+**ANOVA - Analysis of Variance (F test)**\
+F-ratio of 7.219 -\> is significant at p \< 0.001. Hence, our regression model is statistically significant, suggesting that at least some of the PCI dimensions meaningfully contribute to predicting FDI total registered capital.
+
+This model summary and ANOVA indicate that the model has strong predictive power for explaining FDI based on the given PCI dimensions. The significance of specific predictors, such as `Business Support Policy`, `Labor Policy`, and `Time Costs`, suggests that these are influential variables in explaining FDI total registered capital.
+:::
+:::
+
+::: callout-note
+### Summary of Findings
+
+For the **total number of FDI projects**, the model has an **Adjusted R-Squared of 0.319**, indicating that approximately **31.9%** of the variation can be explained by the independent variables. The **ANOVA results show a significant F-ratio of 4.276 (p \< 0.001)**, suggesting that some PCI dimensions significantly contribute to the model. However, not all predictors, such as Entry Costs and Transparency, had strong effects.
+
+In contrast, the model for **total registered capital** has a higher **Adjusted R-Squared of 0.470**, indicating that **47.0%** of the variation is accounted for by the predictors. The **ANOVA shows a significant F-ratio of 7.219 (p \< 0.001)**, confirming the model's strength. Key variables like Business Support Policy, Labor Policy, and Time Costs are particularly influential in explaining FDI total registered capital.
+:::
+
+<br>
+
+## 3.3 Run model to Select Independent variable
+
+I will now run different stepwise regression models to further investigate the specific positive and negative impacts of the independent variables on FDI.
+
+This analysis will allow us to quantify how much a **1-unit increase** in each independent variable is expected to influence FDI, providing clearer insights into their contributions to both the total number of projects and total registered capital.
+
+All of the model will be making use of the base model formulated from \[4.2 Conduct Linear Regression\]
+
+::: panel-tabset
+## Total Number of Projects
+
+::: panel-tabset
+## Forward Stepwise
+
+```{r}
+pci_project_fw_mlr <- ols_step_forward_p(
+  pci_project_mlr, # this is the model
+  p_val = 0.05,
+  details = FALSE)
+
+pci_project_fw_mlr
+
+plot(pci_project_fw_mlr)
+```
+
+## Backward Stepwise
+
+```{r}
+# fig-width: 12
+# fig-height: 10
+
+pci_project_bw_mlr <- ols_step_backward_p(
+  pci_project_mlr, # this is the model
+  p_val = 0.05,
+  details = FALSE)
+
+pci_project_bw_mlr
+
+plot(pci_project_bw_mlr)
+```
+
+## Both
+
+```{r}
+# fig-width: 12
+# fig-height: 10
+
+pci_project_sb_mlr <- ols_step_both_p(
+  pci_project_mlr, # this is the model
+  p_val = 0.05,
+  details = FALSE)
+
+pci_project_sb_mlr
+
+plot(pci_project_sb_mlr)
+```
+:::
+
+## Total Registered Capital
+
+::: panel-tabset
+## Forward Stepwise
+
+```{r}
+pci_capital_fw_mlr <- ols_step_forward_p(
+  pci_capital_mlr, # this is the model
+  p_val = 0.05,
+  details = FALSE)
+
+pci_capital_fw_mlr
+
+plot(pci_capital_fw_mlr)
+```
+
+## Backward Stepwise
+
+```{r}
+# fig-width: 12
+# fig-height: 10
+
+pci_capital_bw_mlr <- ols_step_backward_p(
+  pci_capital_mlr, # this is the model
+  p_val = 0.05,
+  details = FALSE)
+
+pci_capital_bw_mlr
+
+plot(pci_capital_bw_mlr)
+```
+
+## Both
+
+```{r}
+# fig-width: 12
+# fig-height: 10
+
+pci_capital_sb_mlr <- ols_step_both_p(
+  pci_capital_mlr, # this is the model
+  p_val = 0.05,
+  details = FALSE)
+
+pci_capital_sb_mlr
+
+plot(pci_capital_sb_mlr)
+```
+:::
+:::
+
+<br>
+
+## 3.4 Model Selection
+
+Next, we will utilize a radar chart to visualize the performance of the different models.
+
+The model that has the most edges touching the outer boundary is considered the best performer, indicating stronger overall results across the evaluated metrics.
+
+::: panel-tabset
+## Total Number of Projects
+
+```{r}
+project_metric <- compare_performance(pci_project_mlr,
+                              pci_project_fw_mlr$model,
+                              pci_project_bw_mlr$model,
+                              pci_project_sb_mlr$model)
+
+project_metric$Name <- gsub(".*\\\\([a-zA-Z0-9_]+)\\\\, \\\\model\\\\.*", "\\1", project_metric$Name)
+
+# plot radar
+plot(project_metric)
+```
+
+## Total Registered Capital
+
+```{r}
+capital_metric <- compare_performance(pci_capital_mlr,
+                              pci_capital_fw_mlr$model,
+                              pci_capital_bw_mlr$model,
+                              pci_capital_sb_mlr$model)
+
+capital_metric$Name <- gsub(".*\\\\([a-zA-Z0-9_]+)\\\\, \\\\model\\\\.*", "\\1", capital_metric$Name)
+
+# plot radar
+plot(capital_metric)
+```
+:::
+
+::: callout-note
+For predicting the total number of projects, the best-performing model is `pci_project_sb_mlr`).
+
+In contrast, for predicting total registered capital, the best-performing model is `pci_capital_sb_mlr`.
+:::
+
+<br>
+
+## 3.5 Visualize model parameters
+
+We will now utilize the best-performing model to quantify the exact positive or negative impact (in numerical terms) that a one-unit change in the independent variables will have.
+
+::: panel-tabset
+## Total Number of Projects
+
+```{r}
+#| fig-height: 8
+#| fig-width: 12
+
+ggcoefstats(pci_project_sb_mlr$model,
+            sort = "ascending")
+```
+
+## Total Registered Capital
+
+```{r}
+#| fig-height: 8
+#| fig-width: 12
+
+ggcoefstats(pci_capital_sb_mlr$model,
+            sort = "ascending")
+```
+:::
+
+::: callout-note
+To enhance the attraction of Foreign Direct Investment (FDI) projects and registered capital, policymakers should prioritize improvements in **Labor Policy** and **Business Support Policy**.
+
+-   For every single unit increase in **Labor Policy**, there is a positive influence on attracting more FDI projects and increasing registered capital.
+
+-   Similarly, an increase in **Business Support Policy** also contributes positively to both the total number of FDI projects and the registered capital.
+
+Focusing on these two policy areas will significantly bolster efforts to attract more FDI.
+:::
+
+<br>
+
+## 3.6 Checking for multicollinearity
+
+We will now confirm our Correlation Matrix by looking at the **Variance Inflation Factor (VIF)**
+
+**Interpretation**
+
+-   \< 5: low multicollinearity
+
+-   5-10: moderate multcollinearity
+
+-   \>10: strong multicollinearity
+
+::: panel-tabset
+## Total Number of Projects
+
+```{r}
+check_collinearity(pci_project_sb_mlr$model)
+plot(check_collinearity(pci_project_sb_mlr$model)) +
+  theme(axis.text.x = element_text(
+    angle = 45, 
+    hjust = 1
+  ))
+
+```
+
+## Total Registered Capital
+
+```{r}
+check_collinearity(pci_capital_sb_mlr$model)
+plot(check_collinearity(pci_capital_sb_mlr$model)) +
+  theme(axis.text.x = element_text(
+    angle = 45, 
+    hjust = 1
+  ))
+
+```
+:::
+
+::: callout-note
+There is no Multicollinearity found in both the model used for Total Number of projects and Total Registered Capital
+:::
+
+<br>
+
+## 3.7 Linearity Assumption Test
+
+::: panel-tabset
+## Total Number of Projects
+
+```{r}
+project_out <- plot(check_model(pci_project_sb_mlr$model,
+                        panel = FALSE))
+project_out[[2]]
+```
+
+## Total Registered Capital
+
+```{r}
+capital_out <- plot(check_model(pci_capital_sb_mlr$model,
+                        panel = FALSE))
+capital_out[[2]]
+```
+:::
+
+<br>
+
+## 3.8 Normality Assumption Test
+
+::: panel-tabset
+## Total Number of Projects
+
+```{r}
+plot(check_normality(pci_project_sb_mlr$model))
+```
+
+## Total Registered Capital
+
+```{r}
+plot(check_normality(pci_capital_sb_mlr$model))
+```
+:::
+
+<br>
+
+## 3.9 Checking of outliers
+
+::: panel-tabset
+## Total Number of Projects
+
+```{r}
+project_outliers <- check_outliers(pci_project_sb_mlr$model,
+                           method = "cook")
+
+project_outliers
+
+plot(project_outliers <- check_outliers(pci_project_sb_mlr$model,
+                           method = "cook"))
+```
+
+## Total Registered Capital
+
+```{r}
+capital_outliers <- check_outliers(pci_capital_sb_mlr$model,
+                           method = "cook")
+
+capital_outliers
+
+plot(capital_outliers <- check_outliers(pci_capital_sb_mlr$model,
+                           method = "cook"))
+```
+:::
+
+::: callout-note
+After conducting the tests, I can conclude that both the models used for the Total Number of Projects and Total Registered Capital meet the necessary assumptions and successfully pass the tests.
+:::
+
+<br><br>
+
+# **4.0 Spatial Non-Stationary Assumption**
+
+::: panel-tabset
+## Total Number of Projects
+
+::: panel-tabset
+## Visualising spatial non-stationary
+
+```{r}
+project_mlr_output <- as.data.frame(pci_project_sb_mlr$model$residuals) %>% 
+  rename(`SB_MLR_RES` = `pci_project_sb_mlr$model$residuals`)
+
+# join the newly created data frame
+project_fdi_sf <- cbind(provincial_boundaries, 
+                        project_mlr_output$SB_MLR_RES) %>%
+  rename(`MLR_RES` = `project_mlr_output.SB_MLR_RES`)
+
+tmap_mode("view")
+
+tm_shape(provincial_boundaries)+
+  tmap_options(check.and.fix = TRUE) +
+  tm_polygons(alpha = 0.4) +
+tm_shape(project_fdi_sf) +  
+  tm_polygons(col = "MLR_RES",
+          alpha = 0.6,
+          size = 0.3,
+          style="quantile") 
+
+tmap_mode("plot")
+```
+
+## Spatial stationary test
+
+```{r}
+# compute the distance-based weight matrix by using dnearneigh() function of spdep.
+project_fdi_sf <- project_fdi_sf %>%
+  mutate(nb = st_knn(geometry, k=6,
+                     longlat = FALSE),
+         wt = st_weights(nb,
+                         style = "W"),
+         .before = 1)
+
+# global moran_perm 
+global_moran_perm(project_fdi_sf$MLR_RES, 
+                  project_fdi_sf$nb, 
+                  project_fdi_sf$wt, 
+                  alternative = "two.sided", 
+                  nsim = 999)
+```
+:::
+
+## Total Registered Capital
+
+::: panel-tabset
+## Visualising spatial non-stationary
+
+```{r}
+capital_mlr_output <- as.data.frame(pci_capital_sb_mlr$model$residuals) %>% 
+  rename(`SB_MLR_RES` = `pci_capital_sb_mlr$model$residuals`)
+
+# join the newly created data frame
+capital_fdi_sf <- cbind(provincial_boundaries, 
+                        capital_mlr_output$SB_MLR_RES) %>%
+  rename(`MLR_RES` = `capital_mlr_output.SB_MLR_RES`)
+
+tmap_mode("view")
+
+tm_shape(provincial_boundaries)+
+  tmap_options(check.and.fix = TRUE) +
+  tm_polygons(alpha = 0.4) +
+tm_shape(capital_fdi_sf) +  
+  tm_polygons(col = "MLR_RES",
+          alpha = 0.6,
+          size = 0.3,
+          style="quantile") 
+
+tmap_mode("plot")
+```
+
+## Spatial stationary test
+
+```{r}
+# compute the distance-based weight matrix by using dnearneigh() function of spdep.
+capital_fdi_sf <- capital_fdi_sf %>%
+  mutate(nb = st_knn(geometry, k=6,
+                     longlat = FALSE),
+         wt = st_weights(nb,
+                         style = "W"),
+         .before = 1)
+
+# global moran_perm 
+global_moran_perm(capital_fdi_sf$MLR_RES, 
+                  capital_fdi_sf$nb, 
+                  capital_fdi_sf$wt, 
+                  alternative = "two.sided", 
+                  nsim = 999)
+```
+:::
+:::
+
+::: callout-note
+Based on the results of the Moran's I tests, I can conclude that there is no evidence of significant spatial autocorrelation in the data for either model. This suggests that the distribution of variable does not show systematic clustering or dispersion across the studied area.
+:::
+
+<br/><br/>
+
+# **5.0 Local**
+
+### Preparing the data
+
+```{r}
+pci_2021 <- pci_2021 %>% 
+  left_join(provincial_boundaries %>% 
+              select(province_code, geometry), 
+            by = "province_code") %>% 
+  st_as_sf()
+```
+
+### Fixed VS Adaptive Bandwidth
+
+::: panel-tabset
+## Total Number of Projects
+
+::: panel-tabset
+## Fixed Bandwidth
+
+```{r}
+bw.fixed_project <- bw.gwr(formula = total_project_count ~ 
+                             `Entry Costs` + `Land Access` + Transparency + 
+                             `Time Costs` + `Informal charges` + Proactivity + 
+                             `Business Support Policy` + `Labor Policy` +
+                             `Law & Order`,
+                           data=pci_2021,
+                           approach="CV", 
+                           kernel="boxcar", 
+                           adaptive=FALSE, 
+                           longlat=FALSE)
+
+gwr.fixed_project <- gwr.basic(formula = total_project_count ~ 
+                                 `Entry Costs` +  `Land Access` + Transparency + 
+                                 `Time Costs` + `Informal charges` + Proactivity + 
+                                 `Business Support Policy` + `Labor Policy` +
+                                 `Law & Order`,
+                               data=pci_2021,
+                               bw=bw.fixed_project, 
+                               kernel = 'boxcar', 
+                               longlat = FALSE)
+
+gwr.fixed_project
+```
+
+## Adaptive Bandwidth
+
+```{r}
+bw.adaptive_project <- bw.gwr(formula = total_project_count ~ 
+                                `Entry Costs` + `Land Access` + Transparency + 
+                                `Time Costs` + `Informal charges` + Proactivity +
+                                `Business Support Policy` + `Labor Policy` +
+                                `Law & Order`,
+                              data=pci_2021,
+                              approach="CV", 
+                              kernel="boxcar", 
+                              adaptive=TRUE, 
+                              longlat=FALSE)
+
+gwr.adaptive_project <- gwr.basic(formula = total_project_count ~ 
+                                    `Entry Costs` + `Land Access` + Transparency +
+                                    `Time Costs` + `Informal charges` + Proactivity + 
+                                    `Business Support Policy` + `Labor Policy` +
+                                    `Law & Order`,
+                                  data=pci_2021,
+                                  bw=bw.adaptive_project,
+                                  kernel = 'boxcar',
+                                  adaptive=TRUE, 
+                                  longlat = FALSE)
+
+gwr.adaptive_project
+```
+:::
+
+## Total Registered Capital
+
+::: panel-tabset
+## Fixed Bandwidth
+
+```{r}
+bw.fixed_capital <- bw.gwr(formula = total_registered_capital ~ 
+                             `Entry Costs` + `Land Access` + Transparency + 
+                             `Time Costs` + `Informal charges` + Proactivity + 
+                             `Business Support Policy` + `Labor Policy` +
+                             `Law & Order`,
+                           data=pci_2021,
+                           approach="CV", 
+                           kernel="boxcar", 
+                           adaptive=FALSE, 
+                           longlat=FALSE)
+
+gwr.fixed_capital <- gwr.basic(formula = total_registered_capital ~ 
+                                 `Entry Costs` + `Land Access` + Transparency + 
+                                 `Time Costs` + `Informal charges` + Proactivity + 
+                                 `Business Support Policy` + `Labor Policy` +
+                                 `Law & Order`,
+                               data=pci_2021,
+                               bw=bw.fixed_capital, 
+                               kernel = 'boxcar', 
+                               longlat = FALSE)
+
+gwr.fixed_capital
+```
+
+## Adaptive Bandwidth
+
+```{r}
+bw.adaptive_capital <- bw.gwr(formula = total_registered_capital ~ 
+                                `Entry Costs` + `Land Access` + Transparency + 
+                                `Time Costs` + `Informal charges` + Proactivity +
+                                `Business Support Policy` + `Labor Policy` +
+                                `Law & Order`,
+                              data=pci_2021,
+                              approach="CV", 
+                              kernel="boxcar", 
+                              adaptive=TRUE, 
+                              longlat=FALSE)
+
+gwr.adaptive_capital <- gwr.basic(formula = total_registered_capital ~ 
+                                    `Entry Costs` + `Land Access` + Transparency + 
+                                    `Time Costs` + `Informal charges` + Proactivity + 
+                                    `Business Support Policy` + `Labor Policy` +
+                                    `Law & Order`,
+                                  data=pci_2021,
+                                  bw=bw.adaptive_capital, 
+                                  kernel = 'boxcar',
+                                  adaptive=TRUE, 
+                                  longlat = FALSE)
+
+gwr.adaptive_capital
+```
+:::
+:::
+
+<br/>
+
+### Visualising Local R2
+
+::: panel-tabset
+## Total Number of Projects
+
+```{r}
+# Converting SDF into sf data.frame
+pci_2021.fixed_project <- st_as_sf(gwr.fixed_project$SDF) %>%
+  st_transform(crs=3405)
+
+
+gwr.fixed.output_project <- as.data.frame(gwr.fixed_project$SDF)
+pci_2021.fixed_project <- cbind(pci_2021, as.matrix(gwr.fixed.output_project))
+
+glimpse(pci_2021.fixed_project)
+```
+
+```{r}
+# Set tmap options to check and fix any invalid polygons
+tmap_options(check.and.fix = TRUE)
+
+tmap_mode("view")
+
+pci_2021.fixed_project$Local_R2 <- unlist(pci_2021.fixed_project$Local_R2)
+
+
+tm_shape(provincial_boundaries)+
+  tm_polygons(alpha = 0.1) +
+tm_shape(pci_2021.fixed_project) +  
+  tm_polygons(col = "Local_R2",
+          border.col = "gray60",
+          border.lwd = 1) +
+  tm_view(set.zoom.limits = c(5,8))
+```
+
+## Total Registered Capital
+
+```{r}
+# Converting SDF into sf data.frame
+pci_2021.fixed_capital <- st_as_sf(gwr.fixed_capital$SDF) %>%
+  st_transform(crs=3405)
+
+
+gwr.fixed.output_capital <- as.data.frame(gwr.fixed_capital$SDF)
+pci_2021.fixed_capital <- cbind(pci_2021, as.matrix(gwr.fixed.output_capital))
+
+glimpse(pci_2021.fixed_capital)
+```
+
+```{r}
+# Set tmap options to check and fix any invalid polygons
+tmap_options(check.and.fix = TRUE)
+
+tmap_mode("view")
+
+pci_2021.fixed_capital$Local_R2 <- unlist(pci_2021.fixed_capital$Local_R2)
+
+
+tm_shape(provincial_boundaries)+
+  tm_polygons(alpha = 0.1) +
+tm_shape(pci_2021.fixed_capital) +  
+  tm_polygons(col = "Local_R2",
+          border.col = "gray60",
+          border.lwd = 1) +
+  tm_view(set.zoom.limits = c(5,8))
+```
+:::
+
+<br><br>
+
+# **6.0 Shiny Storyboard**
+
+## 6.1 Global Explanatory Model
+
+### 6.1.1 Multiple Linear Regression (MLR)
+
+Multiple Linear Regression (MLR) provides a baseline model to predict an outcome using multiple predictor variables. It assumes a consistent, global relationship across all data points, offering a broad understanding of how these variables influence the dependent variable overall.
+
+Users have the flexibility to select specific combinations of predictor variables (e.g., PCI factors) to explore different modeling outcomes and compare how these combinations affect results.
+
+**Interpretation**: A higher Adjusted R2 indicates that the model more effectively explains the variation in the outcome. Additionally, p-value reflects the statistical significance of the model, with lower values indicating stronger confidence in the predictors’ influence.
+
+![](images/photo_2024-11-09_12-28-01.jpg)
+
+<br>
+
+### 6.1.2 Stepwise Model Selection
+
+**Stepwise Model Selection** allows users to refine the Multiple Linear Regression model by adding or removing predictor variables in a systematic way.
+
+Users can select from 3 approaches:
+
+-   **forward selection** (starting with no predictors and adding them),
+
+-   **backward elimination** (starting with all predictors and removing them),
+
+-   or **both** (a combination of adding and removing).
+
+Users also have control over the **confidence level** (e.g., 0.95 or 0.99), adjusting the stringency for including predictors based on statistical significance.
+
+**Interpretation and Visualization**: A radar chart provides a visual comparison of different models, allowing users to select and view how models perform across chosen predictors and confidence levels. This helps in identifying the most effective model based on the desired balance of predictors and statistical robustness.
+
+![](images/photo_2024-11-09_12-38-42.jpg)
+
+<br>
+
+### 6.1.3 Visualise Model Parameters
+
+**Visualize Model Parameters** offers users an interactive way to examine and compare the effects of predictor variables across different stepwise models. Users can select their preferred model from the stepwise selection results and sort parameter values in ascending or descending order for easier comparison.
+
+**Interpretation and Customization**: This visualization provides a clear view of each predictor’s influence on the outcome variable within the selected model, helping users assess the relative importance of predictors. By sorting the parameters, users can quickly identify the most impactful variables or spot subtle differences across models, aiding in deeper analysis and model refinement.
+
+![](images/photo_2024-11-09_12-41-34.jpg)
+
+<br>
+
+## 6.2 Local Explanatory Model
+
+### 6.2.1 Bandwidth Selection
+
+**Bandwidth Selection** in Geographically Weighted Regression (GWR) allows users to fine-tune the model’s spatial sensitivity by choosing between **fixed** and **adaptive** bandwidth options.
+
+-   **Side-by-Side Comparison**:\
+    Users can compare the effects of **fixed** vs. **adaptive** bandwidths side-by-side. This comparison highlights how each bandwidth type influences the spatial scale of the analysis:
+
+    -   **Fixed bandwidth** applies a constant spatial radius for all data points, which is ideal for evenly spaced data.
+
+    -   **Adaptive bandwidth** adjusts based on data density, using a larger bandwidth in sparse areas and a smaller one in dense areas, enhancing accuracy in regions with varying data distributions.
+
+-   **Selection Options for Each Bandwidth Type**:
+
+    -   **Approach**: Users can choose from **cross-validation** or **A/C corrected** methods to optimize the bandwidth.
+
+    -   **Kernel Method**: Users can select the **kernel type** (e.g., Gaussian, bisquare, or tricube) to define the shape and weighting of spatial influence around each data point, tailoring the model to the spatial structure of the data.
+
+**Purpose**:\
+This flexible bandwidth selection process allows users to determine the optimal balance of local vs. global influence, enhancing model accuracy and providing insights into spatial patterns at different scales.
+
+![](images/photo_2024-11-09_12-44-01.jpg)
+
+<br>
+
+### 6.2.2 Visualise Local R2
+
+**Visualizing Local** **R2** provides an in-depth look at how well the Geographically Weighted Regression (GWR) model explains variations in the outcome across different areas. This visualization highlights spatial differences in model performance, making it easier to identify regions where predictors more effectively capture local patterns.
+
+-   **Customization Options**:
+
+    -   **Bandwidth Type**: Choose between **fixed** or **adaptive** bandwidth to control the scale of spatial influence.
+
+    -   **Bandwidth Optimization Approach**: Select **cross-validation** or **A/C corrected** to determine the optimal bandwidth, allowing a focus on either predictive accuracy or model simplicity.
+
+    -   **Kernel Method**: Choose the kernel type (e.g., Gaussian, bisquare, or tricube) to set the shape and weighting of spatial influence, refining how local R2 values are calculated across locations.
+
+\
+This flexible visualization helps users assess where the model has strong or weak explanatory power across the study area, offering insights into local model fit. By adjusting bandwidth, approach, and kernel, users can explore how these choices impact model performance, identifying areas with robust predictions and areas needing further investigation.
+
+![](images/photo_2024-11-09_12-54-28.jpg)
+
+<br>
+
+### 6.2.2 Visualise Local R2
+
+**Visualizing Coefficient Estimates** in Geographically Weighted Regression (GWR) allows users to observe how the influence of each predictor varies spatially across the study area. This detailed visualization highlights the localized impacts of predictors, uncovering spatial trends and variations that a global model might overlook.
+
+The user selection is the same as Visualising Local R2.
+
+This customizable visualization provides a spatial breakdown of each predictor’s effect, allowing users to see where variables have stronger or weaker influences. By adjusting bandwidth, optimization approach, and kernel, users can refine the analysis, exploring how these factors affect the spatial distribution of predictor impacts and enhancing the understanding of location-specific dynamics in the data.
+
+![](images/photo_2024-11-09_13-01-15.jpg)
+
+<br>
+
+## 6.5 Spatial Non-Stationary Assumption
+
+The Spatial Non-Stationarity Assumption tool helps assess whether relationships between variables vary across different spatial locations. In this analysis, it tests whether the influence of **Provincial Competitiveness Index (PCI) dimensions** on **FDI metrics** (Total Number of Projects and Total Registered Capital) remains consistent across provinces or if it changes depending on regional characteristics.
+
+![](images/Spatial%20Non-Stationary%20Assumption.jpg)
