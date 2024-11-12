@@ -435,7 +435,7 @@ By examining the direction and size of each coefficient, we can start to underst
 ```{r}
 pci_2021 <- pci_2021 %>% 
   left_join(fdi %>% 
-              select(province_code, total_project_count, total_registered_capital), 
+              select(province_code, total_project_count, total_registered_capital),
             by = "province_code")
 
 pci_2021$total_registered_capital <- as.numeric(as.character(pci_2021$total_registered_capital))
@@ -954,8 +954,24 @@ pci_2021 <- pci_2021 %>%
 ::: panel-tabset
 ## Total Number of Projects
 
+::: callout-note
+After conducting the comparison, we observed that the best-performing selection using **Fixed bandwidth outperforms** the top selection from Adaptive bandwidth. Additionally, among the various approaches and kernels, the **'CV' approach combined with the 'boxcar' kernel** consistently **delivered the best performance**, yielding the highest Adjusted R². This indicates that Fixed bandwidth, along with the 'CV' approach and 'boxcar' kernel, offers the most effective configuration for this analysis.
+:::
+
 ::: panel-tabset
 ## Fixed Bandwidth
+
+::: callout-note
+After evaluating the various approaches and kernel types, we found that there were **no differences in** performance across the **different approaches**.
+
+However, when it came to kernel selection, the '**boxcar**' kernel consistently outperformed the others, achieving the **highest** **Adjusted R²**. This suggests that, for this particular dataset and modeling context, the 'boxcar' kernel offers the most effective fit.
+:::
+
+::: panel-tabset
+## Approach Selection
+
+::: panel-tabset
+## CV
 
 ```{r}
 bw.fixed_project <- bw.gwr(formula = total_project_count ~ 
@@ -982,7 +998,215 @@ gwr.fixed_project <- gwr.basic(formula = total_project_count ~
 gwr.fixed_project
 ```
 
+## AIC
+
+```{r}
+bw.fixed_project <- bw.gwr(formula = total_project_count ~ 
+                             `Entry Costs` + `Land Access` + Transparency + 
+                             `Time Costs` + `Informal charges` + Proactivity + 
+                             `Business Support Policy` + `Labor Policy` +
+                             `Law & Order`,
+                           data=pci_2021,
+                           approach="aic", 
+                           kernel="boxcar", 
+                           adaptive=FALSE, 
+                           longlat=FALSE)
+
+gwr.fixed_project <- gwr.basic(formula = total_project_count ~ 
+                                 `Entry Costs` +  `Land Access` + Transparency + 
+                                 `Time Costs` + `Informal charges` + Proactivity + 
+                                 `Business Support Policy` + `Labor Policy` +
+                                 `Law & Order`,
+                               data=pci_2021,
+                               bw=bw.fixed_project, 
+                               kernel = 'boxcar', 
+                               longlat = FALSE)
+
+gwr.fixed_project
+```
+
+## Approach Comparison
+
+```{r}
+approach_comparison <- read_xlsx("data/rds/project_local_fixed_approach_comparison.xlsx")
+
+ggplot(approach_comparison, aes(x = Approach, y = `Adjusted R2`)) +
+  geom_bar(stat = "identity", fill = "steelblue", color = "black") +
+  labs(title = "Comparison of Approaches",
+       x = "Approach",
+       y = "Adjusted R2") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotates x-axis labels if needed
+```
+:::
+
+## Kernel Selection
+
+::: panel-tabset
+## gaussian
+
+```{r}
+bw.fixed_project <- bw.gwr(formula = total_project_count ~ 
+                             `Entry Costs` + `Land Access` + Transparency + 
+                             `Time Costs` + `Informal charges` + Proactivity + 
+                             `Business Support Policy` + `Labor Policy` +
+                             `Law & Order`,
+                           data=pci_2021,
+                           approach="aic", 
+                           kernel="gaussian", 
+                           adaptive=FALSE, 
+                           longlat=FALSE)
+
+gwr.fixed_project <- gwr.basic(formula = total_project_count ~ 
+                                 `Entry Costs` +  `Land Access` + Transparency + 
+                                 `Time Costs` + `Informal charges` + Proactivity + 
+                                 `Business Support Policy` + `Labor Policy` +
+                                 `Law & Order`,
+                               data=pci_2021,
+                               bw=bw.fixed_project, 
+                               kernel = 'gaussian', 
+                               longlat = FALSE)
+
+gwr.fixed_project
+```
+
+## exponential
+
+```{r}
+bw.fixed_project <- bw.gwr(formula = total_project_count ~ 
+                             `Entry Costs` + `Land Access` + Transparency + 
+                             `Time Costs` + `Informal charges` + Proactivity + 
+                             `Business Support Policy` + `Labor Policy` +
+                             `Law & Order`,
+                           data=pci_2021,
+                           approach="aic", 
+                           kernel="exponential", 
+                           adaptive=FALSE, 
+                           longlat=FALSE)
+
+gwr.fixed_project <- gwr.basic(formula = total_project_count ~ 
+                                 `Entry Costs` +  `Land Access` + Transparency + 
+                                 `Time Costs` + `Informal charges` + Proactivity + 
+                                 `Business Support Policy` + `Labor Policy` +
+                                 `Law & Order`,
+                               data=pci_2021,
+                               bw=bw.fixed_project, 
+                               kernel = 'exponential', 
+                               longlat = FALSE)
+
+gwr.fixed_project
+```
+
+## bisquare
+
+```{r}
+bw.fixed_project <- bw.gwr(formula = total_project_count ~ 
+                             `Entry Costs` + `Land Access` + Transparency + 
+                             `Time Costs` + `Informal charges` + Proactivity + 
+                             `Business Support Policy` + `Labor Policy` +
+                             `Law & Order`,
+                           data=pci_2021,
+                           approach="aic", 
+                           kernel="bisquare", 
+                           adaptive=FALSE, 
+                           longlat=FALSE)
+
+gwr.fixed_project <- gwr.basic(formula = total_project_count ~ 
+                                 `Entry Costs` +  `Land Access` + Transparency + 
+                                 `Time Costs` + `Informal charges` + Proactivity + 
+                                 `Business Support Policy` + `Labor Policy` +
+                                 `Law & Order`,
+                               data=pci_2021,
+                               bw=bw.fixed_project, 
+                               kernel = 'bisquare', 
+                               longlat = FALSE)
+
+gwr.fixed_project
+```
+
+## tricube
+
+```{r}
+bw.fixed_project <- bw.gwr(formula = total_project_count ~ 
+                             `Entry Costs` + `Land Access` + Transparency + 
+                             `Time Costs` + `Informal charges` + Proactivity + 
+                             `Business Support Policy` + `Labor Policy` +
+                             `Law & Order`,
+                           data=pci_2021,
+                           approach="aic", 
+                           kernel="tricube", 
+                           adaptive=FALSE, 
+                           longlat=FALSE)
+
+gwr.fixed_project <- gwr.basic(formula = total_project_count ~ 
+                                 `Entry Costs` +  `Land Access` + Transparency + 
+                                 `Time Costs` + `Informal charges` + Proactivity + 
+                                 `Business Support Policy` + `Labor Policy` +
+                                 `Law & Order`,
+                               data=pci_2021,
+                               bw=bw.fixed_project, 
+                               kernel = 'tricube', 
+                               longlat = FALSE)
+
+gwr.fixed_project
+```
+
+## boxcar
+
+```{r}
+bw.fixed_project <- bw.gwr(formula = total_project_count ~ 
+                             `Entry Costs` + `Land Access` + Transparency + 
+                             `Time Costs` + `Informal charges` + Proactivity + 
+                             `Business Support Policy` + `Labor Policy` +
+                             `Law & Order`,
+                           data=pci_2021,
+                           approach="aic", 
+                           kernel="boxcar", 
+                           adaptive=FALSE, 
+                           longlat=FALSE)
+
+gwr.fixed_project <- gwr.basic(formula = total_project_count ~ 
+                                 `Entry Costs` +  `Land Access` + Transparency + 
+                                 `Time Costs` + `Informal charges` + Proactivity + 
+                                 `Business Support Policy` + `Labor Policy` +
+                                 `Law & Order`,
+                               data=pci_2021,
+                               bw=bw.fixed_project, 
+                               kernel = 'boxcar', 
+                               longlat = FALSE)
+
+gwr.fixed_project
+```
+
+## Kernel Comparison
+
+```{r}
+kernel_comparison <- read_xlsx("data/rds/project_local_fixed_kernel_comparison.xlsx")
+
+ggplot(kernel_comparison, aes(x = reorder(Kernel, `Adjusted R2`), y = `Adjusted R2`)) +
+  geom_bar(stat = "identity", fill = "steelblue", color = "black") +
+  labs(title = "Comparison of Kernel method",
+       x = "Kernel",
+       y = "Adjusted R2") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotates x-axis labels if needed
+```
+:::
+:::
+
 ## Adaptive Bandwidth
+
+::: callout-note
+After evaluating the various approaches and kernel types, we found that there were **no differences in** performance across the **different approaches**.
+
+However, when it came to kernel selection, the '**boxcar**' kernel consistently outperformed the others, achieving the **highest** **Adjusted R²**. This suggests that, for this particular dataset and modeling context, the 'boxcar' kernel offers the most effective fit.
+:::
+
+::: panel-tabset
+## Approach Selection
+
+::: panel-tabset
+## CV
 
 ```{r}
 bw.adaptive_project <- bw.gwr(formula = total_project_count ~ 
@@ -1009,12 +1233,248 @@ gwr.adaptive_project <- gwr.basic(formula = total_project_count ~
 
 gwr.adaptive_project
 ```
+
+## AIC
+
+```{r}
+bw.adaptive_project <- bw.gwr(formula = total_project_count ~ 
+                                `Entry Costs` + `Land Access` + Transparency + 
+                                `Time Costs` + `Informal charges` + Proactivity +
+                                `Business Support Policy` + `Labor Policy` +
+                                `Law & Order`,
+                              data=pci_2021,
+                              approach="aic", 
+                              kernel="boxcar", 
+                              adaptive=TRUE, 
+                              longlat=FALSE)
+
+gwr.adaptive_project <- gwr.basic(formula = total_project_count ~ 
+                                    `Entry Costs` + `Land Access` + Transparency +
+                                    `Time Costs` + `Informal charges` + Proactivity + 
+                                    `Business Support Policy` + `Labor Policy` +
+                                    `Law & Order`,
+                                  data=pci_2021,
+                                  bw=bw.adaptive_project,
+                                  kernel = 'boxcar',
+                                  adaptive=TRUE, 
+                                  longlat = FALSE)
+
+gwr.adaptive_project
+```
+
+## Approach Comparison
+
+```{r}
+approach_comparison <- read_xlsx("data/rds/project_local_adaptive_approach_comparison.xlsx")
+
+ggplot(approach_comparison, aes(x = Approach, y = `Adjusted R2`)) +
+  geom_bar(stat = "identity", fill = "steelblue", color = "black") +
+  labs(title = "Comparison of Approaches",
+       x = "Approach",
+       y = "Adjusted R2") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotates x-axis labels if needed
+```
+:::
+
+## Kernel Selection
+
+::: panel-tabset
+## gaussian
+
+```{r}
+bw.adaptive_project <- bw.gwr(formula = total_project_count ~ 
+                                `Entry Costs` + `Land Access` + Transparency + 
+                                `Time Costs` + `Informal charges` + Proactivity +
+                                `Business Support Policy` + `Labor Policy` +
+                                `Law & Order`,
+                              data=pci_2021,
+                              approach="CV", 
+                              kernel="gaussian", 
+                              adaptive=TRUE, 
+                              longlat=FALSE)
+
+gwr.adaptive_project <- gwr.basic(formula = total_project_count ~ 
+                                    `Entry Costs` + `Land Access` + Transparency +
+                                    `Time Costs` + `Informal charges` + Proactivity + 
+                                    `Business Support Policy` + `Labor Policy` +
+                                    `Law & Order`,
+                                  data=pci_2021,
+                                  bw=bw.adaptive_project,
+                                  kernel = 'gaussian',
+                                  adaptive=TRUE, 
+                                  longlat = FALSE)
+
+gwr.adaptive_project
+```
+
+## exponential
+
+```{r}
+bw.adaptive_project <- bw.gwr(formula = total_project_count ~ 
+                                `Entry Costs` + `Land Access` + Transparency + 
+                                `Time Costs` + `Informal charges` + Proactivity +
+                                `Business Support Policy` + `Labor Policy` +
+                                `Law & Order`,
+                              data=pci_2021,
+                              approach="CV", 
+                              kernel="exponential", 
+                              adaptive=TRUE, 
+                              longlat=FALSE)
+
+gwr.adaptive_project <- gwr.basic(formula = total_project_count ~ 
+                                    `Entry Costs` + `Land Access` + Transparency +
+                                    `Time Costs` + `Informal charges` + Proactivity + 
+                                    `Business Support Policy` + `Labor Policy` +
+                                    `Law & Order`,
+                                  data=pci_2021,
+                                  bw=bw.adaptive_project,
+                                  kernel = 'exponential',
+                                  adaptive=TRUE, 
+                                  longlat = FALSE)
+
+gwr.adaptive_project
+```
+
+## bisquare
+
+```{r}
+bw.adaptive_project <- bw.gwr(formula = total_project_count ~ 
+                                `Entry Costs` + `Land Access` + Transparency + 
+                                `Time Costs` + `Informal charges` + Proactivity +
+                                `Business Support Policy` + `Labor Policy` +
+                                `Law & Order`,
+                              data=pci_2021,
+                              approach="CV", 
+                              kernel="bisquare", 
+                              adaptive=TRUE, 
+                              longlat=FALSE)
+
+gwr.adaptive_project <- gwr.basic(formula = total_project_count ~ 
+                                    `Entry Costs` + `Land Access` + Transparency +
+                                    `Time Costs` + `Informal charges` + Proactivity + 
+                                    `Business Support Policy` + `Labor Policy` +
+                                    `Law & Order`,
+                                  data=pci_2021,
+                                  bw=bw.adaptive_project,
+                                  kernel = 'bisquare',
+                                  adaptive=TRUE, 
+                                  longlat = FALSE)
+
+gwr.adaptive_project
+```
+
+## tricube
+
+```{r}
+bw.adaptive_project <- bw.gwr(formula = total_project_count ~ 
+                                `Entry Costs` + `Land Access` + Transparency + 
+                                `Time Costs` + `Informal charges` + Proactivity +
+                                `Business Support Policy` + `Labor Policy` +
+                                `Law & Order`,
+                              data=pci_2021,
+                              approach="CV", 
+                              kernel="tricube", 
+                              adaptive=TRUE, 
+                              longlat=FALSE)
+
+gwr.adaptive_project <- gwr.basic(formula = total_project_count ~ 
+                                    `Entry Costs` + `Land Access` + Transparency +
+                                    `Time Costs` + `Informal charges` + Proactivity + 
+                                    `Business Support Policy` + `Labor Policy` +
+                                    `Law & Order`,
+                                  data=pci_2021,
+                                  bw=bw.adaptive_project,
+                                  kernel = 'tricube',
+                                  adaptive=TRUE, 
+                                  longlat = FALSE)
+
+gwr.adaptive_project
+```
+
+## boxcar
+
+```{r}
+bw.adaptive_project <- bw.gwr(formula = total_project_count ~ 
+                                `Entry Costs` + `Land Access` + Transparency + 
+                                `Time Costs` + `Informal charges` + Proactivity +
+                                `Business Support Policy` + `Labor Policy` +
+                                `Law & Order`,
+                              data=pci_2021,
+                              approach="CV", 
+                              kernel="boxcar", 
+                              adaptive=TRUE, 
+                              longlat=FALSE)
+
+gwr.adaptive_project <- gwr.basic(formula = total_project_count ~ 
+                                    `Entry Costs` + `Land Access` + Transparency +
+                                    `Time Costs` + `Informal charges` + Proactivity + 
+                                    `Business Support Policy` + `Labor Policy` +
+                                    `Law & Order`,
+                                  data=pci_2021,
+                                  bw=bw.adaptive_project,
+                                  kernel = 'boxcar',
+                                  adaptive=TRUE, 
+                                  longlat = FALSE)
+
+gwr.adaptive_project
+```
+
+## Kernel Comparison
+
+```{r}
+kernel_comparison <- read_xlsx("data/rds/project_local_adaptive_kernel_comparison.xlsx")
+
+ggplot(kernel_comparison, aes(x = reorder(Kernel, `Adjusted R2`), y = `Adjusted R2`)) +
+  geom_bar(stat = "identity", fill = "steelblue", color = "black") +
+  labs(title = "Comparison of Kernel method",
+       x = "Kernel",
+       y = "Adjusted R2") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotates x-axis labels if needed
+```
+:::
+:::
+
+## Bandwidth Comparison
+
+::: callout-note
+We will pick the best performing selection from each bandwidth and compare it.
+:::
+
+```{r}
+bandwidth_comparison <- read_xlsx("data/rds/project_local_bandwidth_comparison.xlsx")
+
+ggplot(bandwidth_comparison, aes(x = Bandwidth, y = `Adjusted R2`)) +
+  geom_bar(stat = "identity", fill = "steelblue", color = "black") +
+  labs(title = "Comparison of Approaches",
+       x = "Bandwidth",
+       y = "Adjusted R2") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotates x-axis labels if needed
+```
 :::
 
 ## Total Registered Capital
 
+::: callout-note
+After conducting the comparison, we observed that the best-performing selection using **Fixed bandwidth outperforms** the top selection from Adaptive bandwidth. Additionally, among the various approaches and kernels, the **‘CV’ approach combined with the ‘boxcar’ kernel** consistently **delivered the best performance**, yielding the highest Adjusted R². This indicates that Fixed bandwidth, along with the ‘CV’ approach and ‘boxcar’ kernel, offers the most effective configuration for this analysis.
+:::
+
 ::: panel-tabset
 ## Fixed Bandwidth
+
+::: callout-note
+After evaluating the various approaches and kernel types, we found that there were **no differences in** performance across the **different approaches**.
+
+However, when it came to kernel selection, the ‘**boxcar**’ kernel consistently outperformed the others, achieving the **highest** **Adjusted R²**. This suggests that, for this particular dataset and modeling context, the ‘boxcar’ kernel offers the most effective fit.
+:::
+
+::: panel-tabset
+## Approach Selection
+
+::: panel-tabset
+## CV
 
 ```{r}
 bw.fixed_capital <- bw.gwr(formula = total_registered_capital ~ 
@@ -1041,7 +1501,215 @@ gwr.fixed_capital <- gwr.basic(formula = total_registered_capital ~
 gwr.fixed_capital
 ```
 
+## AIC
+
+```{r}
+bw.fixed_capital <- bw.gwr(formula = total_registered_capital ~ 
+                             `Entry Costs` + `Land Access` + Transparency + 
+                             `Time Costs` + `Informal charges` + Proactivity + 
+                             `Business Support Policy` + `Labor Policy` +
+                             `Law & Order`,
+                           data=pci_2021,
+                           approach="AIC", 
+                           kernel="bisquare", 
+                           adaptive=FALSE, 
+                           longlat=FALSE)
+
+gwr.fixed_capital <- gwr.basic(formula = total_registered_capital ~ 
+                                 `Entry Costs` + `Land Access` + Transparency + 
+                                 `Time Costs` + `Informal charges` + Proactivity + 
+                                 `Business Support Policy` + `Labor Policy` +
+                                 `Law & Order`,
+                               data=pci_2021,
+                               bw=bw.fixed_capital, 
+                               kernel = 'bisquare', 
+                               longlat = FALSE)
+
+gwr.fixed_capital
+```
+
+## Approach Comparison
+
+```{r}
+approach_comparison <- read_xlsx("data/rds/capital_local_fixed_approach_comparison.xlsx")
+
+ggplot(approach_comparison, aes(x = Approach, y = `Adjusted R2`)) +
+  geom_bar(stat = "identity", fill = "steelblue", color = "black") +
+  labs(title = "Comparison of Approaches",
+       x = "Approach",
+       y = "Adjusted R2") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+:::
+
+## Kernel Selection
+
+::: panel-tabset
+## gaussian
+
+```{r}
+bw.fixed_capital <- bw.gwr(formula = total_registered_capital ~ 
+                             `Entry Costs` + `Land Access` + Transparency + 
+                             `Time Costs` + `Informal charges` + Proactivity + 
+                             `Business Support Policy` + `Labor Policy` +
+                             `Law & Order`,
+                           data=pci_2021,
+                           approach="CV", 
+                           kernel="gaussian", 
+                           adaptive=FALSE, 
+                           longlat=FALSE)
+
+gwr.fixed_capital <- gwr.basic(formula = total_registered_capital ~ 
+                                 `Entry Costs` + `Land Access` + Transparency + 
+                                 `Time Costs` + `Informal charges` + Proactivity + 
+                                 `Business Support Policy` + `Labor Policy` +
+                                 `Law & Order`,
+                               data=pci_2021,
+                               bw=bw.fixed_capital, 
+                               kernel = 'gaussian', 
+                               longlat = FALSE)
+
+gwr.fixed_capital
+```
+
+## exponential
+
+```{r}
+bw.fixed_capital <- bw.gwr(formula = total_registered_capital ~ 
+                             `Entry Costs` + `Land Access` + Transparency + 
+                             `Time Costs` + `Informal charges` + Proactivity + 
+                             `Business Support Policy` + `Labor Policy` +
+                             `Law & Order`,
+                           data=pci_2021,
+                           approach="CV", 
+                           kernel="exponential", 
+                           adaptive=FALSE, 
+                           longlat=FALSE)
+
+gwr.fixed_capital <- gwr.basic(formula = total_registered_capital ~ 
+                                 `Entry Costs` + `Land Access` + Transparency + 
+                                 `Time Costs` + `Informal charges` + Proactivity + 
+                                 `Business Support Policy` + `Labor Policy` +
+                                 `Law & Order`,
+                               data=pci_2021,
+                               bw=bw.fixed_capital, 
+                               kernel = 'exponential', 
+                               longlat = FALSE)
+
+gwr.fixed_capital
+```
+
+## bisquare
+
+```{r}
+bw.fixed_capital <- bw.gwr(formula = total_registered_capital ~ 
+                             `Entry Costs` + `Land Access` + Transparency + 
+                             `Time Costs` + `Informal charges` + Proactivity + 
+                             `Business Support Policy` + `Labor Policy` +
+                             `Law & Order`,
+                           data=pci_2021,
+                           approach="CV", 
+                           kernel="bisquare", 
+                           adaptive=FALSE, 
+                           longlat=FALSE)
+
+gwr.fixed_capital <- gwr.basic(formula = total_registered_capital ~ 
+                                 `Entry Costs` + `Land Access` + Transparency + 
+                                 `Time Costs` + `Informal charges` + Proactivity + 
+                                 `Business Support Policy` + `Labor Policy` +
+                                 `Law & Order`,
+                               data=pci_2021,
+                               bw=bw.fixed_capital, 
+                               kernel = 'bisquare', 
+                               longlat = FALSE)
+
+gwr.fixed_capital
+```
+
+## tricube
+
+```{r}
+bw.fixed_capital <- bw.gwr(formula = total_registered_capital ~ 
+                             `Entry Costs` + `Land Access` + Transparency + 
+                             `Time Costs` + `Informal charges` + Proactivity + 
+                             `Business Support Policy` + `Labor Policy` +
+                             `Law & Order`,
+                           data=pci_2021,
+                           approach="CV", 
+                           kernel="tricube", 
+                           adaptive=FALSE, 
+                           longlat=FALSE)
+
+gwr.fixed_capital <- gwr.basic(formula = total_registered_capital ~ 
+                                 `Entry Costs` + `Land Access` + Transparency + 
+                                 `Time Costs` + `Informal charges` + Proactivity + 
+                                 `Business Support Policy` + `Labor Policy` +
+                                 `Law & Order`,
+                               data=pci_2021,
+                               bw=bw.fixed_capital, 
+                               kernel = 'tricube', 
+                               longlat = FALSE)
+
+gwr.fixed_capital
+```
+
+## boxcar
+
+```{r}
+bw.fixed_capital <- bw.gwr(formula = total_registered_capital ~ 
+                             `Entry Costs` + `Land Access` + Transparency + 
+                             `Time Costs` + `Informal charges` + Proactivity + 
+                             `Business Support Policy` + `Labor Policy` +
+                             `Law & Order`,
+                           data=pci_2021,
+                           approach="CV", 
+                           kernel="boxcar", 
+                           adaptive=FALSE, 
+                           longlat=FALSE)
+
+gwr.fixed_capital <- gwr.basic(formula = total_registered_capital ~ 
+                                 `Entry Costs` + `Land Access` + Transparency + 
+                                 `Time Costs` + `Informal charges` + Proactivity + 
+                                 `Business Support Policy` + `Labor Policy` +
+                                 `Law & Order`,
+                               data=pci_2021,
+                               bw=bw.fixed_capital, 
+                               kernel = 'boxcar', 
+                               longlat = FALSE)
+
+gwr.fixed_capital
+```
+
+## Kernel Comparison
+
+```{r}
+kernel_comparison <- read_xlsx("data/rds/capital_local_fixed_kernel_comparison.xlsx")
+
+ggplot(kernel_comparison, aes(x = reorder(Kernel, `Adjusted R2`), y = `Adjusted R2`)) +
+  geom_bar(stat = "identity", fill = "steelblue", color = "black") +
+  labs(title = "Comparison of Kernel method",
+       x = "Kernel",
+       y = "Adjusted R2") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+:::
+:::
+
 ## Adaptive Bandwidth
+
+::: callout-note
+After evaluating the various approaches and kernel types, we found that there were **no differences in** performance across the **different approaches**.
+
+However, when it came to kernel selection, the ‘**bisquare**’ kernel consistently outperformed the others, achieving the **highest** **Adjusted R²**. This suggests that, for this particular dataset and modeling context, the ‘boxcar’ kernel offers the most effective fit.
+:::
+
+::: panel-tabset
+## Approach Selection
+
+::: panel-tabset
+## CV
 
 ```{r}
 bw.adaptive_capital <- bw.gwr(formula = total_registered_capital ~ 
@@ -1068,6 +1736,226 @@ gwr.adaptive_capital <- gwr.basic(formula = total_registered_capital ~
 
 gwr.adaptive_capital
 ```
+
+## AIC
+
+```{r}
+bw.adaptive_capital <- bw.gwr(formula = total_registered_capital ~ 
+                                `Entry Costs` + `Land Access` + Transparency + 
+                                `Time Costs` + `Informal charges` + Proactivity +
+                                `Business Support Policy` + `Labor Policy` +
+                                `Law & Order`,
+                              data=pci_2021,
+                              approach="AIC", 
+                              kernel="bisquare", 
+                              adaptive=TRUE, 
+                              longlat=FALSE)
+
+gwr.adaptive_capital <- gwr.basic(formula = total_registered_capital ~ 
+                                    `Entry Costs` + `Land Access` + Transparency + 
+                                    `Time Costs` + `Informal charges` + Proactivity + 
+                                    `Business Support Policy` + `Labor Policy` +
+                                    `Law & Order`,
+                                  data=pci_2021,
+                                  bw=bw.adaptive_capital, 
+                                  kernel = 'bisquare',
+                                  adaptive=TRUE, 
+                                  longlat = FALSE)
+
+gwr.adaptive_capital
+```
+
+## Approach Comparison
+
+```{r}
+approach_comparison <- read_xlsx("data/rds/capital_local_adaptive_approach_comparison.xlsx")
+
+ggplot(approach_comparison, aes(x = Approach, y = `Adjusted R2`)) +
+  geom_bar(stat = "identity", fill = "steelblue", color = "black") +
+  labs(title = "Comparison of Approaches",
+       x = "Approach",
+       y = "Adjusted R2") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+:::
+
+## Kernel Selection
+
+::: panel-tabset
+## gaussian
+
+```{r}
+bw.adaptive_capital <- bw.gwr(formula = total_registered_capital ~ 
+                                `Entry Costs` + `Land Access` + Transparency + 
+                                `Time Costs` + `Informal charges` + Proactivity +
+                                `Business Support Policy` + `Labor Policy` +
+                                `Law & Order`,
+                              data=pci_2021,
+                              approach="CV", 
+                              kernel="gaussian", 
+                              adaptive=TRUE, 
+                              longlat=FALSE)
+
+gwr.adaptive_capital <- gwr.basic(formula = total_registered_capital ~ 
+                                    `Entry Costs` + `Land Access` + Transparency + 
+                                    `Time Costs` + `Informal charges` + Proactivity + 
+                                    `Business Support Policy` + `Labor Policy` +
+                                    `Law & Order`,
+                                  data=pci_2021,
+                                  bw=bw.adaptive_capital, 
+                                  kernel = 'gaussian',
+                                  adaptive=TRUE, 
+                                  longlat = FALSE)
+
+gwr.adaptive_capital
+```
+
+## exponential
+
+```{r}
+bw.adaptive_capital <- bw.gwr(formula = total_registered_capital ~ 
+                                `Entry Costs` + `Land Access` + Transparency + 
+                                `Time Costs` + `Informal charges` + Proactivity +
+                                `Business Support Policy` + `Labor Policy` +
+                                `Law & Order`,
+                              data=pci_2021,
+                              approach="CV", 
+                              kernel="exponential", 
+                              adaptive=TRUE, 
+                              longlat=FALSE)
+
+gwr.adaptive_capital <- gwr.basic(formula = total_registered_capital ~ 
+                                    `Entry Costs` + `Land Access` + Transparency + 
+                                    `Time Costs` + `Informal charges` + Proactivity + 
+                                    `Business Support Policy` + `Labor Policy` +
+                                    `Law & Order`,
+                                  data=pci_2021,
+                                  bw=bw.adaptive_capital, 
+                                  kernel = 'exponential',
+                                  adaptive=TRUE, 
+                                  longlat = FALSE)
+
+gwr.adaptive_capital
+```
+
+## bisquare
+
+```{r}
+bw.adaptive_capital <- bw.gwr(formula = total_registered_capital ~ 
+                                `Entry Costs` + `Land Access` + Transparency + 
+                                `Time Costs` + `Informal charges` + Proactivity +
+                                `Business Support Policy` + `Labor Policy` +
+                                `Law & Order`,
+                              data=pci_2021,
+                              approach="CV", 
+                              kernel="bisquare", 
+                              adaptive=TRUE, 
+                              longlat=FALSE)
+
+gwr.adaptive_capital <- gwr.basic(formula = total_registered_capital ~ 
+                                    `Entry Costs` + `Land Access` + Transparency + 
+                                    `Time Costs` + `Informal charges` + Proactivity + 
+                                    `Business Support Policy` + `Labor Policy` +
+                                    `Law & Order`,
+                                  data=pci_2021,
+                                  bw=bw.adaptive_capital, 
+                                  kernel = 'bisquare',
+                                  adaptive=TRUE, 
+                                  longlat = FALSE)
+
+gwr.adaptive_capital
+```
+
+## tricube
+
+```{r}
+bw.adaptive_capital <- bw.gwr(formula = total_registered_capital ~ 
+                                `Entry Costs` + `Land Access` + Transparency + 
+                                `Time Costs` + `Informal charges` + Proactivity +
+                                `Business Support Policy` + `Labor Policy` +
+                                `Law & Order`,
+                              data=pci_2021,
+                              approach="CV", 
+                              kernel="tricube", 
+                              adaptive=TRUE, 
+                              longlat=FALSE)
+
+gwr.adaptive_capital <- gwr.basic(formula = total_registered_capital ~ 
+                                    `Entry Costs` + `Land Access` + Transparency + 
+                                    `Time Costs` + `Informal charges` + Proactivity + 
+                                    `Business Support Policy` + `Labor Policy` +
+                                    `Law & Order`,
+                                  data=pci_2021,
+                                  bw=bw.adaptive_capital, 
+                                  kernel = 'tricube',
+                                  adaptive=TRUE, 
+                                  longlat = FALSE)
+
+gwr.adaptive_capital
+```
+
+## boxcar
+
+```{r}
+bw.adaptive_capital <- bw.gwr(formula = total_registered_capital ~ 
+                                `Entry Costs` + `Land Access` + Transparency + 
+                                `Time Costs` + `Informal charges` + Proactivity +
+                                `Business Support Policy` + `Labor Policy` +
+                                `Law & Order`,
+                              data=pci_2021,
+                              approach="CV", 
+                              kernel="boxcar", 
+                              adaptive=TRUE, 
+                              longlat=FALSE)
+
+gwr.adaptive_capital <- gwr.basic(formula = total_registered_capital ~ 
+                                    `Entry Costs` + `Land Access` + Transparency + 
+                                    `Time Costs` + `Informal charges` + Proactivity + 
+                                    `Business Support Policy` + `Labor Policy` +
+                                    `Law & Order`,
+                                  data=pci_2021,
+                                  bw=bw.adaptive_capital, 
+                                  kernel = 'boxcar',
+                                  adaptive=TRUE, 
+                                  longlat = FALSE)
+
+gwr.adaptive_capital
+```
+
+## Kernel Comparison
+
+```{r}
+kernel_comparison <- read_xlsx("data/rds/capital_local_adaptive_kernel_comparison.xlsx")
+
+ggplot(kernel_comparison, aes(x = reorder(Kernel, `Adjusted R2`), y = `Adjusted R2`)) +
+  geom_bar(stat = "identity", fill = "steelblue", color = "black") +
+  labs(title = "Comparison of Kernel method",
+       x = "Kernel",
+       y = "Adjusted R2") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+:::
+:::
+
+## Bandwidth Comparison
+
+::: callout-note
+We will pick the best performing selection from each bandwidth and compare it.
+:::
+
+```{r}
+bandwidth_comparison <- read_xlsx("data/rds/capital_local_bandwidth_comparison.xlsx")
+
+ggplot(bandwidth_comparison, aes(x = Bandwidth, y = `Adjusted R2`)) +
+  geom_bar(stat = "identity", fill = "steelblue", color = "black") +
+  labs(title = "Comparison of Approaches",
+       x = "Bandwidth",
+       y = "Adjusted R2") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
 :::
 :::
 
@@ -1079,15 +1967,37 @@ gwr.adaptive_capital
 ## Total Number of Projects
 
 ```{r}
+# using the best Bandwidth selection
+bw.fixed_project <- bw.gwr(formula = total_project_count ~ 
+                             `Entry Costs` + `Land Access` + Transparency + 
+                             `Time Costs` + `Informal charges` + Proactivity + 
+                             `Business Support Policy` + `Labor Policy` +
+                             `Law & Order`,
+                           data=pci_2021,
+                           approach="aic", 
+                           kernel="boxcar", 
+                           adaptive=FALSE, 
+                           longlat=FALSE)
+
+gwr.fixed_project <- gwr.basic(formula = total_project_count ~ 
+                                 `Entry Costs` +  `Land Access` + Transparency + 
+                                 `Time Costs` + `Informal charges` + Proactivity + 
+                                 `Business Support Policy` + `Labor Policy` +
+                                 `Law & Order`,
+                               data=pci_2021,
+                               bw=bw.fixed_project, 
+                               kernel = 'boxcar', 
+                               longlat = FALSE)
+
 # Converting SDF into sf data.frame
-pci_2021 <- st_as_sf(gwr.fixed_project$SDF) %>%
+pci_2021_project <- st_as_sf(gwr.fixed_project$SDF) %>%
   st_transform(crs=3405)
 
 
 gwr.fixed.output_project <- as.data.frame(gwr.fixed_project$SDF)
-pci_2021.fixed_project <- cbind(pci_2021, as.matrix(gwr.fixed.output_project))
+pci_2021_project.fixed_project <- cbind(pci_2021_project, as.matrix(gwr.fixed.output_project))
 
-glimpse(pci_2021.fixed_project)
+glimpse(pci_2021_project.fixed_project)
 ```
 
 ```{r}
@@ -1096,13 +2006,13 @@ tmap_options(check.and.fix = TRUE)
 
 tmap_mode("view")
 
-str(pci_2021.fixed_project$Local_R2)
-pci_2021.fixed_project$Local_R2 <- unlist(pci_2021.fixed_project$Local_R2)
+str(pci_2021_project.fixed_project$Local_R2)
+pci_2021_project.fixed_project$Local_R2 <- unlist(pci_2021_project.fixed_project$Local_R2)
 
 
 tm_shape(provincial_boundaries)+
   tm_polygons(alpha = 0.1) +
-tm_shape(pci_2021.fixed_project) +  
+tm_shape(pci_2021_project.fixed_project) +  
   tm_polygons(col = "Local_R2",
           border.col = "gray60",
           border.lwd = 1) +
@@ -1112,15 +2022,36 @@ tm_shape(pci_2021.fixed_project) +
 ## Total Registered Capital
 
 ```{r}
+bw.fixed_capital <- bw.gwr(formula = total_registered_capital ~ 
+                             `Entry Costs` + `Land Access` + Transparency + 
+                             `Time Costs` + `Informal charges` + Proactivity + 
+                             `Business Support Policy` + `Labor Policy` +
+                             `Law & Order`,
+                           data=pci_2021,
+                           approach="CV", 
+                           kernel="boxcar", 
+                           adaptive=FALSE, 
+                           longlat=FALSE)
+
+gwr.fixed_capital <- gwr.basic(formula = total_registered_capital ~ 
+                                 `Entry Costs` + `Land Access` + Transparency + 
+                                 `Time Costs` + `Informal charges` + Proactivity + 
+                                 `Business Support Policy` + `Labor Policy` +
+                                 `Law & Order`,
+                               data=pci_2021,
+                               bw=bw.fixed_capital, 
+                               kernel = 'boxcar', 
+                               longlat = FALSE)
+
 # Converting SDF into sf data.frame
-pci_2021 <- st_as_sf(gwr.adaptive_capital$SDF) %>%
+pci_2021_capital <- st_as_sf(gwr.fixed_capital$SDF) %>%
   st_transform(crs=3405)
 
 
 gwr.adaptive.output_capital <- as.data.frame(gwr.adaptive_capital$SDF)
-pci_2021.adaptive_capital <- cbind(pci_2021, as.matrix(gwr.adaptive.output_capital))
+pci_2021_capital.adaptive_capital <- cbind(pci_2021_capital, as.matrix(gwr.adaptive.output_capital))
 
-glimpse(pci_2021.adaptive_capital)
+glimpse(pci_2021_capital.adaptive_capital)
 ```
 
 ```{r}
@@ -1129,55 +2060,17 @@ tmap_options(check.and.fix = TRUE)
 
 tmap_mode("view")
 
-str(pci_2021.adaptive_capital$Local_R2)
-pci_2021.adaptive_capital$Local_R2 <- unlist(pci_2021.adaptive_capital$Local_R2)
+str(pci_2021_capital.adaptive_capital$Local_R2)
+pci_2021_capital.adaptive_capital$Local_R2 <- unlist(pci_2021_capital.adaptive_capital$Local_R2)
 
 
 tm_shape(provincial_boundaries)+
   tm_polygons(alpha = 0.1) +
-tm_shape(pci_2021.adaptive_capital) +  
+tm_shape(pci_2021_capital.adaptive_capital) +  
   tm_polygons(col = "Local_R2",
           border.col = "gray60",
           border.lwd = 1) +
   tm_view(set.zoom.limits = c(5,8))
-```
-:::
-
-<br>
-
-### Visualising coefficient estimates
-
-::: panel-tabset
-## Total Number of Projects
-
-```{r}
-tmap_mode("view")
-
-AREA_SQM_SE <- tm_shape(provincial_boundaries)+
-  tm_polygons(alpha = 0.1) +
-tm_shape(pci_2021.fixed_project) +  
-  tm_polygons(col = "Transparency_SE",
-          border.col = "gray60",
-          border.lwd = 1) +
-  tm_view(set.zoom.limits = c(5,8))
-
-AREA_SQM_TV <- tm_shape(provincial_boundaries)+
-  tm_polygons(alpha = 0.1) +
-tm_shape(pci_2021.adaptive_capital) +  
-  tm_polygons(col = "Transparency_TV",
-          border.col = "gray60",
-          border.lwd = 1) +
-  tm_view(set.zoom.limits = c(5,8))
-
-tmap_arrange(AREA_SQM_SE, AREA_SQM_TV, 
-             asp=1, ncol=2,
-             sync = TRUE)
-```
-
-## Total Registered Capital
-
-```{r}
-
 ```
 :::
 
@@ -1273,9 +2166,3 @@ This flexible visualization helps users assess where the model has strong or wea
 ![](images/clipboard-2012200626.png)
 
 <br>
-
-## 6.5 Spatial Non-Stationary Assumption
-
-The Spatial Non-Stationarity Assumption tool helps assess whether relationships between variables vary across different spatial locations. In this analysis, it tests whether the influence of **Provincial Competitiveness Index (PCI) dimensions** on **FDI metrics** (Total Number of Projects and Total Registered Capital) remains consistent across provinces or if it changes depending on regional characteristics.
-
-![](images/Spatial%20Non-Stationary%20Assumption.jpg)
