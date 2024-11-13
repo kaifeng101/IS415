@@ -78,7 +78,7 @@ This project will analyze how PCI dimensions affect Vietnam's economic landscape
 
 ## *Local Analysis*
 
--   GWmodel
+-   *`GWmodel`*: For analyzing spatial variations in data, allowing for localized insights by modeling relationships that vary across geographic regions.
 :::
 
 ```{r}
@@ -95,7 +95,7 @@ We will be using these dataset:
 ## Administrative Boundaries
 
 -   **Source:** [Vietnam - Subnational Administrative Boundaries](https://data.humdata.org/dataset/cod-ab-vnm?) at HDX.
--   **Province Boundaries**: To map scores from various analyses onto geographic boundaries, enabling visualization of regional competitiveness patterns across the country
+-   **Province Boundaries**: To map various analyses onto geographic boundaries, enabling visualization of regional competitiveness patterns across the country
 
 ## General Data
 
@@ -399,9 +399,11 @@ fdi <- read_rds("data/rds/fdi.rds")
 
 <br/><br/>
 
-# **3.0 Prioritization Analysis for Provincial Development: Identifying Key Predictors**
+# **Prioritization Analysis for Provincial Development: Identifying Key Predictors**
 
-## 3.1 Correlation Matrix
+# **3.0 Global Model Overview: Understanding Broad Trends Across All Provinces**
+
+## Correlation Matrix
 
 The PCI consists of nine dimensions, each serving as an independent variable with varying degrees of influence on FDI data.
 
@@ -426,7 +428,7 @@ We found there isn't any pair that is highly correlated. We will later reconfirm
 
 <br>
 
-## 3.2 Conduct Linear Regression
+## Conduct Linear Regression
 
 To explore the influence of each PCI dimension on FDI, we begin with a linear regression model. This initial model will help us determine the relationship between each independent variable (PCI dimensions) and FDI.
 
@@ -521,7 +523,7 @@ In contrast, the model for **total registered capital** has a higher **Adjusted 
 
 <br>
 
-## 3.3 Run model to Select Independent variable
+## Run model to Select Independent variable
 
 I will now run different stepwise regression models to further investigate the specific positive and negative impacts of the independent variables on FDI.
 
@@ -631,7 +633,7 @@ plot(pci_capital_sb_mlr)
 
 <br>
 
-## 3.4 Model Selection
+## Model Selection
 
 Next, we will utilize a radar chart to visualize the performance of the different models.
 
@@ -675,7 +677,7 @@ In contrast, for predicting total registered capital, the best-performing model 
 
 <br>
 
-## 3.5 Visualize model parameters
+## Visualize model parameters
 
 We will now utilize the best-performing model to quantify the exact positive or negative impact (in numerical terms) that a one-unit change in the independent variables will have.
 
@@ -713,7 +715,7 @@ Focusing on these two policy areas will significantly bolster efforts to attract
 
 <br>
 
-## 3.6 Checking for multicollinearity
+## Checking for multicollinearity
 
 We will now confirm our Correlation Matrix by looking at the **Variance Inflation Factor (VIF)**
 
@@ -757,7 +759,7 @@ There is no Multicollinearity found in both the model used for Total Number of p
 
 <br>
 
-## 3.7 Linearity Assumption Test
+## Linearity Assumption Test
 
 ::: panel-tabset
 ## Total Number of Projects
@@ -777,9 +779,13 @@ capital_out[[2]]
 ```
 :::
 
+::: callout-note
+Most of the data points fall within the band for both Total Number of Projects and Total Registered Capital, indicating that they conform to the linearity assumption.
+:::
+
 <br>
 
-## 3.8 Normality Assumption Test
+## Normality Assumption Test
 
 ::: panel-tabset
 ## Total Number of Projects
@@ -795,9 +801,13 @@ plot(check_normality(pci_capital_sb_mlr$model))
 ```
 :::
 
+::: callout-note
+To test the normality assumption, data points should fall along the diagonal line. For the Total Number of Projects, the data points deviate from this line, indicating a potential violation of normality. However, the Total Registered Capital appears to meet the normality assumption, with most data points closely following the diagonal line.
+:::
+
 <br>
 
-## 3.9 Checking of outliers
+## Checking of outliers
 
 ::: panel-tabset
 ## Total Number of Projects
@@ -826,12 +836,12 @@ plot(capital_outliers <- check_outliers(pci_capital_sb_mlr$model,
 :::
 
 ::: callout-note
-After conducting the tests, I can conclude that both the models used for the Total Number of Projects and Total Registered Capital meet the necessary assumptions and successfully pass the tests.
+The Total Number of Projects has one outlier, which is acceptable, as some provinces may have extremely high or low values. I would not remove it, as it could provide valuable insights. For Total Registered Capital, no outliers were found.
 :::
 
 <br><br>
 
-# **4.0 Spatial Non-Stationary Assumption**
+## Spatial Non-Stationary Assumption
 
 ::: panel-tabset
 ## Total Number of Projects
@@ -937,7 +947,13 @@ Based on the results of the Moran's I tests, I can conclude that there is no evi
 
 <br/><br/>
 
-# **5.0 Local**
+::: callout-note
+With the global model completed, we’ve gained insights into the overall relationship between PCI factors and FDI across all provinces as a whole. Now, by shifting to a local model, we can dive deeper to uncover unique patterns and influences within each individual province. This local approach will help us see how factors vary on a regional level, offering a more tailored perspective.
+:::
+
+<br/><br/>
+
+# **5.0 Local Model Insights: Examining Province-Specific Influences on FDI**
 
 ### Preparing the data
 
@@ -2088,7 +2104,7 @@ Users have the flexibility to select specific combinations of predictor variable
 
 **Interpretation**: A higher Adjusted R2 indicates that the model more effectively explains the variation in the outcome. Additionally, p-value reflects the statistical significance of the model, with lower values indicating stronger confidence in the predictors’ influence.
 
-![](images/clipboard-1002269832.png)
+![](images/clipboard-2913783543.png)
 
 <br>
 
@@ -2108,7 +2124,7 @@ Users also have control over the **confidence level** (e.g., 0.95 or 0.99), adju
 
 **Interpretation and Visualization**: A radar chart provides a visual comparison of different models, allowing users to select and view how models perform across chosen predictors and confidence levels. This helps in identifying the most effective model based on the desired balance of predictors and statistical robustness.
 
-![](images/clipboard-1995167839.png)
+![](images/clipboard-3083308666.png)
 
 <br>
 
@@ -2118,7 +2134,7 @@ Users also have control over the **confidence level** (e.g., 0.95 or 0.99), adju
 
 **Interpretation and Customization**: This visualization provides a clear view of each predictor’s influence on the outcome variable within the selected model, helping users assess the relative importance of predictors. By sorting the parameters, users can quickly identify the most impactful variables or spot subtle differences across models, aiding in deeper analysis and model refinement.
 
-![](images/clipboard-1084091748.png)
+![](images/clipboard-2641013902.png)
 
 <br>
 
@@ -2144,7 +2160,7 @@ Users also have control over the **confidence level** (e.g., 0.95 or 0.99), adju
 **Purpose**:\
 This flexible bandwidth selection process allows users to determine the optimal balance of local vs. global influence, enhancing model accuracy and providing insights into spatial patterns at different scales.
 
-![](images/clipboard-4235001143.png)
+![](images/clipboard-1035847987.png)
 
 <br>
 
@@ -2163,6 +2179,10 @@ This flexible bandwidth selection process allows users to determine the optimal 
 \
 This flexible visualization helps users assess where the model has strong or weak explanatory power across the study area, offering insights into local model fit. By adjusting bandwidth, approach, and kernel, users can explore how these choices impact model performance, identifying areas with robust predictions and areas needing further investigation.
 
-![](images/clipboard-2012200626.png)
+![](images/clipboard-1710074202.png)
 
 <br>
+
+### 6.2.2 Visualise Coefficient Estimates
+
+![](images/clipboard-4213000115.png)
